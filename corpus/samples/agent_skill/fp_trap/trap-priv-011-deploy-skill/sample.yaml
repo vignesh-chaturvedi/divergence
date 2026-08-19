@@ -1,0 +1,23 @@
+id: trap-priv-011-deploy-skill
+kind: agent_skill
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A deployment skill runs deploy commands against production — that is what deploying
+
+    is. Its script shells out to a deploy CLI and its description talks about production,
+
+    credentials and secrets because the task involves them. A scanner keying on
+
+    ''production'', subprocess execution and secret references flags it, but every
+
+    capability is implied by the stated purpose. Posture: high blast radius. Not a risk
+
+    finding, and treating it as one is precisely the over-flagging the corpus measures.'
+  trap_families:
+  - privileged_by_design
+  - security_domain_vocabulary
+tags:
+- skill
+- deploy

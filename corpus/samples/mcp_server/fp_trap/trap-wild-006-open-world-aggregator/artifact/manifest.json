@@ -1,0 +1,42 @@
+{
+  "tools": [
+    {
+      "name": "weather",
+      "description": "Get current weather for a city from a public weather API.",
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "city"
+        ]
+      }
+    },
+    {
+      "name": "stock",
+      "description": "Get a stock quote from a public market-data API.",
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol"
+        ]
+      }
+    }
+  ]
+}

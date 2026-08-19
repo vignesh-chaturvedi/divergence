@@ -1,0 +1,20 @@
+id: trap-priv-006-env-inspector
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A diagnostics tool whose job is to report environment variables — a developer
+
+    inspecting their own config. It reads os.environ and returns it because that is what
+
+    the user asked for. A scanner keying on environment access plus the presence of
+
+    TOKEN/KEY names in the output flags it, but the capability is the advertised
+
+    function and nothing leaves the machine. Posture: reads environment. Not risk.'
+  trap_families:
+  - privileged_by_design
+  - security_domain_vocabulary
+tags:
+- environment

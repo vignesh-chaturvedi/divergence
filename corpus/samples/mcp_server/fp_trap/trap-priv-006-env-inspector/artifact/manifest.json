@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "list_env",
+      "description": "List environment variables, optionally filtered by name prefix. Returns values verbatim so you can debug configuration issues, including any secrets present in the environment. Output stays local to this response.",
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prefix": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

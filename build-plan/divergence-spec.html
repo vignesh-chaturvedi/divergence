@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Divergence — Build Spec v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E4E5DF;
+  --panel:#DBDCD3;
+  --panel-2:#D1D3C7;
+  --ink:#22241D;
+  --slate:#6B6F62;
+  --rule:#C2C4B6;
+  --moss:#55692F;
+  --moss-dim:#7C8C5C;
+  --amber:#96731A;
+  --amber-lite:#C9A93F;
+  --rust:#8A4B2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--body);font-size:16.5px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
+  background-image:linear-gradient(var(--rule) 1px,transparent 1px);
+  background-size:100% 34px;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent);
+          mask-image:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent);
+}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 28px}
+
+h1,h2,h3,h4{font-family:var(--display);font-weight:800;letter-spacing:-.02em;line-height:1.06;margin:0}
+h2{font-size:clamp(28px,3.4vw,40px);margin:0 0 6px}
+h3{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
+h4{font-size:14px;font-weight:600;letter-spacing:.02em;margin:0 0 6px}
+p{margin:0 0 14px}
+a{color:var(--moss)}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--slate);display:block;margin-bottom:12px;
+}
+.lede{font-size:19px;line-height:1.55;color:#33362C}
+.sm{font-size:14.5px;color:var(--slate)}
+code,.m{font-family:var(--mono);font-size:.88em}
+code{background:var(--panel-2);padding:1px 5px;border-radius:2px;color:#3B3E33}
+
+header{padding:80px 0 54px;border-bottom:1px solid var(--rule)}
+.title{font-size:clamp(46px,8.2vw,104px);line-height:.9;letter-spacing:-.045em}
+.title em{font-style:normal;color:var(--moss)}
+.sub{max-width:680px;margin-top:26px}
+.meta{
+  display:flex;flex-wrap:wrap;gap:8px 26px;margin-top:34px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);
+}
+.meta b{color:var(--ink);font-weight:600}
+
+.sig{margin:44px 0 0;padding:26px 24px 20px;background:var(--panel);border:1px solid var(--rule)}
+.sig svg{width:100%;height:auto;display:block;max-width:820px;margin:0 auto}
+.sig figcaption{
+  font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--slate);text-align:center;margin-top:14px;
+}
+.trace{stroke-dasharray:1000;stroke-dashoffset:1000;animation:draw 1.5s ease-out .2s forwards}
+.trace.b{animation-delay:.75s}
+.gap-mark{opacity:0;animation:fade .5s ease-out 2.1s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes fade{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .trace,.gap-mark{animation:none;stroke-dashoffset:0;opacity:1}
+}
+
+.cols{display:grid;grid-template-columns:186px 1fr;gap:56px;padding:56px 0 96px;align-items:start}
+nav{position:sticky;top:34px}
+nav ol{list-style:none;margin:0;padding:0}
+nav a{
+  display:block;padding:6px 0 6px 13px;border-left:2px solid var(--rule);
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--slate);text-decoration:none;transition:.16s;
+}
+nav a:hover{color:var(--ink);border-color:var(--moss-dim)}
+nav a.on{color:var(--moss);border-color:var(--moss);font-weight:600}
+
+section{margin-bottom:76px;scroll-margin-top:28px}
+section > .eyebrow{border-top:2px solid var(--ink);padding-top:10px}
+
+.panel{background:var(--panel);border:1px solid var(--rule);padding:22px 24px;margin:20px 0}
+.panel.moss{border-left:3px solid var(--moss)}
+.panel.amber{border-left:3px solid var(--amber)}
+.panel.rust{border-left:3px solid var(--rust)}
+.panel h4.lbl{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  margin-bottom:10px;font-weight:600;
+}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+.card{background:var(--panel);border:1px solid var(--rule);padding:18px 20px}
+.card h4{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--moss);margin-bottom:10px}
+.card p{font-size:14.5px;line-height:1.55;margin:0}
+
+ul.tight{margin:0 0 14px;padding-left:19px}
+ul.tight li{margin-bottom:7px}
+ul.tight li::marker{color:var(--moss-dim)}
+
+.comp{border-top:1px solid var(--rule);margin-top:20px}
+.comp-row{display:grid;grid-template-columns:38px 1fr;gap:18px;padding:16px 0;border-bottom:1px solid var(--rule)}
+.comp-id{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--moss);padding-top:3px}
+.comp-row h3{font-size:17px;margin-bottom:5px}
+.comp-row p{font-size:14.8px;margin:0 0 8px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+  padding:2.5px 7px;border:1px solid var(--rule);background:var(--paper);color:var(--slate);
+}
+.tag.free{border-color:var(--moss-dim);color:var(--moss)}
+.tag.paid{border-color:var(--amber-lite);color:var(--amber)}
+.tag.rs{border-color:var(--rust);color:var(--rust)}
+
+.phase{background:var(--panel);border:1px solid var(--rule);border-top:3px solid var(--moss);padding:24px;margin-bottom:16px}
+.phase.rs{border-top-color:var(--rust)}
+.phase-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin-bottom:14px}
+.phase-id{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--moss);letter-spacing:-.02em}
+.phase.rs .phase-id{color:var(--rust)}
+.phase-head h3{flex:1;min-width:220px;font-size:22px;font-weight:800;font-family:var(--display);margin:0}
+.dur{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate)}
+.gate{
+  margin-top:16px;padding:12px 14px;background:var(--paper);border-left:3px solid var(--amber);
+  font-size:14.5px;
+}
+.gate b{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--amber);display:block;margin-bottom:4px;font-weight:600;
+}
+.checkpoint{
+  border:2px dashed var(--ink);background:var(--panel-2);padding:20px 24px;margin:22px 0;
+}
+.checkpoint h3{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}
+.checkpoint p{margin:0;font-size:15px}
+
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14.5px}
+th{
+  text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--slate);font-weight:600;padding:0 12px 8px 0;border-bottom:2px solid var(--ink);
+}
+td{padding:11px 12px 11px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+td.n{font-family:var(--mono);color:var(--moss);white-space:nowrap}
+
+pre{
+  background:var(--ink);color:#D8DACB;padding:16px 18px;overflow-x:auto;
+  font-family:var(--mono);font-size:12.5px;line-height:1.66;margin:16px 0;
+}
+pre .c{color:#8B9276}
+pre .k{color:var(--amber-lite)}
+
+footer{border-top:1px solid var(--rule);padding:30px 0 60px;font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--slate)}
+
+@media(max-width:860px){
+  .cols{grid-template-columns:1fr;gap:0;padding-top:36px}
+  nav{position:static;margin-bottom:44px;border-bottom:1px solid var(--rule);padding-bottom:20px}
+  nav ol{display:flex;flex-wrap:wrap;gap:0 4px}
+  nav a{border-left:none;border-bottom:2px solid var(--rule);padding:5px 9px}
+  .grid2{grid-template-columns:1fr}
+  header{padding:52px 0 40px}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Build specification · v2 · scope locked</span>
+  <h1 class="title">Diverg<em>e</em>nce</h1>
+  <p class="lede sub">A precision-first analyzer for MCP servers and agent skills. It does not look for dangerous-sounding text. It looks for the gap between what an artifact <em>claims</em> to do and what it <em>actually</em> does — measured statically, then confirmed in a sandbox.</p>
+  <div class="meta">
+    <span>Targets <b>MCP servers + skills</b></span>
+    <span>Core <b>Python 3.12</b></span>
+    <span>Sandbox <b>Rust</b></span>
+    <span>Ships as <b>uvx CLI</b></span>
+    <span>Timeline <b>11–14 weeks</b></span>
+    <span>Ship checkpoint <b>week ~8</b></span>
+  </div>
+
+  <figure class="sig">
+    <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram: an artifact's declared capabilities compared against its actual behaviour, with the unexplained gap highlighted">
+      <text x="0" y="16" font-family="IBM Plex Mono,monospace" font-size="11" letter-spacing="1.6" fill="#6B6F62">C — CLAIMS</text>
+      <line class="trace" x1="0" y1="46" x2="470" y2="46" stroke="#55692F" stroke-width="9"/>
+      <text x="0" y="76" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#6B6F62">read file · format output</text>
+
+      <text x="0" y="120" font-family="IBM Plex Mono,monospace" font-size="11" letter-spacing="1.6" fill="#6B6F62">B — BEHAVIOUR</text>
+      <line class="trace b" x1="0" y1="150" x2="470" y2="150" stroke="#55692F" stroke-width="9"/>
+      <line class="trace b" x1="470" y1="150" x2="740" y2="150" stroke="#96731A" stroke-width="9"/>
+
+      <g class="gap-mark">
+        <line x1="470" y1="34" x2="470" y2="162" stroke="#22241D" stroke-width="1" stroke-dasharray="3 4"/>
+        <line x1="740" y1="120" x2="740" y2="162" stroke="#96731A" stroke-width="1" stroke-dasharray="3 4"/>
+        <text x="482" y="112" font-family="IBM Plex Mono,monospace" font-size="11.5" font-weight="600" fill="#96731A">UNDECLARED</text>
+        <text x="482" y="180" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#96731A">reads ~/.ssh · outbound POST</text>
+        <text x="758" y="154" font-family="IBM Plex Mono,monospace" font-size="22" font-weight="600" fill="#96731A">△</text>
+      </g>
+    </svg>
+    <figcaption>A finding is the gap, not the capability</figcaption>
+  </figure>
+</header>
+
+<div class="cols">
+<nav aria-label="Sections">
+  <ol>
+    <li><a href="#problem">The problem</a></li>
+    <li><a href="#thesis">Thesis</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#arch">Architecture</a></li>
+    <li><a href="#sandbox">Sandbox</a></li>
+    <li><a href="#bench">The benchmark</a></li>
+    <li><a href="#phases">Phases</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#cost">Cost model</a></li>
+    <li><a href="#scope">Non-goals</a></li>
+    <li><a href="#risk">Risks</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ============ PROBLEM ============ -->
+<section id="problem">
+  <span class="eyebrow">01 — What is actually broken</span>
+  <h2>Scanners are loud and wrong</h2>
+  <p>When an agent connects to an MCP server it receives a manifest — tool names, free-text descriptions, input schemas — and injects all of it straight into the model's context. Those description fields have no length limit, no content validation, no sanitisation. They are executable instructions wearing the costume of documentation. Agent skills work the same way: a description field decides when the skill loads, and bundled scripts do whatever they were written to do.</p>
+
+  <p>Three attack families exploit this. <strong>Poisoning</strong> — adversarial instructions hidden in descriptions or schemas. <strong>Shadowing</strong> — an artifact mimicking a trusted one, or redefining the agent's behaviour toward a different server entirely. <strong>Rug pulls</strong> — an artifact that behaves for weeks, then mutates after approval. All three live in natural-language metadata and runtime behaviour. Conventional static analysis sees none of them.</p>
+
+  <div class="panel amber">
+    <h4 class="lbl" style="color:var(--amber)">The failure that defines this project</h4>
+    <p style="margin:0">An independent April 2026 audit ran two open-source scanners across 33 servers and 433 tools. Of 27 flagged patterns, only 6 were real — roughly a <strong>78% false positive rate</strong>. Eight detections fired on ordinary dependency instructions of the form <em>"You must call this function first."</em> Nine more fired on a browser-automation server for doing browser automation.</p>
+  </div>
+
+  <p>That is the whole diagnosis. Pattern matchers cannot separate a legitimate instruction from an adversarial one, because at the level of text <em>they are the same string</em>. And they cannot separate a dangerous capability from a dangerous artifact, because a shell-execution server is supposed to execute shells.</p>
+
+  <p>A scanner nobody trusts is a scanner nobody runs. Precision is not a nice-to-have here — it is the entire product.</p>
+</section>
+
+<!-- ============ THESIS ============ -->
+<section id="thesis">
+  <span class="eyebrow">02 — The idea worth building</span>
+  <h2>Neither surface is decidable alone</h2>
+  <p>There are two surfaces in an agent system. The <strong>code surface</strong> — source, dependencies, binaries — is what traditional tooling reads. The <strong>reasoning surface</strong> — descriptions, schemas, capability advertisements — is where these attacks live. Existing scanners pick one and lose.</p>
+  <p>Read only the code and you miss a poisoned description entirely; the code is clean. Read only the description and you drown in false positives; scary text is usually just honest text. The signal is in neither surface. It is in the <em>disagreement between them</em>.</p>
+
+  <div class="panel moss">
+    <h4 class="lbl" style="color:var(--moss)">Core primitive — capability–intent divergence</h4>
+    <p style="margin:0 0 12px">For every artifact, build independent capability sets and compare them:</p>
+    <ul class="tight" style="margin-bottom:0">
+      <li><strong>C — Claim.</strong> What the name and description say it does, extracted into a fixed schema.</li>
+      <li><strong>S — Schema.</strong> What the input parameters, MCP annotations, or skill frontmatter permit.</li>
+      <li><strong>B<sub>s</sub> — Static behaviour.</strong> What the implementation reaches for: filesystem, network, environment, subprocess, crypto.</li>
+      <li><strong>B<sub>d</sub> — Dynamic behaviour.</strong> What it actually touches when executed under observation.</li>
+    </ul>
+  </div>
+
+  <p>Now the rules write themselves, and they are about relationships rather than substrings:</p>
+
+  <table>
+    <thead><tr><th>Relation</th><th>Reading</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr><td class="n">B ⊆ C</td><td>Does what it advertises, however alarming that is</td><td>Posture note, not a finding</td></tr>
+      <tr><td class="n">B ⊄ C</td><td>Reaches for capabilities it never declared</td><td>High-confidence risk</td></tr>
+      <tr><td class="n">S ⊄ C</td><td>Accepts parameters the description never mentions</td><td>Hidden-interface risk</td></tr>
+      <tr><td class="n">annot ≠ B</td><td><code>readOnlyHint: true</code> on something that writes</td><td>Critical — the manifest lies</td></tr>
+      <tr><td class="n">C ⊄ S ∪ B</td><td>Description instructs behaviour the artifact cannot perform</td><td>Injection targeting <em>other</em> tools</td></tr>
+      <tr><td class="n">B<sub>d</sub> ⊄ B<sub>s</sub></td><td>Does at runtime what its source never showed</td><td>Obfuscation or dynamic loading</td></tr>
+    </tbody>
+  </table>
+
+  <p>The fifth row is the shadowing case, and keyword scanners structurally cannot reach it. An artifact whose description manipulates how the agent treats a <em>different</em> server has no suspicious code and no suspicious capability of its own. It only looks wrong when you notice its instructions exceed its own reach.</p>
+
+  <p>The sixth row only became available once the sandbox was in scope, and it is the strongest anti-evasion signal in the system. Static analysis loses to obfuscation; execution does not care how the payload was encoded.</p>
+
+  <div class="panel">
+    <h4>Two output channels, never mixed</h4>
+    <p class="sm" style="margin:0"><strong>Posture</strong> describes what an artifact can do — high blast radius, broad filesystem access, wildcard tool permissions. Useful, non-urgent, fires on benign and malicious artifacts alike. <strong>Risk</strong> describes divergence — a claim the artifact contradicts. Only risk findings count toward the verdict. Splitting these two channels eliminates most of the 78% on its own, before a single model runs.</p>
+  </div>
+</section>
+
+<!-- ============ SKILLS ============ -->
+<section id="skills">
+  <span class="eyebrow">03 — Why skills were the right scope call</span>
+  <h2>Skills are the thesis in miniature</h2>
+  <p>Adding skills roughly doubles the corpus work. It is worth it anyway, because a skill is the divergence primitive in its purest available form — all three representations sit in one artifact, authored by one person, under no obligation to agree with each other.</p>
+
+  <table>
+    <thead><tr><th>Set</th><th>In an MCP server</th><th>In an agent skill</th></tr></thead>
+    <tbody>
+      <tr><td class="n">C</td><td>Tool description text</td><td>Frontmatter <code>description</code></td></tr>
+      <tr><td class="n">S</td><td>JSON Schema + annotations</td><td><code>allowed-tools</code> declaration</td></tr>
+      <tr><td class="n">B<sub>s</sub></td><td>Handler source</td><td>Bundled scripts and resources</td></tr>
+    </tbody>
+  </table>
+
+  <p>Two things make skills a distinct problem rather than a copy of the server case, and both produce finding classes with no MCP equivalent.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Description is a routing signal</h4>
+      <p>A skill's description does not merely document it — it decides <em>when the agent loads it at all</em>. A description written to over-trigger is a routing hijack: the skill claims relevance far wider than its actual capability, inserting itself into conversations it has no business in. Detect it as trigger-scope divergence — <code>C<sub>trigger</sub> ⊅ B</code>.</p>
+    </div>
+    <div class="card">
+      <h4>Progressive disclosure hides the payload</h4>
+      <p>The body of a skill file is not loaded until the skill fires, and bundled scripts may never be read by the model at all. A scanner that reads frontmatter and stops sees a clean artifact. The payload is one directory away, and that gap is exactly where a supply-chain attack lives.</p>
+    </div>
+  </div>
+
+  <div class="panel moss">
+    <h4 class="lbl" style="color:var(--moss)">The wildcard trap — do not repeat this mistake</h4>
+    <p style="margin:0">A <code>"*"</code> wildcard in a skill's tool permissions looks like an obvious red flag and is not: thousands of entirely benign published artifacts declare it. It is a least-privilege <em>posture</em> issue, not evidence of malice. Existing benchmarks have already had to withdraw headline scores after conflating the two. Route wildcards to the posture channel and keep them out of the verdict — this single rule is worth several points of precision.</p>
+  </div>
+
+  <p class="sm">Skill-specific finding classes to implement: script capability exceeding <code>allowed-tools</code>; remote resource fetched at load time; credential or environment access unimplied by the description; trigger scope exceeding capability; bundled binary with no corresponding source.</p>
+</section>
+
+<!-- ============ ARCHITECTURE ============ -->
+<section id="arch">
+  <span class="eyebrow">04 — Architecture</span>
+  <h2>Nine components</h2>
+  <p>Ordered by dependency. Each independently testable. The first four contain no model inference at all.</p>
+
+  <div class="comp">
+    <div class="comp-row">
+      <div class="comp-id">A1</div>
+      <div>
+        <h3>Acquisition</h3>
+        <p>Resolve a target from an npm or PyPI spec, a GitHub URL, a skill directory, a local client config, or a live endpoint. Fetch manifests <em>without executing</em> — static parse of tool-registration calls and skill frontmatter is primary; a sandboxed <code>tools/list</code> is fallback only. Record provenance: publisher, registry record, signature status, first-seen date, typosquat distance to popular names. For skills, walk the full bundle — scripts, resources, anything the frontmatter does not mention.</p>
+        <div class="tags"><span class="tag free">no inference</span><span class="tag">tree-sitter</span><span class="tag">registry APIs</span></div>
+      </div>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-id">A2</div>
+      <div>
+        <h3>Declared-interface analyzer — S</h3>
+        <p>For servers: parse each tool's JSON Schema; detect undocumented parameters, over-permissive types where an enum belongs, and MCP annotation contradictions. A tool declaring <code>readOnlyHint</code> while its handler writes to disk is a deterministic, zero-cost, high-severity finding. For skills: parse frontmatter, normalise <code>allowed-tools</code> into the same capability vocabulary, and route wildcards to posture.</p>
+        <div class="tags"><span class="tag free">no inference</span><span class="tag">deterministic</span></div>
+      </div>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-id">A3</div>
+      <div>
+        <h3>Manifest ledger — rug-pull detection</h3>
+        <p>Canonicalise and hash every tool definition and skill bundle at first approval. On rescan, diff and classify: <em>cosmetic</em> (wording), <em>capability-expanding</em> (new params, new sinks, new bundled files), or <em>semantics-inverting</em> (the instruction now says something materially different). Post-approval mutation is the attack MCP's design makes easy and no single-snapshot scanner can catch.</p>
+        <div class="tags"><span class="tag free">no inference</span><span class="tag">temporal</span></div>
+      </div>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-id">A4</div>
+      <div>
+        <h3>Static behaviour extractor — B<sub>s</sub></h3>
+        <p>tree-sitter parse of the implementation. Walk from each entrypoint — tool handler, or skill script — and collect the reachable capability set: filesystem reads and writes, subprocess spawns, outbound sockets, environment and credential-file access, dynamic evaluation. Then a light taint pass tracking parameters into sinks. Skills need shell grammar alongside TypeScript and Python, and shell is where static analysis is weakest — which is precisely why the sandbox matters.</p>
+        <div class="tags"><span class="tag free">no inference</span><span class="tag">TS · Python · shell</span><span class="tag">reachability</span></div>
+      </div>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-id">A5</div>
+      <div>
+        <h3>Claim extractor — C</h3>
+        <p>A small local model reads name plus description and emits a fixed capability schema — no prose, constrained decoding, temperature zero, cached by content hash. Output shape: <code>{reads, writes, network, exec, secrets, side_effects, instructs_other_tools, trigger_scope}</code>. Determinism matters more than eloquence; the same description must always produce the same set or the benchmark stops being reproducible.</p>
+        <div class="tags"><span class="tag free">local model</span><span class="tag">constrained decode</span><span class="tag">cached</span></div>
+      </div>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-id">A6</div>
+      <div>
+        <h3>Divergence engine</h3>
+        <p>Set algebra over C, S, B<sub>s</sub> and B<sub>d</sub> plus the rule table from §02. Every finding carries concrete evidence — a <code>file:line</code> for the behaviour, the exact description sentence for the claim — and a confidence score. No finding ships without both halves of the contradiction attached. This is what makes output reviewable instead of merely alarming.</p>
+        <div class="tags"><span class="tag free">no inference</span><span class="tag">evidence-bound</span></div>
+      </div>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-id">A7</div>
+      <div>
+        <h3>Fleet analyzers</h3>
+        <p>Single-artifact scanning is structurally blind to three real attacks, so these operate over the whole installed set. <strong>Shadowing:</strong> embed all names and descriptions, flag near-duplicates from different publishers. <strong>Preference and routing manipulation:</strong> score superlative and priority language relative to siblings — "always use this one" is only meaningful against what else is installed. <strong>Toxic flow:</strong> build a capability graph across servers and skills, flag any path combining untrusted input, private data access, and outbound egress.</p>
+        <div class="tags"><span class="tag free">local embeddings</span><span class="tag">cross-artifact</span><span class="tag">differentiator</span></div>
+      </div>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-id">A8</div>
+      <div>
+        <h3>Sandbox runner — B<sub>d</sub></h3>
+        <p>Separate Rust crate. Boots a server or executes a skill's scripts under kernel-enforced confinement and records what they actually touch. Normalises the observed trace into the same capability vocabulary as A4, so the divergence engine consumes it without special-casing. Detailed in §05.</p>
+        <div class="tags"><span class="tag rs">Rust</span><span class="tag">seccomp · Landlock</span><span class="tag">optional dependency</span></div>
+      </div>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-id">A9</div>
+      <div>
+        <h3>Adjudicator</h3>
+        <p>A frontier model sees only contested cases: mid-confidence findings, and disagreements between representations that the rule table cannot settle. It receives extracted evidence, not the raw artifact, and returns a verdict with reasoning. Hard budget constraint — if more than 5% of findings escalate here, the tiering has failed and the pipeline needs fixing rather than more tokens.</p>
+        <div class="tags"><span class="tag paid">API cost</span><span class="tag">&lt;5% of findings</span><span class="tag">gated</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SANDBOX ============ -->
+<section id="sandbox">
+  <span class="eyebrow">05 — The systems layer</span>
+  <h2>Sandbox runner</h2>
+  <p>Static analysis loses to obfuscation. A base64-encoded payload, a dynamically constructed import, a shell script assembling a command from fragments — all of these defeat reachability analysis and none of them defeat execution under observation. This is the component that makes the scanner hard to evade, and it happens to be the one where Rust is genuinely the right tool rather than a résumé flourish.</p>
+
+  <div class="panel rust">
+    <h4 class="lbl" style="color:var(--rust)">Design</h4>
+    <ul class="tight" style="margin-bottom:0">
+      <li><strong>Filesystem:</strong> Landlock LSM restricts the process to an overlay containing decoy credentials — a fake <code>~/.ssh</code>, a fake token file. Anything that reads them is caught red-handed with no ambiguity to adjudicate.</li>
+      <li><strong>Syscalls:</strong> seccomp-bpf in trace mode rather than kill mode. Record everything; block nothing except the genuinely destructive. The goal is observation, not defence.</li>
+      <li><strong>Network:</strong> isolated namespace with a recording resolver and a sinkhole. Every attempted egress is logged with its destination, and nothing leaves the host.</li>
+      <li><strong>Normalisation:</strong> raw syscall trace collapses into the same capability vocabulary A4 emits, so B<sub>s</sub> and B<sub>d</sub> are directly comparable.</li>
+    </ul>
+  </div>
+
+  <p>The payoff is the sixth rule in §02. When <code>B<sub>d</sub> ⊄ B<sub>s</sub></code> — the artifact does something at runtime that its source never revealed — that is near-conclusive evidence of deliberate obfuscation. Benign code does not accidentally hide its capabilities from a parser.</p>
+
+  <div class="panel">
+    <h4>Containment rule</h4>
+    <p class="sm" style="margin:0">The runner ships as its own crate and is an <em>optional</em> dependency. The Python core detects its absence and degrades to static-only with a clear notice. This is deliberate insulation: if the sandbox work overruns — and systems work usually does — it cannot take the rest of the project down with it. The v1 release does not depend on it.</p>
+  </div>
+
+  <p class="sm">Coverage note: dynamic analysis only observes the paths that actually execute. A tool whose malicious branch requires specific arguments will look clean. Drive it with the benchmark's own inputs and report observed coverage alongside every dynamic finding — the number is part of the result, not a footnote.</p>
+</section>
+
+<!-- ============ BENCHMARK ============ -->
+<section id="bench">
+  <span class="eyebrow">06 — The part that gets shared</span>
+  <h2>The corpus</h2>
+  <p>Build the benchmark before the scanner. This inverts the usual order deliberately, and it is the single highest-leverage decision in the plan.</p>
+
+  <p>Existing benchmarks in this space measure <em>recall</em> — can a scanner find the planted attack? That is the easy half. Nobody has built a corpus that measures <em>precision</em> against benign artifacts engineered to look malicious, which is exactly where every shipping scanner falls over. The template already exists in application security: the OWASP Benchmark includes safe programs deliberately written to resemble vulnerable ones, formalised in recent work as <em>false-positive traps</em>. No such corpus exists for MCP servers or agent skills.</p>
+
+  <table>
+    <thead><tr><th>Stratum</th><th>Count</th><th>Composition</th></tr></thead>
+    <tbody>
+      <tr><td class="n">Malicious</td><td class="n">~100</td><td>One or more samples per attack type in the published taxonomy — description poisoning, schema poisoning, return-value injection, shadowing, preference manipulation, post-approval mutation — split across servers and skills, plus hand-authored variants that evade the obvious keyword.</td></tr>
+      <tr><td class="n">FP traps</td><td class="n">~150</td><td>Benign artifacts that look dangerous. Legitimate shell executors. Legitimate credential managers. Genuine dependency instructions phrased imperatively. Browser automation doing browser automation. Database tools running arbitrary SQL by design. Skills with wildcard tool permissions and nothing to hide. <strong>This stratum is the contribution.</strong></td></tr>
+      <tr><td class="n">Benign plain</td><td class="n">~120</td><td>Ordinary servers and skills pulled from public registries, sampled across categories for realistic base rates.</td></tr>
+      <tr><td class="n">Obfuscated</td><td class="n">~30</td><td>Malicious payloads deliberately hidden from static analysis. Exists to measure what the sandbox adds over B<sub>s</sub> alone — the headline number for the v1.1 writeup.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Every sample carries a written label rationale — why it is malicious, or specifically why it merely looks that way. The rationales are as much of the artifact as the samples, because they are what a reviewer checks when they disagree with your verdict.</p>
+
+  <div class="panel moss">
+    <h4 class="lbl" style="color:var(--moss)">Headline metric</h4>
+    <p style="margin:0">Report precision, recall and F1 — but lead with <strong>FPR-on-traps</strong>, and publish the full table for every open-source scanner you can run alongside yours. "Here is a reproducible corpus, here is how six existing tools score on it, here is where mine wins and where it loses" is a fundamentally stronger artifact than "I built a scanner." It is also the version that gets cited rather than starred and forgotten.</p>
+  </div>
+
+  <p class="sm">Publish the corpus under a permissive licence with a versioned dataset tag. Report your own losses honestly — a benchmark whose author's tool wins every category reads as marketing and gets dismissed on sight.</p>
+</section>
+
+<!-- ============ PHASES ============ -->
+<section id="phases">
+  <span class="eyebrow">07 — Build sequence</span>
+  <h2>Seven phases, one checkpoint</h2>
+  <p>Each phase has an exit gate. Do not start the next until the gate passes. The checkpoint after P4 exists because scope grew on two axes — a shippable artifact must exist before the systems work begins.</p>
+
+  <div class="phase">
+    <div class="phase-head"><span class="phase-id">P0</span><h3>Ground truth first</h3><span class="dur">~2 weeks</span></div>
+    <p>Build a starter corpus of 80 labelled samples across both artifact types — 25 malicious, 35 traps, 20 benign — before writing any detection code. Write the scoring harness. Run existing open-source scanners against it and record their numbers verbatim.</p>
+    <p class="sm" style="margin-bottom:0">You now have a metric and a baseline before you have a product. Everything downstream becomes measurable instead of vibes.</p>
+    <div class="gate"><b>Exit gate</b>A single <code>make bench</code> reproduces a baseline comparison table from a clean checkout.</div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-head"><span class="phase-id">P1</span><h3>Deterministic core</h3><span class="dur">1–2 weeks</span></div>
+    <p>Acquisition (A1), declared-interface analyzer (A2), manifest ledger (A3). Zero inference. Ship a CLI that resolves a server or skill bundle from any supported source, prints its declared surface, flags contradictions, and records a hash for later diffing.</p>
+    <div class="gate"><b>Exit gate</b>Non-zero score on the benchmark using no model whatsoever. Annotation and <code>allowed-tools</code> contradictions alone should already beat something.</div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-head"><span class="phase-id">P2</span><h3>Static behaviour extraction</h3><span class="dur">2–3 weeks</span></div>
+    <p>tree-sitter grammars for TypeScript, Python and shell. Capability sets from actual API surface. Reachability from handler and script entrypoints, then parameter taint into sinks. Expect this to overrun — it is real static analysis, and shell will fight you.</p>
+    <div class="gate"><b>Exit gate</b>Capability sets manually verified on 50 real artifacts. Track and publish your own false-negative rate.</div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-head"><span class="phase-id">P3</span><h3>Divergence engine</h3><span class="dur">1–2 weeks</span></div>
+    <p>Claim extractor (A5) on a local model with constrained decoding. Set algebra and the rule table (A6). Split output into posture and risk channels. This is the phase where the thesis either holds or does not.</p>
+    <div class="gate"><b>Exit gate</b>FPR on the trap stratum beats every baseline scanner by a wide, defensible margin. This number is the headline of the writeup.</div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-head"><span class="phase-id">P4</span><h3>Fleet and routing analysis</h3><span class="dur">1–2 weeks</span></div>
+    <p>Shadowing via embeddings, toxic-flow graph across servers and skills, relative preference and trigger-scope scoring (A7).</p>
+    <div class="gate"><b>Exit gate</b>Detects a planted shadow tool and an over-triggering skill inside a realistic multi-artifact config, without flagging the legitimate originals.</div>
+  </div>
+
+  <div class="checkpoint">
+    <h3>◇ Ship checkpoint — v1</h3>
+    <p><code>uvx</code> distribution, SARIF output, GitHub Action, benchmark table published, writeup drafted. <strong>The project is complete and defensible at this point.</strong> Everything after this is upside, and structuring it this way means an overrun in the systems work costs you a version number rather than the whole project.</p>
+  </div>
+
+  <div class="phase rs">
+    <div class="phase-head"><span class="phase-id">P5</span><h3>Sandbox runner</h3><span class="dur">2–3 weeks</span></div>
+    <p>Rust crate: Landlock filesystem overlay with decoy credentials, seccomp-bpf trace-mode syscall recording, isolated network namespace with sinkhole, normalisation into the shared capability vocabulary. Wire B<sub>d</sub> into the divergence engine as an optional input.</p>
+    <div class="gate"><b>Exit gate</b>Catches at least half the obfuscated stratum that static analysis missed, with observed-coverage reported per finding.</div>
+  </div>
+
+  <div class="phase rs">
+    <div class="phase-head"><span class="phase-id">P6</span><h3>Publish v1.1</h3><span class="dur">~1 week</span></div>
+    <p>Final benchmark run across all strata. Writeup covering the divergence thesis, the trap corpus, the static-versus-dynamic delta, and an honest section on where the approach fails.</p>
+    <div class="gate"><b>Exit gate</b>Someone who is not you runs it against their own config and files an issue.</div>
+  </div>
+</section>
+
+<!-- ============ STACK ============ -->
+<section id="stack">
+  <span class="eyebrow">08 — Stack</span>
+  <h2>Language decisions</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>Python 3.12 — core</h4>
+      <p>First-class MCP SDK, <code>uvx</code> distribution matching how every tool in this space ships, tree-sitter bindings covering all three target grammars from one codebase, local inference a single import away. Security researchers read Python; that matters for a project whose output is meant to be reviewed.</p>
+    </div>
+    <div class="card">
+      <h4>Rust — sandbox crate</h4>
+      <p>Kernel-level confinement, syscall tracing, namespace isolation. A genuine systems problem where Rust is the correct answer. Shipped separately, consumed over a stable JSON interface, optional at install time.</p>
+    </div>
+  </div>
+  <div class="panel rust">
+    <p style="margin:0" class="sm"><strong>Explicitly rejected:</strong> writing the whole thing in Rust. You would spend the first three weeks on JSON Schema handling and async plumbing instead of the detection logic that is the entire point. Rust earns its place at the sandbox boundary specifically — that is where the systems story is real rather than decorative.</p>
+  </div>
+  <p class="sm">Supporting: tree-sitter for parsing, a local sentence-embedding model for shadowing similarity, a small instruct model for claim extraction, SQLite for the manifest ledger, SARIF for output interchange.</p>
+</section>
+
+<!-- ============ COST ============ -->
+<section id="cost">
+  <span class="eyebrow">09 — Economics</span>
+  <h2>Cost model</h2>
+  <p>The tiering is a design constraint, not an optimisation. A scanner that costs real money per run does not get adopted, does not get run in CI, and does not survive its own benchmark suite.</p>
+  <table>
+    <thead><tr><th>Tier</th><th>Work</th><th>Marginal cost</th></tr></thead>
+    <tbody>
+      <tr><td class="n">T0</td><td>Acquisition, declared-interface analysis, manifest diffing, provenance</td><td>Zero</td></tr>
+      <tr><td class="n">T1</td><td>Static behaviour extraction, reachability, taint</td><td>Zero</td></tr>
+      <tr><td class="n">T2</td><td>Claim extraction, embedding similarity — local models</td><td>Compute only</td></tr>
+      <tr><td class="n">T2b</td><td>Sandboxed execution — local VM or container</td><td>Compute only</td></tr>
+      <tr><td class="n">T3</td><td>Adjudication of contested findings — hosted model</td><td>Capped at 5% of findings</td></tr>
+    </tbody>
+  </table>
+  <p>Cache every model output by content hash. Benchmark runs must be fully reproducible offline after the first pass — otherwise the corpus is not a benchmark, it is a bill.</p>
+</section>
+
+<!-- ============ SCOPE ============ -->
+<section id="scope">
+  <span class="eyebrow">10 — Boundaries</span>
+  <h2>Non-goals</h2>
+  <ul class="tight">
+    <li><strong>Not a runtime firewall.</strong> This analyses artifacts before and between runs. Inline request interception is a different product with different latency constraints.</li>
+    <li><strong>Not a CVE database.</strong> Consume existing advisory feeds; do not curate your own.</li>
+    <li><strong>Not multi-language beyond three grammars.</strong> TypeScript, Python and shell cover the overwhelming majority of published artifacts. Go and Rust servers are v2 at the earliest.</li>
+    <li><strong>Not a hosted service.</strong> Offline-by-default is a feature — the configuration you are asking about is itself sensitive.</li>
+    <li><strong>Not a policy engine.</strong> Emit findings; let existing tooling decide what to block.</li>
+    <li><strong>Not cross-platform sandboxing in v1.1.</strong> Landlock and seccomp are Linux. macOS and Windows degrade to static-only, stated plainly in the docs.</li>
+  </ul>
+</section>
+
+<!-- ============ RISKS ============ -->
+<section id="risk">
+  <span class="eyebrow">11 — Honest risks</span>
+  <h2>What could sink this</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>The space is crowded</h4>
+      <p>Snyk, Cisco, eSentire and several independent projects all ship scanners for this, and a public scanner leaderboard already exists. Detection breadth is not available as a wedge. Precision measurement is — but only if you actually win on it.</p>
+    </div>
+    <div class="card">
+      <h4>Scope grew on two axes</h4>
+      <p>Skills doubled the corpus and the sandbox added a systems subproject. The P4 checkpoint is the mitigation, and it only works if you honour it: ship v1 before touching Rust, even if the sandbox looks more interesting that week.</p>
+    </div>
+    <div class="card">
+      <h4>Labelling is the real work</h4>
+      <p>The trap stratum requires judgement on every sample, and every rationale is something a reviewer can dispute. Slow, unglamorous, and simultaneously the moat — which is exactly why it cannot be deferred.</p>
+    </div>
+    <div class="card">
+      <h4>Static extraction is genuinely hard</h4>
+      <p>Dynamic dispatch, re-exports and wrapper layers defeat naive reachability, and shell defeats nearly everything. Scope aggressively, report your false-negative rate openly, and do not claim soundness you do not have.</p>
+    </div>
+    <div class="card">
+      <h4>Sandbox coverage is partial by nature</h4>
+      <p>Dynamic analysis only sees paths that execute. A malicious branch gated on specific arguments looks clean. Report observed coverage with every dynamic finding or the numbers mislead.</p>
+    </div>
+    <div class="card">
+      <h4>Local model determinism</h4>
+      <p>If claim extraction drifts between runs, the benchmark stops being reproducible and the headline number stops meaning anything. Constrained decoding and content-hash caching are load-bearing, not conveniences.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>Divergence · build spec v2 · precision over coverage</footer>
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav a'));
+  var secs  = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      var i = secs.indexOf(e.target);
+      if(i < 0) return;
+      links.forEach(function(l){ l.classList.remove('on'); });
+      links[i].classList.add('on');
+    });
+  }, { rootMargin: '-10% 0px -70% 0px', threshold: 0 });
+  secs.forEach(function(s){ if(s) obs.observe(s); });
+})();
+</script>
+</body>
+</html>

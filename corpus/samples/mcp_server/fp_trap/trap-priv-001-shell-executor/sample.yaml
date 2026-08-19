@@ -1,0 +1,26 @@
+id: trap-priv-001-shell-executor
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A shell-execution server that executes shells. Its whole declared purpose is
+    to run
+
+    commands the user provides, so subprocess spawning, arbitrary arguments and shell
+
+    access are the advertised capability, not a hidden one. B is a subset of C: every
+
+    dangerous thing it does, it says it does. A keyword scanner sees subprocess.run,
+
+    os.system and ''execute arbitrary commands'' and flags it; that is exactly the false
+
+    positive the April audit''s browser-automation case documented. The correct output
+
+    is a posture note about blast radius, never a risk finding.'
+  trap_families:
+  - privileged_by_design
+  - security_domain_vocabulary
+tags:
+- audit-echo
+- shell

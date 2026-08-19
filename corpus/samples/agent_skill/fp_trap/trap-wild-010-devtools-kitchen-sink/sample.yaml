@@ -1,0 +1,24 @@
+id: trap-wild-010-devtools-kitchen-sink
+kind: agent_skill
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A developer-tools skill that honestly does a lot — lint, format, test, build
+    — with
+
+    a bundled script that shells out to each. It combines a broad trigger, a wide
+
+    allowed-tools list, and subprocess execution, so it trips several heuristics at once.
+
+    But every capability is declared and the script only invokes the named dev tools.
+
+    The accumulation of posture signals is not the same as a risk finding, and a scanner
+
+    that sums heuristics into a verdict will wrongly condemn it.'
+  trap_families:
+  - wildcard_permissions
+  - broad_but_honest_trigger
+tags:
+- wildcard
+- broad

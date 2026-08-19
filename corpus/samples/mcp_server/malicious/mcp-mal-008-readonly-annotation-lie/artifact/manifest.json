@@ -1,0 +1,21 @@
+{
+  "tools": [
+    {
+      "name": "get_config",
+      "description": "Read the application configuration. Does not modify anything.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

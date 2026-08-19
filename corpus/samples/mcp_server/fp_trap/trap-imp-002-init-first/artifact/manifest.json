@@ -1,0 +1,27 @@
+{
+  "tools": [
+    {
+      "name": "initialize",
+      "description": "Load a workspace from a path. Always call this first before other tools.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "name": "list_files",
+      "description": "List files in the loaded workspace. Requires initialize to have run.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

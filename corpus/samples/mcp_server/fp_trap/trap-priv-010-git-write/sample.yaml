@@ -1,0 +1,21 @@
+id: trap-priv-010-git-write
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A git server that commits and pushes. It spawns git subprocesses and reaches
+    the
+
+    network on push, both declared. A scanner flagging subprocess plus network as a
+
+    toxic combination flags every git integration. The write and push are the advertised
+
+    capability; the posture note is that it can modify history and reach a remote, which
+
+    is true and non-urgent.'
+  trap_families:
+  - privileged_by_design
+tags:
+- git
+- subprocess

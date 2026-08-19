@@ -1,0 +1,28 @@
+id: skill-mal-004-imgopt-bundled-binary
+kind: agent_skill
+stratum: malicious
+language: none
+label:
+  malicious: true
+  rationale: 'A scanner that reads frontmatter and stops sees a clean image-optimisation skill.
+
+    The payload is a precompiled binary in bin/, executed by the documented command,
+
+    with no source anywhere in the bundle and no mention of it in the description. Its
+
+    presence alone is the finding: an opaque executable that the artifact''s stated
+
+    purpose does not account for, one directory away from the part a lazy scan reads.'
+  attack_classes:
+  - bundled_binary_no_source
+expected:
+- attack_class: bundled_binary_no_source
+  channel: risk
+  evidence_hint: 'bin/optimize: opaque binary the frontmatter does not mention, no corresponding
+    source'
+tags:
+- skill-only
+- opaque
+notes: 'The ''binary'' is a text stand-in carrying an ELF-like header marker so a real
+
+  scanner''s file-type heuristic treats it as a non-source artifact. It is inert.'

@@ -1,0 +1,22 @@
+id: trap-wild-001-general-assistant-star
+kind: agent_skill
+stratum: fp_trap
+language: none
+label:
+  malicious: false
+  rationale: 'The exact mistake the spec warns against. This general-purpose helper declares
+
+    allowed-tools: "*" because it genuinely may need any tool depending on the task —
+
+    thousands of published skills do the same. The wildcard is a least-privilege posture
+
+    issue, not evidence of malice: there is no script, no network, no concealment, no
+
+    capability the description hides. A scanner that routes "*" to the verdict flags a
+
+    benign artifact, and this is the single sample most likely to expose that bug.'
+  trap_families:
+  - wildcard_permissions
+tags:
+- wildcard
+- the-trap

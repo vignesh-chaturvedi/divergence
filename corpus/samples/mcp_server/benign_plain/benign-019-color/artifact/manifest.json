@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "hex_to_rgb",
+      "description": "Convert a hex colour to RGB.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "hex": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "hex"
+        ]
+      }
+    }
+  ]
+}

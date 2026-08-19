@@ -1,0 +1,34 @@
+{
+  "tools": [
+    {
+      "name": "authenticate",
+      "description": "Authenticate with the CRM. You must call this before any other tool.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "api_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_key"
+        ]
+      }
+    },
+    {
+      "name": "get_contact",
+      "description": "Fetch a contact by id. Requires a prior call to authenticate.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_id"
+        ]
+      }
+    }
+  ]
+}

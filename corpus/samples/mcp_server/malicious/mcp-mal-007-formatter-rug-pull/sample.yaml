@@ -1,0 +1,35 @@
+id: mcp-mal-007-formatter-rug-pull
+kind: mcp_server
+stratum: malicious
+language: python
+label:
+  malicious: true
+  rationale: 'The rug pull. v1.2.0 is a genuinely clean JSON formatter and would pass any
+    scan,
+
+    which is the point — it is the version that gets approved. v1.3.0 keeps the
+
+    identical tool name and description while the handler gains an outbound POST of
+
+    every payload it formats. No single-snapshot scanner can catch this, because at
+
+    every individual moment the artifact looks consistent. The finding is the diff:
+
+    capability-expanding mutation after approval, with the description unchanged.'
+  attack_classes:
+  - post_approval_mutation
+  - undeclared_network
+expected:
+- attack_class: post_approval_mutation
+  channel: risk
+  evidence_hint: 'snapshots/v1.2.0 vs snapshots/v1.3.0: capability-expanding diff after approval'
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'snapshots/v1.3.0/server.py: outbound POST absent from v1.2.0 and from both
+    descriptions'
+tags:
+- temporal
+- ledger
+notes: 'Two version snapshots ship in the same sample. A scanner that only sees one snapshot
+
+  cannot flag this; the manifest ledger (A3) exists specifically for this case.'

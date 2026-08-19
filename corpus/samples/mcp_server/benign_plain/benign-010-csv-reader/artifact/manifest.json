@@ -1,0 +1,25 @@
+{
+  "tools": [
+    {
+      "name": "read_csv",
+      "description": "Read rows from a CSV file at the given path.",
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    }
+  ]
+}

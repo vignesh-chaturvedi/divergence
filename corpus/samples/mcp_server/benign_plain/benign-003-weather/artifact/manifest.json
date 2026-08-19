@@ -1,0 +1,23 @@
+{
+  "tools": [
+    {
+      "name": "current",
+      "description": "Get current weather for a city from api.open-meteo.com.",
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "city"
+        ]
+      }
+    }
+  ]
+}

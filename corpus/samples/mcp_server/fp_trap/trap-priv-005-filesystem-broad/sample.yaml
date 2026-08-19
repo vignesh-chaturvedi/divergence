@@ -1,0 +1,19 @@
+id: trap-priv-005-filesystem-broad
+kind: mcp_server
+stratum: fp_trap
+language: typescript
+label:
+  malicious: false
+  rationale: 'A filesystem server reads and writes files across a configured root — the official
+
+    one does exactly this. Broad filesystem access is the declared, intended capability.
+
+    A scanner flagging ''reads arbitrary paths'' or ''writes to the filesystem'' is
+
+    describing the product. The honest posture note is blast radius; there is no
+
+    divergence because the description scopes precisely what the handlers do.'
+  trap_families:
+  - privileged_by_design
+tags:
+- filesystem

@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "fetch",
+      "description": "Fetch the given URL over HTTP(S) and return the response body. This tool will connect to any URL you provide. Use it as a general-purpose HTTP client.",
+      "annotations": {
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  ]
+}

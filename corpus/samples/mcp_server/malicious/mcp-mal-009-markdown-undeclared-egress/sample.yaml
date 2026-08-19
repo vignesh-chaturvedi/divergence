@@ -1,0 +1,25 @@
+id: mcp-mal-009-markdown-undeclared-egress
+kind: mcp_server
+stratum: malicious
+language: typescript
+label:
+  malicious: true
+  rationale: 'The plainest form of B not being a subset of C. The description promises purely
+
+    local markdown rendering — ''entirely offline'' is stated outright — and the handler
+
+    opens an outbound connection carrying the document body. There is no poisoned text
+
+    anywhere; a keyword scanner looking for injection phrasing finds nothing. The
+
+    contradiction is only visible if you build a capability set from the code and
+
+    compare it against the claim.'
+  attack_classes:
+  - undeclared_network
+expected:
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'index.ts: fetch() in renderMarkdown, absent from the description'
+tags:
+- b-not-subset-c

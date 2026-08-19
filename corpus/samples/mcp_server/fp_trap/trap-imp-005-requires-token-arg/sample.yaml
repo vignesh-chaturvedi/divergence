@@ -1,0 +1,21 @@
+id: trap-imp-005-requires-token-arg
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'The schema documents a required ''session_token'' argument and the description
+    says the
+
+    agent must obtain it from the login tool first. Passing a token between related tools
+
+    is normal API design; a scanner that reads ''must'' plus a token-shaped parameter as
+
+    credential harvesting misreads a documented handshake. The token originates from this
+
+    same server''s login tool — nothing external is solicited.'
+  trap_families:
+  - imperative_language
+tags:
+- requires
+- argument

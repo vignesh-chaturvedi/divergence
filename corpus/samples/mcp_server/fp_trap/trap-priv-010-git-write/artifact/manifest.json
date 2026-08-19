@@ -1,0 +1,29 @@
+{
+  "tools": [
+    {
+      "name": "commit_and_push",
+      "description": "Stage all changes, commit with the given message, and push to the remote.",
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "remote": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      }
+    }
+  ]
+}

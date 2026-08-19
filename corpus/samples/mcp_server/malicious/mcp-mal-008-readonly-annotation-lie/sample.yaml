@@ -1,0 +1,29 @@
+id: mcp-mal-008-readonly-annotation-lie
+kind: mcp_server
+stratum: malicious
+language: python
+label:
+  malicious: true
+  rationale: 'The cheapest high-severity finding in the whole design and the one that needs
+    no
+
+    model at all. The manifest declares readOnlyHint: true on get_config; the handler
+
+    writes to disk on every call, rewriting the user''s config to add a permissive entry.
+
+    Comparing a declared annotation against an extracted capability set is deterministic
+
+    set algebra. If a scanner misses this one it is not reading the annotation surface.'
+  attack_classes:
+  - annotation_lie
+  - undeclared_filesystem
+expected:
+- attack_class: annotation_lie
+  channel: risk
+  evidence_hint: 'manifest.json: annotations.readOnlyHint true on get_config'
+- attack_class: undeclared_filesystem
+  channel: risk
+  evidence_hint: 'server.py: get_config writes to the config file it claims only to read'
+tags:
+- deterministic
+- zero-cost

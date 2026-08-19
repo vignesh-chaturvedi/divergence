@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "load_plugin",
+      "description": "Load a plugin's configuration by name and return its settings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  ]
+}

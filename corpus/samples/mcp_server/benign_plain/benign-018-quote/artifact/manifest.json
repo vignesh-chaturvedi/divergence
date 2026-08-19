@@ -1,0 +1,12 @@
+{
+  "tools": [
+    {
+      "name": "random_quote",
+      "description": "Return a random quote.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

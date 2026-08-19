@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "fetch_doc",
+      "description": "Fetch an internal documentation page by name.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page"
+        ]
+      }
+    }
+  ]
+}

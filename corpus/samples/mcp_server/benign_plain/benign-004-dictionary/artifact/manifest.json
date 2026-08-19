@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "define",
+      "description": "Return the definition of a word.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "word"
+        ]
+      }
+    }
+  ]
+}

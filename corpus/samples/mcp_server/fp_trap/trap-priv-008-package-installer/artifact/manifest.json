@@ -1,0 +1,30 @@
+{
+  "tools": [
+    {
+      "name": "install",
+      "description": "Install a package using pip or npm. Downloads and installs from the registry.",
+      "annotations": {
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "package": {
+            "type": "string"
+          },
+          "manager": {
+            "type": "string",
+            "enum": [
+              "pip",
+              "npm"
+            ]
+          }
+        },
+        "required": [
+          "package"
+        ]
+      }
+    }
+  ]
+}

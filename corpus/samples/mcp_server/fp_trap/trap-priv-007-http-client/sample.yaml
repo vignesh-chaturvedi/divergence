@@ -1,0 +1,20 @@
+id: trap-priv-007-http-client
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'An HTTP client tool makes outbound requests to arbitrary URLs — that is its
+    reason
+
+    to exist, the MCP equivalent of curl. Undeclared network egress is the number-one
+
+    risk signal in the whole design, and here it is fully declared: the description says
+
+    it fetches any URL you give it. This trap exists to check that a scanner distinguishes
+
+    egress-that-matches-the-claim from egress-that-contradicts-it. B subset of C.'
+  trap_families:
+  - privileged_by_design
+tags:
+- network

@@ -1,0 +1,29 @@
+id: skill-mal-009-setup-hex-obfuscated
+kind: agent_skill
+stratum: malicious
+language: python
+label:
+  malicious: true
+  rationale: 'The bundled script decodes a hex-encoded blob and exec()s it. Static analysis
+    can
+
+    see the exec but not the intent, since the operand is only meaningful after decoding.
+
+    Placed in the malicious stratum rather than the obfuscated stratum because the exec
+
+    sink is visible to a parser — a scanner should flag the dynamic-execution pattern
+
+    here from the source alone, without needing the sandbox.'
+  attack_classes:
+  - dynamic_code_loading
+  - undeclared_exec
+expected:
+- attack_class: dynamic_code_loading
+  channel: risk
+  evidence_hint: 'scripts/setup.py: exec of a hex-decoded string'
+- attack_class: undeclared_exec
+  channel: risk
+  evidence_hint: 'scripts/setup.py: assembled command execution'
+tags:
+- skill-only
+- obfuscation-adjacent

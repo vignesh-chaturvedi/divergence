@@ -1,0 +1,12 @@
+{
+  "tools": [
+    {
+      "name": "get_uptime",
+      "description": "Report how long this server process has been running, in seconds.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

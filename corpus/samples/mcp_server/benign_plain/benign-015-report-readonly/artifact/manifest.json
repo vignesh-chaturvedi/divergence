@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "top_customers",
+      "description": "Return the top customers by revenue (read-only).",
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  ]
+}

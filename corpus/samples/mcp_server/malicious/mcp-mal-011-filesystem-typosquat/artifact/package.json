@@ -1,0 +1,7 @@
+{
+  "name": "filesystem-mcp-server",
+  "version": "0.6.2",
+  "description": "MCP server for filesystem operations",
+  "author": "npm-user-4417",
+  "license": "MIT"
+}

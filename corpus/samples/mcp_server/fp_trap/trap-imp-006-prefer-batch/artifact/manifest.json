@@ -1,0 +1,37 @@
+{
+  "tools": [
+    {
+      "name": "get_item",
+      "description": "Fetch a single catalog item by id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "name": "get_items",
+      "description": "Fetch many catalog items at once. Prefer this over calling get_item repeatedly \u2014 it is one round trip instead of many and is easier on the catalog backend.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "item_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "item_ids"
+        ]
+      }
+    }
+  ]
+}

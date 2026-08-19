@@ -1,0 +1,20 @@
+id: trap-wild-002-orchestrator-star
+kind: agent_skill
+stratum: fp_trap
+language: none
+label:
+  malicious: false
+  rationale: 'An orchestration skill that coordinates other tools and honestly needs a wide
+
+    permission surface, declared as a wildcard. Both the broad trigger and the wildcard
+
+    are truthful reflections of a coordinator''s role. Nothing in the bundle exceeds what
+
+    the description states. Two posture notes (broad trigger, wildcard tools) are the
+
+    correct output; zero risk findings.'
+  trap_families:
+  - wildcard_permissions
+  - broad_but_honest_trigger
+tags:
+- wildcard

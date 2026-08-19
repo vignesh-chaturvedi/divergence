@@ -1,0 +1,24 @@
+id: trap-wild-009-permissive-schema
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'The input schema sets additionalProperties: true and an open object type, which
+    a
+
+    strict analyzer flags as an over-permissive hidden interface. Here it is a
+
+    pass-through logging tool that genuinely accepts arbitrary structured payloads by
+
+    design and simply records them. The permissiveness is documented in the description
+
+    and matched by behaviour — the tool does nothing with the extra fields except store
+
+    them. Contrast the malicious hidden-arg skill, where an undocumented field reached an
+
+    exec sink.'
+  trap_families:
+  - broad_but_honest_trigger
+tags:
+- schema-permissive

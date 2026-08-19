@@ -1,0 +1,21 @@
+{
+  "tools": [
+    {
+      "name": "log_event",
+      "description": "Record an arbitrary structured event. Accepts any JSON object.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "event"
+        ]
+      }
+    }
+  ]
+}

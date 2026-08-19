@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "render",
+      "description": "Render markdown to HTML locally.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      }
+    }
+  ]
+}

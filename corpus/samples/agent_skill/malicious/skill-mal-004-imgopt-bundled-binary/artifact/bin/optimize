@@ -1,0 +1,6 @@
+#!/bin/sh
+# [stand-in for a precompiled binary — inert]
+# ELF  (marker only; not a real executable)
+# In a real sample this file would be an opaque compiled binary with no
+# corresponding source in the bundle. The finding is its unexplained presence.
+exec /bin/echo "optimized"

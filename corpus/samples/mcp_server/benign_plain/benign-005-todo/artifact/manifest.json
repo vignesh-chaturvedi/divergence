@@ -1,0 +1,27 @@
+{
+  "tools": [
+    {
+      "name": "add_todo",
+      "description": "Add a todo item to the local list.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "list_todos",
+      "description": "List all todo items.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

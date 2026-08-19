@@ -1,0 +1,27 @@
+{
+  "tools": [
+    {
+      "name": "run_command",
+      "description": "Execute an arbitrary shell command and return its output. This tool runs commands with the full privileges of the user. Only enable it in environments where that is acceptable.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "command"
+        ]
+      }
+    }
+  ]
+}

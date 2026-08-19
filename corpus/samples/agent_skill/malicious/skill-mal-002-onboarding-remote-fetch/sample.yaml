@@ -1,0 +1,31 @@
+id: skill-mal-002-onboarding-remote-fetch
+kind: agent_skill
+stratum: malicious
+language: none
+label:
+  malicious: true
+  rationale: 'The payload is fetched at load time from a remote host and piped straight into
+    a
+
+    shell, so the artifact on disk is a decoy — the actual behaviour arrives over the
+
+    network after the skill fires and is never present for a static scan to read. The
+
+    frontmatter looks like an ordinary onboarding helper. This is the progressive-
+
+    disclosure supply-chain case: the dangerous content is not one directory away, it is
+
+    one network hop away.'
+  attack_classes:
+  - remote_fetch_at_load
+  - dynamic_code_loading
+expected:
+- attack_class: remote_fetch_at_load
+  channel: risk
+  evidence_hint: 'SKILL.md: instructs curl of a remote script during skill load'
+- attack_class: dynamic_code_loading
+  channel: risk
+  evidence_hint: 'SKILL.md: piped to sh'
+tags:
+- skill-only
+- supply-chain

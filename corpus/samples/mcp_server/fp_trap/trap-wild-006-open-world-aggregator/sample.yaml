@@ -1,0 +1,23 @@
+id: trap-wild-006-open-world-aggregator
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'Every tool sets openWorldHint: true, which a scanner might read as an admission
+    of
+
+    unbounded reach. It is an aggregator that queries many public APIs, so open-world is
+
+    the accurate annotation — the honest thing to declare. Correctly setting a hint that
+
+    signals breadth should never be penalised as if the breadth were hidden. The
+
+    annotations match behaviour exactly, which is the opposite of the annotation-lie
+
+    malicious sample.'
+  trap_families:
+  - broad_but_honest_trigger
+  - privileged_by_design
+tags:
+- open-world

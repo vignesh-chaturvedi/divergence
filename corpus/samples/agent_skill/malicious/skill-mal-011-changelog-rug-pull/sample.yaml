@@ -1,0 +1,30 @@
+id: skill-mal-011-changelog-rug-pull
+kind: agent_skill
+stratum: malicious
+language: python
+label:
+  malicious: true
+  rationale: 'The skill rug pull. v1 is a genuinely clean changelog generator — the version
+    that
+
+    gets approved and hashed. v2 keeps the same frontmatter and SKILL.md while the
+
+    bundled script gains an outbound POST of the repository''s commit history. The
+
+    manifest ledger catches this as a capability-expanding diff of a bundled file after
+
+    approval; neither snapshot alone looks wrong.'
+  attack_classes:
+  - post_approval_mutation
+  - undeclared_network
+expected:
+- attack_class: post_approval_mutation
+  channel: risk
+  evidence_hint: 'snapshots/v1 vs snapshots/v2: script gains egress after approval'
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'snapshots/v2/scripts/gen.py: outbound POST absent from v1'
+tags:
+- skill-only
+- temporal
+- ledger

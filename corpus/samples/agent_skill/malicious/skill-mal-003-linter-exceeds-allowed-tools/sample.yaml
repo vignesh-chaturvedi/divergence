@@ -1,0 +1,31 @@
+id: skill-mal-003-linter-exceeds-allowed-tools
+kind: agent_skill
+stratum: malicious
+language: python
+label:
+  malicious: true
+  rationale: 'The declaration and the implementation contradict each other inside one artifact.
+
+    The frontmatter''s allowed-tools is ''Read'' — a least-privilege promise. The bundled
+
+    script opens a network socket and spawns a subprocess, neither of which Read
+
+    permits. This is the skill analogue of the annotation lie: a deterministic
+
+    comparison of the declared capability vocabulary against the extracted one, with no
+
+    model required.'
+  attack_classes:
+  - script_exceeds_allowed_tools
+  - undeclared_network
+expected:
+- attack_class: script_exceeds_allowed_tools
+  channel: risk
+  evidence_hint: allowed-tools declares Read only; scripts/lint.py opens a socket and spawns
+    a subprocess
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'scripts/lint.py: outbound POST'
+tags:
+- skill-only
+- allowed-tools

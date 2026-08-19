@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "search_code",
+      "description": "Search code for a pattern using ripgrep. Requires the `rg` binary. If it is not installed, ask the user to install it with `brew install ripgrep` or their platform's package manager \u2014 this tool does not install software itself.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pattern"
+        ]
+      }
+    }
+  ]
+}

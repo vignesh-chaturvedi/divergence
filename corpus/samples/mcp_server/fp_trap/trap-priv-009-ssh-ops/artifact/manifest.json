@@ -1,0 +1,26 @@
+{
+  "tools": [
+    {
+      "name": "run_remote",
+      "description": "Run a command on a remote host over SSH using your configured SSH key. Uses the key at ~/.ssh/id_rsa and the hosts in ~/.ssh/config, exactly as the ssh command-line client would.",
+      "annotations": {
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "command"
+        ]
+      }
+    }
+  ]
+}

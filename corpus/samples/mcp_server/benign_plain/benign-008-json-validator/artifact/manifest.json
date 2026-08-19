@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "validate",
+      "description": "Validate a JSON string and report whether it parses.",
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      }
+    }
+  ]
+}

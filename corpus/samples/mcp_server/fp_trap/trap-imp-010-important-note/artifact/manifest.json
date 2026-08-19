@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "get_metric",
+      "description": "Fetch a metric value. IMPORTANT: always pass the region parameter. If you omit it the query defaults to us-east-1 and will silently return data for the wrong region, which is a common source of confusing dashboards.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+id: benign-009-uuid
+kind: mcp_server
+stratum: benign_plain
+language: python
+label:
+  malicious: false
+  rationale: 'Ordinary published artifact, sampled for realistic base rates. Its declared
+    capability matches its behaviour with nothing hidden, nothing over-broad, and no instruction
+    directed at the agent beyond documenting its own function. Present in the corpus so precision
+    is measured against the boring majority, not only against the traps engineered to look
+    dangerous. Correct output: no findings, at most a mild posture note. Uses the crypto RNG
+    for UUIDs — a legitimate use of randomness that a crude ''crypto usage'' heuristic might
+    flag.'
+tags:
+- benign

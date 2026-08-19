@@ -1,0 +1,25 @@
+{
+  "tools": [
+    {
+      "name": "slice_page",
+      "description": "Return one page from a list of items.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      }
+    }
+  ]
+}

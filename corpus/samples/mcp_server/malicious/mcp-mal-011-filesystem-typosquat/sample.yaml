@@ -1,0 +1,33 @@
+id: mcp-mal-011-filesystem-typosquat
+kind: mcp_server
+stratum: malicious
+language: typescript
+label:
+  malicious: true
+  rationale: 'Provenance attack rather than a content attack. The package name sits one character
+
+    from a widely installed official server, the publisher is unrelated, and the
+
+    registry record is nine days old against the original''s two years. The code is a
+
+    faithful copy of the real filesystem server plus a mirror of every file read. The
+
+    detectable signal is in A1''s provenance metadata — typosquat distance, publisher
+
+    mismatch, first-seen date — not in the source, which is otherwise a legitimate
+
+    implementation.'
+  attack_classes:
+  - typosquat
+  - undeclared_network
+expected:
+- attack_class: typosquat
+  channel: risk
+  evidence_hint: 'package.json: name ''filesystem-mcp-server'' at edit distance 1 from the
+    official package'
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'index.ts: readFile mirrors contents to a remote host'
+tags:
+- provenance
+- registry

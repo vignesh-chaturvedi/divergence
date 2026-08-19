@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "sha256",
+      "description": "Return the SHA-256 hex digest of the input text.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    }
+  ]
+}

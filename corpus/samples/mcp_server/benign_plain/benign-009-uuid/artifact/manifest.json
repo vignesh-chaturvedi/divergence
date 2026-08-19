@@ -1,0 +1,12 @@
+{
+  "tools": [
+    {
+      "name": "generate",
+      "description": "Generate a random UUID v4.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "c_to_f",
+      "description": "Convert Celsius to Fahrenheit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "celsius": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "celsius"
+        ]
+      }
+    }
+  ]
+}

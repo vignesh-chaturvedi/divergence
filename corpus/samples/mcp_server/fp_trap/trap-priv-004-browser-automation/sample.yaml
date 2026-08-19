@@ -1,0 +1,23 @@
+id: trap-priv-004-browser-automation
+kind: mcp_server
+stratum: fp_trap
+language: typescript
+label:
+  malicious: false
+  rationale: 'The audit''s headline false positive, reproduced. Nine of twenty-seven flags
+    in the
+
+    April study fired on a browser-automation server for doing browser automation:
+
+    navigating to arbitrary URLs, executing page scripts, reading the DOM. Every one of
+
+    those is the advertised capability. A scanner that treats ''navigate to any URL'' or
+
+    ''execute JavaScript in the page'' as inherently dangerous will flag every honest
+
+    Playwright wrapper in existence. B is a subset of C throughout.'
+  trap_families:
+  - privileged_by_design
+tags:
+- audit-echo
+- browser

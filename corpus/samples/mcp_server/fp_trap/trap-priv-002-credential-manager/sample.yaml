@@ -1,0 +1,22 @@
+id: trap-priv-002-credential-manager
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A secrets manager reads and writes secrets — that is the product. It touches
+
+    ~/.config/secrets and environment variables because a credential store must. A
+
+    scanner keying on credential-file access and the words ''secret'', ''token'',
+
+    ''password'' flags it immediately, and it is wrong to: the capability matches the
+
+    claim exactly. Reads and writes to a credential path are a posture observation about
+
+    a high-value target, not evidence of exfiltration.'
+  trap_families:
+  - privileged_by_design
+  - security_domain_vocabulary
+tags:
+- credentials

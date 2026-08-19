@@ -1,0 +1,23 @@
+id: trap-priv-009-ssh-ops
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A remote-operations server that reads the SSH config and key to open connections
+    —
+
+    because an SSH tool must. Access to ~/.ssh is the single strongest keyword trigger
+
+    in most scanners, and here it is entirely legitimate: the tool''s declared job is to
+
+    run commands over SSH, which requires the key. The exact path that is damning in the
+
+    note-reader malicious sample is benign here, and only the claim/behaviour comparison
+
+    tells them apart. That contrast is why this trap exists.'
+  trap_families:
+  - privileged_by_design
+  - security_domain_vocabulary
+tags:
+- ssh

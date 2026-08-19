@@ -1,0 +1,22 @@
+id: trap-wild-008-router-skill-star
+kind: agent_skill
+stratum: fp_trap
+language: none
+label:
+  malicious: false
+  rationale: 'A router skill whose entire job is to dispatch to other skills and tools, so
+    it
+
+    declares a wildcard and a broad trigger by necessity. This is the closest benign
+
+    analogue to the shadowing/preference attacks — it talks about other skills — but it
+
+    does so to *route to* them, never to disparage or supersede them. It makes no
+
+    superlative or exclusionary claim. Posture on breadth; no risk.'
+  trap_families:
+  - wildcard_permissions
+  - broad_but_honest_trigger
+tags:
+- wildcard
+- router

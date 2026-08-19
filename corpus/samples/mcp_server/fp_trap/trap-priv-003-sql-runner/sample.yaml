@@ -1,0 +1,20 @@
+id: trap-priv-003-sql-runner
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A database tool that runs arbitrary SQL by design. Accepting a free-form query
+
+    string and executing it is the entire interface — a scanner that flags ''arbitrary
+
+    SQL execution'' or the absence of parameterisation is flagging the feature. The
+
+    description states plainly that it runs whatever query it is given. B matches C.
+
+    Posture: broad database access. Not a risk finding.'
+  trap_families:
+  - privileged_by_design
+tags:
+- database
+- arbitrary-input

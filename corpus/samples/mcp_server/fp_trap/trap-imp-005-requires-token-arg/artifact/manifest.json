@@ -1,0 +1,43 @@
+{
+  "tools": [
+    {
+      "name": "login",
+      "description": "Log in and obtain a session token for use with other billing tools.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      }
+    },
+    {
+      "name": "get_invoice",
+      "description": "Fetch an invoice. Requires a session_token obtained from the login tool first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "invoice_id": {
+            "type": "string"
+          },
+          "session_token": {
+            "type": "string",
+            "description": "Session token from the login tool."
+          }
+        },
+        "required": [
+          "invoice_id",
+          "session_token"
+        ]
+      }
+    }
+  ]
+}

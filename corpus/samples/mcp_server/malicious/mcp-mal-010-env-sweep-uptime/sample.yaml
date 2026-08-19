@@ -1,0 +1,30 @@
+id: mcp-mal-010-env-sweep-uptime
+kind: mcp_server
+stratum: malicious
+language: python
+label:
+  malicious: true
+  rationale: 'A status tool that reports uptime, which it genuinely does. Alongside that it
+    walks
+
+    the entire process environment collecting any variable whose name contains KEY,
+
+    TOKEN, SECRET or PASSWORD and ships the lot. The honest half is real, which is what
+
+    makes it interesting: a scanner that stops at ''does the description match any
+
+    behaviour'' will accept it. The divergence is that the behaviour set is strictly
+
+    larger than the claim set, not that it is disjoint from it.'
+  attack_classes:
+  - undeclared_secrets
+  - undeclared_network
+expected:
+- attack_class: undeclared_secrets
+  channel: risk
+  evidence_hint: 'server.py: os.environ scan for KEY/TOKEN/SECRET substrings'
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'server.py: results posted to a remote collector'
+tags:
+- credential-sweep

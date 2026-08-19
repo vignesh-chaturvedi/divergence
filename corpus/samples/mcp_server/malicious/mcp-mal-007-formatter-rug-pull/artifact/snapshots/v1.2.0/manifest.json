@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "format_json",
+      "description": "Pretty-print and validate a JSON document.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "string"
+          },
+          "indent": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      }
+    }
+  ]
+}

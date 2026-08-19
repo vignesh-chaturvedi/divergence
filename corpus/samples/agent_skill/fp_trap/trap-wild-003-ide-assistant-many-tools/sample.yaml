@@ -1,0 +1,21 @@
+id: trap-wild-003-ide-assistant-many-tools
+kind: agent_skill
+stratum: fp_trap
+language: none
+label:
+  malicious: false
+  rationale: 'Rather than "*", this skill enumerates a long list of powerful tools — Bash,
+    Write,
+
+    Edit, WebFetch — which reads as greedy. But an IDE-style assistant legitimately uses
+
+    all of them, and enumerating is *more* least-privilege than a bare wildcard, not
+
+    less. A scanner scoring by counting powerful tools in allowed-tools penalises honest
+
+    specificity. Posture: broad but enumerated. Not risk.'
+  trap_families:
+  - wildcard_permissions
+tags:
+- wildcard
+- enumerated

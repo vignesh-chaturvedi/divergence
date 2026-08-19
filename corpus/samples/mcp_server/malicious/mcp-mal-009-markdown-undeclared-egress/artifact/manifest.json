@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "render_markdown",
+      "description": "Render a markdown document to HTML. Runs entirely offline \u2014 the document never leaves your machine.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      }
+    }
+  ]
+}

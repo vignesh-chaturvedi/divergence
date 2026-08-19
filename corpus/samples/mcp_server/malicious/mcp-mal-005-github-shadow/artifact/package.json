@@ -1,0 +1,7 @@
+{
+  "name": "github-mcp-server-plus",
+  "version": "1.0.4",
+  "description": "Enhanced GitHub MCP server",
+  "author": "gh-tools-dev <maintainer@gh-tools.invalid>",
+  "license": "MIT"
+}

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Divergence — Progress 01 · P0 Ground Truth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E4E5DF; --panel:#DBDCD3; --panel-2:#D1D3C7;
+  --ink:#22241D; --slate:#6B6F62; --rule:#C2C4B6;
+  --moss:#55692F; --moss-dim:#7C8C5C;
+  --amber:#96731A; --amber-lite:#C9A93F; --rust:#8A4B2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+  font-size:17px;line-height:1.62;padding:0 0 6rem}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;margin:0}
+code,kbd{font-family:var(--mono);font-size:.86em;background:var(--panel-2);
+  padding:.12em .38em;border-radius:3px;border:1px solid var(--rule)}
+a{color:var(--moss)}
+
+header.mast{border-bottom:2px solid var(--ink);padding:3.2rem 0 1.4rem;margin-bottom:2.4rem}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--slate);display:flex;gap:.9rem;flex-wrap:wrap;
+  align-items:center;margin-bottom:1.4rem}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--moss-dim)}
+h1{font-size:clamp(2.4rem,6.2vw,3.8rem);font-weight:800;letter-spacing:-.028em}
+h1 .sub{display:block;font-weight:400;font-size:clamp(1rem,2.4vw,1.32rem);
+  color:var(--slate);letter-spacing:-.01em;margin-top:.5rem}
+.standfirst{margin:1.5rem 0 0;max-width:64ch;font-size:1.08rem;color:#3A3D33}
+
+.banner{display:flex;gap:1rem;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-left:4px solid var(--moss);
+  padding:1.1rem 1.3rem;border-radius:4px;margin:2.2rem 0}
+.banner.hold{border-left-color:var(--amber)}
+.banner .mark{font-family:var(--display);font-weight:800;color:var(--moss);
+  font-size:1.3rem;line-height:1.2;flex:none}
+.banner.hold .mark{color:var(--amber)}
+.banner p{margin:0;font-size:.97rem}
+.banner p + p{margin-top:.6rem}
+.banner strong{font-family:var(--display);font-weight:600}
+
+section{margin:3.4rem 0 0}
+.sec-head{display:flex;align-items:baseline;gap:.9rem;border-bottom:1px solid var(--rule);
+  padding-bottom:.6rem;margin-bottom:1.6rem;flex-wrap:wrap}
+.sec-num{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--moss);
+  text-transform:uppercase;flex:none}
+.sec-head h2{font-size:clamp(1.4rem,3.2vw,1.9rem);font-weight:600;letter-spacing:-.02em}
+
+/* headline metric */
+.headline{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.6rem 1.5rem;margin:1.6rem 0;display:grid;gap:1.4rem;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.metric .lbl{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--slate);margin-bottom:.3rem}
+.metric .num{font-family:var(--display);font-weight:800;font-size:2.5rem;
+  letter-spacing:-.035em;line-height:1}
+.metric .num.good{color:var(--moss)}
+.metric .num.bad{color:var(--rust)}
+.metric .cap{font-size:.85rem;color:var(--slate);margin-top:.35rem;line-height:1.45}
+
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem}
+.card .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--slate);margin-bottom:.42rem}
+.card .v{font-family:var(--display);font-weight:600;font-size:1.02rem;letter-spacing:-.012em}
+.card .n{font-size:.85rem;color:var(--slate);margin-top:.3rem;line-height:1.45}
+
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--slate);border-bottom:1.5px solid var(--ink);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:.84rem;white-space:nowrap}
+td.num{text-align:right;font-family:var(--mono);font-size:.85rem;white-space:nowrap}
+tr.emph td{background:rgba(138,75,42,.07)}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2em .55em;border-radius:3px;border:1px solid;white-space:nowrap}
+.pill.done{color:var(--moss);border-color:var(--moss-dim);background:rgba(85,105,47,.09)}
+.pill.hold{color:var(--amber);border-color:var(--amber-lite);background:rgba(150,115,26,.1)}
+.pill.todo{color:var(--slate);border-color:var(--rule);background:rgba(107,111,98,.07)}
+.pill.gate{color:var(--rust);border-color:var(--rust);background:rgba(138,75,42,.09)}
+
+ul.check{list-style:none;padding:0;margin:1rem 0}
+ul.check li{position:relative;padding-left:1.9rem;margin-bottom:.62rem}
+ul.check li::before{content:"✓";position:absolute;left:0;top:-.05em;color:var(--moss);
+  font-family:var(--display);font-weight:800}
+ul.check li.pending::before{content:"·";font-size:1.5rem;line-height:1;color:var(--slate)}
+
+pre.term{background:#1E201A;color:#D6D8CC;border:1px solid var(--rule);border-radius:4px;
+  padding:1.1rem 1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.76rem;
+  line-height:1.65;margin:1.2rem 0}
+pre.term .c{color:#7C8C5C}
+pre.term .h{color:#C9A93F}
+pre.term .g{color:#9FBF6A}
+pre.term .r{color:#C98A6A}
+
+pre.tree{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.1rem 1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.78rem;
+  line-height:1.72;margin:1.2rem 0}
+pre.tree .c{color:var(--slate)}
+pre.tree .n{color:var(--moss);font-weight:500}
+
+.note{border-left:3px solid var(--moss-dim);padding:.15rem 0 .15rem 1.1rem;
+  margin:1.4rem 0;color:#3A3D33;font-size:.96rem}
+.note.warn{border-left-color:var(--rust)}
+
+.bar{display:inline-block;height:9px;border-radius:2px;background:var(--rust);vertical-align:middle}
+.bar.g{background:var(--moss)}
+
+footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+@media(max-width:560px){ body{font-size:16px} .metric .num{font-size:2rem} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">
+    <span>Divergence</span><span class="dot"></span>
+    <span>Progress report 01</span><span class="dot"></span>
+    <span>Phase P0 — ground truth</span><span class="dot"></span>
+    <span>19 Aug 2026</span>
+  </div>
+  <h1>P0 complete<span class="sub">80 labelled samples, a scoring harness, and a baseline that reproduces the failure this project exists to fix</span></h1>
+  <p class="standfirst">The exit gate passes: a single <code>make bench</code> reproduces the
+  baseline comparison table from a clean checkout, byte-for-byte, fully offline. There is still
+  no detection code in the repository — that was the point of doing this first.</p>
+</header>
+
+<div class="banner">
+  <span class="mark">✓</span>
+  <div>
+    <p><strong>Exit gate met.</strong> <code>make bench</code> from a clean copy provisions
+    Python 3.12, builds, and prints the table with exit code 0. Two consecutive runs produce
+    byte-identical JSON, enforced by a test so it cannot silently regress once P3 introduces
+    a model.</p>
+    <p>29 tests pass. 80 samples validate — every one carries a written rationale, and every
+    malicious payload is inert.</p>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>The headline</h2></div>
+
+  <p>The strawman does exactly what the April 2026 audit said it would. <code>keyword</code> is
+  a regex scanner built the way the audited tools were built — not a caricature, just the
+  obvious patterns any competent engineer would reach for, with one fateful design choice:
+  every hit reported as risk, no posture channel.</p>
+
+  <div class="headline">
+    <div class="metric">
+      <div class="lbl">FPR on traps · keyword</div>
+      <div class="num bad">57.1%</div>
+      <div class="cap">20 of 35 benign trap artifacts wrongly flagged as risks.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">Share of flags that were wrong</div>
+      <div class="num bad">55.0%</div>
+      <div class="cap">22 false of 40 total flags — the figure directly comparable to the audit's 78%.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">FPR on traps · null</div>
+      <div class="num good">0.0%</div>
+      <div class="cap">The floor. Flags nothing, so it is never wrong — and never useful.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">Recall · keyword</div>
+      <div class="num">72.0%</div>
+      <div class="cap">18 of 25 malicious caught. Recall was never the hard half.</div>
+    </div>
+  </div>
+
+  <p class="note">The two false-positive figures answer different questions and both belong in
+  the writeup. <strong>FPR-on-traps</strong> (57.1%) is the share of trap artifacts wrongly
+  flagged — our headline, because the denominator is a fixed, published corpus anyone can
+  re-run. <strong>Share of flags that were wrong</strong> (55.0%) is the share of a scanner's
+  own alerts that were false, which is what the audit's 78% measured and what a user actually
+  experiences. They are close here, and reporting only the flattering one would be exactly the
+  sin §06 warns against.</p>
+
+  <pre class="term"><span class="c">$ make bench</span>
+
+<span class="h">Baseline comparison  —  lower FPR-on-traps is better, it is the headline</span>
+──────────────────────────────────────────────────────────────────────────────────────────────
+scanner         FPR-traps                precision   recall      F1  FPR-benign   attrib   err
+──────────────────────────────────────────────────────────────────────────────────────────────
+<span class="g">null                 0.0% ············           —     0.0%       —        0.0%        —     0</span>
+<span class="r">keyword             57.1% ███████·····       45.0%    72.0%   55.4%       10.0%    72.2%     0</span>
+mcp-scan          not run   not run — third-party execution is opt-in. Set DIVERGENCE_
+mcp-scanner       not run   not run — third-party execution is opt-in. Set DIVERGENCE_
+mcp-shield        not run   not run — third-party execution is opt-in. Set DIVERGENCE_
+semgrep           not run   not run — third-party execution is opt-in. Set DIVERGENCE_
+──────────────────────────────────────────────────────────────────────────────────────────────</pre>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Where the strawman breaks</h2></div>
+
+  <p>This is the diagnostic the corpus was built to produce. Each trap family isolates one
+  reason a benign artifact looks dangerous, so the failure has an address rather than a
+  percentage.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Trap family</th><th>What it isolates</th><th class="num">Wrongly flagged</th><th>Rate</th></tr></thead>
+    <tbody>
+      <tr class="emph"><td><code>wildcard_permissions</code></td><td>Benign skills declaring <code>"*"</code> in allowed-tools</td><td class="num">6 / 7</td><td><span class="bar" style="width:86px"></span> 85.7%</td></tr>
+      <tr><td><code>imperative_language</code></td><td>Genuine dependency instructions — "you must call this first"</td><td class="num">7 / 12</td><td><span class="bar" style="width:58px"></span> 58.3%</td></tr>
+      <tr><td><code>broad_but_honest_trigger</code></td><td>Wide trigger scope that the capability actually matches</td><td class="num">5 / 9</td><td><span class="bar" style="width:56px"></span> 55.6%</td></tr>
+      <tr><td><code>privileged_by_design</code></td><td>Shell executors, credential managers, browser automation</td><td class="num">7 / 13</td><td><span class="bar" style="width:54px"></span> 53.8%</td></tr>
+      <tr><td><code>security_domain_vocabulary</code></td><td>Security tools that talk about exploits because they scan for them</td><td class="num">5 / 10</td><td><span class="bar" style="width:50px"></span> 50.0%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note"><strong>The wildcard row is the spec's prediction, confirmed at 85.7%.</strong>
+  §03 flagged <code>"*"</code> as the mistake that has already forced a competing benchmark to
+  withdraw headline scores, and predicted that routing it to posture would be worth several
+  points of precision. The strawman routes it to risk and loses six of seven benign skills to
+  it. That single rule is now a measured, defensible claim rather than an assertion.</p>
+
+  <h3 style="font-family:var(--display);font-weight:600;font-size:1.1rem;margin:2.2rem 0 .6rem">Structural blind spots</h3>
+  <p>Four attack classes the keyword scanner never detects — not through weak patterns, but
+  because no pattern over text can reach them. These are precisely the cases that need the
+  divergence engine.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Attack class</th><th class="num">Caught</th><th>Why keywords cannot reach it</th></tr></thead>
+    <tbody>
+      <tr><td><code>annotation_lie</code></td><td class="num">0 / 1</td><td><code>readOnlyHint: true</code> on a handler that writes. Requires comparing a declared annotation against an extracted capability set — set algebra, not text.</td></tr>
+      <tr><td><code>return_value_injection</code></td><td class="num">0 / 2</td><td>Manifest and schema are clean; the payload is in what the handler returns at runtime.</td></tr>
+      <tr><td><code>undeclared_filesystem</code></td><td class="num">0 / 1</td><td>The write looks identical to any legitimate write. Only the contradiction with the claim makes it a finding.</td></tr>
+      <tr><td><code>bundled_binary_no_source</code></td><td class="num">0 / 1</td><td>The finding is an <em>absence</em> — a binary with no corresponding source. Nothing to match on.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>The corpus</h2><span class="pill done">80 / 80 target met</span></div>
+
+  <div class="grid">
+    <div class="card"><div class="k">Malicious</div><div class="v">25 samples</div>
+      <div class="n">13 servers, 12 skills. Every class in the published taxonomy, plus the five skill-only classes.</div></div>
+    <div class="card"><div class="k">FP traps — the contribution</div><div class="v">35 samples</div>
+      <div class="n">21 servers, 14 skills, across five families. No comparable corpus exists.</div></div>
+    <div class="card"><div class="k">Benign plain</div><div class="v">20 samples</div>
+      <div class="n">15 servers, 5 skills. Ordinary artifacts, for realistic base rates.</div></div>
+    <div class="card"><div class="k">Obfuscated</div><div class="v">0 — deferred</div>
+      <div class="n">Per §07 this stratum measures what the sandbox adds; it belongs with P5, not P0.</div></div>
+  </div>
+
+  <p>Several samples are built as <strong>matched pairs</strong>, which is where the corpus earns
+  its keep. A note-reader that reads <code>~/.ssh/id_rsa</code> while claiming only to read notes
+  is malicious; an SSH server that reads the same path is doing its job. A markdown renderer that
+  promises "entirely offline" and opens a socket is malicious; an HTTP client that promises to
+  fetch any URL is not. The path, the API call and the keyword are identical across each pair.
+  Only the claim-versus-behaviour comparison separates them — which is the thesis, stated as
+  test data.</p>
+
+  <p class="note">Every sample carries a written rationale of at least 120 characters, enforced
+  by the validator. §06 is explicit that the rationales are as much of the artifact as the
+  samples, because they are what a reviewer checks when they dispute a verdict. A sample cannot
+  enter the corpus unrationalised.</p>
+
+  <p><strong>Safety.</strong> All malicious payloads are inert and the validator enforces it:
+  every URL in a positive sample must resolve to a sinkhole (<code>127.0.0.1</code>) or an
+  RFC 2606 reserved domain. Nothing reaches a live host, and the corpus is safe to clone and
+  publish. Negative samples may reference real API hosts, because that realism is exactly what
+  a scanner must learn not to flag.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>What was built</h2></div>
+
+  <pre class="tree"><span class="c">src/divergence/</span>
+├── bench/
+│   ├── <span class="n">models.py</span>      <span class="c">Kind · Stratum · Channel · AttackClass · TrapFamily · Finding</span>
+│   ├── <span class="n">corpus.py</span>      <span class="c">loader + validator — 11 invariants, all violations at once</span>
+│   ├── <span class="n">metrics.py</span>     <span class="c">FPR-on-traps first; per-class recall; per-family FPR</span>
+│   ├── <span class="n">report.py</span>      <span class="c">the comparison table + machine-readable JSON</span>
+│   └── <span class="n">cli.py</span>         <span class="c">validate · describe · bench</span>
+└── adapters/
+    ├── <span class="n">base.py</span>        <span class="c">Adapter protocol · registry · crash-isolating runner</span>
+    ├── <span class="n">reference.py</span>   <span class="c">null (floor) + keyword (strawman)</span>
+    └── <span class="n">external.py</span>    <span class="c">mcp-scan · mcp-shield · semgrep · mcp-scanner — gated</span></pre>
+
+  <ul class="check">
+    <li><strong>Two channels are in the model from the first line.</strong> <code>Channel.POSTURE</code>
+      findings are recorded and displayed but never move a verdict. A scanner reporting only
+      posture scores 0% FPR, by construction, and there is a test for it.</li>
+    <li><strong>Attribution is scored separately from detection.</strong> A tool that flags a
+      poisoned server for the wrong reason got the right answer by accident; the
+      <code>attrib</code> column tracks that. The strawman scores 72.2%.</li>
+    <li><strong>Undefined never renders as zero.</strong> A metric with no denominator prints as
+      <code>—</code>, so an absent baseline can never be mistaken for a perfect one.</li>
+    <li><strong>A crashing scanner does not take down the run.</strong> Errors are counted per
+      sample and surfaced in the table — a partial baseline is still a baseline.</li>
+    <li><strong>Unavailable scanners stay visible.</strong> They sort to the bottom rather than
+      vanishing, because hiding them would flatter whatever did run.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Third-party baselines</h2><span class="pill hold">awaiting your go-ahead</span></div>
+
+  <p>Four adapters are written and wired: <code>mcp-scan</code> (Invariant Labs),
+  <code>mcp-shield</code>, <code>semgrep</code>, and <code>mcp-scanner</code> (Cisco AI Defense).
+  Each is a real subprocess adapter with a probe command, a scan command and an output parser.
+  None will fetch or execute anything until you set the opt-in.</p>
+
+  <p>The parsers — the part most likely to be wrong — are already tested. They are pure
+  functions from stdout to normalised findings, so they are verified against captured fixture
+  payloads (SARIF and flat-JSON shapes) <em>with none of the tools installed</em>. That is what
+  makes deferring the run cheap rather than a hole in the work.</p>
+
+  <p class="note warn"><strong>What is still missing without them.</strong> The table currently
+  has one real competitor, and it is one I wrote. A strawman I built scoring badly on a corpus I
+  built is a weak claim on its own — §06 is blunt that a benchmark whose author's tool wins every
+  category reads as marketing. The comparison only becomes citable with independent scanners in
+  it. When you want them run:</p>
+
+  <pre class="term"><span class="c"># downloads and executes third-party scanners locally</span>
+DIVERGENCE_ALLOW_EXTERNAL=1 make bench</pre>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Judgment calls, flagged</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Call</th><th>What I did</th><th>Why it is worth your eye</th></tr></thead>
+    <tbody>
+      <tr><td>Obfuscated stratum</td><td>Deferred to P5</td><td>§06 lists it in the full corpus, but §07's P0 gate specifies 80 samples across the other three. Its purpose is measuring the static-versus-dynamic delta, which needs the sandbox to exist.</td></tr>
+      <tr><td>A <code>keyword</code> reference scanner</td><td>Written in-repo</td><td>Not in the spec. Added because it makes the table meaningful before third-party tools run, and it is our code rather than someone else's executing on your machine.</td></tr>
+      <tr><td>Inertness scoped to positive strata</td><td>Benign samples may cite real hosts</td><td>A benign weather server referencing a real API is the realism the corpus needs. Nothing is ever executed, so there is no risk in the string.</td></tr>
+      <tr><td>Rationale floor of 120 chars</td><td>Hard validator failure</td><td>An arbitrary number, chosen so a rationale cannot be a restatement of the label. Easy to change; the enforcement is the point.</td></tr>
+      <tr><td>Ticket files</td><td>Not written</td><td>You asked for reports over tickets. The eleven slices from report 00 were built in dependency order regardless.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note warn"><strong>Still true from report 00, and now closer:</strong> P5's sandbox
+  cannot run on this machine. Landlock and seccomp-bpf are Linux; macOS degrades to static-only
+  by §10. A Linux VM or container will be needed before P5 — not before P1 through P4.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">07</span><h2>Next — P1, deterministic core</h2></div>
+
+  <p>Per §07, P1 is <strong>A1 acquisition, A2 declared-interface analyzer, A3 manifest ledger</strong>.
+  Zero inference. Its exit gate is a non-zero benchmark score using no model whatsoever.</p>
+
+  <p>The corpus already says where those points come from. <code>annotation_lie</code> is a
+  deterministic contradiction between a declared hint and an extracted capability — zero cost,
+  high severity, and the strawman scores 0 on it. The <code>post_approval_mutation</code> samples
+  ship two version snapshots each, waiting for the ledger to diff them. Routing wildcards to
+  posture is a rule, not a model. A1 through A3 should beat the keyword scanner on precision
+  without a single token of inference, and the harness is now in place to prove it rather than
+  claim it.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Phase</th><th>Scope</th><th>Exit gate</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>P0</td><td>Corpus, harness, baseline</td><td><code>make bench</code> reproduces the table</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P1</td><td>A1 · A2 · A3 — no inference</td><td>Non-zero score using no model</td><td><span class="pill todo">next</span></td></tr>
+      <tr><td>P2</td><td>Static behaviour extraction</td><td>Capability sets verified on 50 artifacts</td><td><span class="pill todo">queued</span></td></tr>
+      <tr><td>P3</td><td>Divergence engine</td><td>FPR-on-traps beats every baseline</td><td><span class="pill todo">queued</span></td></tr>
+      <tr><td>P4</td><td>Fleet &amp; routing analysis</td><td>Shadow tool caught, originals clean</td><td><span class="pill todo">queued</span></td></tr>
+      <tr><td>◇</td><td>Ship v1</td><td>The project is defensible here</td><td><span class="pill gate">checkpoint</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note">Fleet samples are already planted. The shadowing and preference-manipulation
+  artifacts sit in the corpus alongside the legitimate originals they imitate, so P4's gate —
+  catch the shadow without flagging the original — is testable the day the analyzer exists.</p>
+</section>
+
+<footer>Divergence · progress report 01 · phase P0 complete · precision over coverage</footer>
+
+</div>
+</body>
+</html>

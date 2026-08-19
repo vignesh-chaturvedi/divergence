@@ -1,0 +1,23 @@
+{
+  "tools": [
+    {
+      "name": "query",
+      "description": "Execute an arbitrary SQL statement against the database and return rows. This tool runs any SQL you give it, including writes and schema changes.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sql"
+        ]
+      }
+    }
+  ]
+}

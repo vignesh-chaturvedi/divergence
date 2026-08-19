@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Divergence — Progress 00 · Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E4E5DF; --panel:#DBDCD3; --panel-2:#D1D3C7;
+  --ink:#22241D; --slate:#6B6F62; --rule:#C2C4B6;
+  --moss:#55692F; --moss-dim:#7C8C5C;
+  --amber:#96731A; --amber-lite:#C9A93F; --rust:#8A4B2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+  font-size:17px;line-height:1.62;padding:0 0 6rem}
+.wrap{max-width:980px;margin:0 auto;padding:0 1.5rem}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;margin:0}
+code,kbd{font-family:var(--mono);font-size:.86em;background:var(--panel-2);
+  padding:.12em .38em;border-radius:3px;border:1px solid var(--rule)}
+a{color:var(--moss)}
+
+/* masthead */
+header.mast{border-bottom:2px solid var(--ink);padding:3.2rem 0 1.4rem;margin-bottom:2.6rem}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--slate);display:flex;gap:.9rem;flex-wrap:wrap;
+  align-items:center;margin-bottom:1.4rem}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--moss-dim)}
+h1{font-size:clamp(2.5rem,6.5vw,4rem);font-weight:800;letter-spacing:-.028em}
+h1 .sub{display:block;font-weight:400;font-size:clamp(1rem,2.4vw,1.35rem);
+  color:var(--slate);letter-spacing:-.01em;margin-top:.5rem}
+.standfirst{margin:1.5rem 0 0;max-width:62ch;font-size:1.08rem;color:#3A3D33}
+
+/* status banner */
+.banner{display:flex;gap:1rem;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-left:4px solid var(--amber);
+  padding:1.1rem 1.3rem;border-radius:4px;margin:2.4rem 0}
+.banner .mark{font-family:var(--display);font-weight:800;color:var(--amber);
+  font-size:1.3rem;line-height:1.2;flex:none}
+.banner p{margin:0;font-size:.97rem}
+.banner strong{font-family:var(--display);font-weight:600}
+
+/* section */
+section{margin:3.4rem 0 0}
+.sec-head{display:flex;align-items:baseline;gap:.9rem;border-bottom:1px solid var(--rule);
+  padding-bottom:.6rem;margin-bottom:1.6rem;flex-wrap:wrap}
+.sec-num{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--moss);
+  text-transform:uppercase;flex:none}
+.sec-head h2{font-size:clamp(1.4rem,3.2vw,1.9rem);font-weight:600;letter-spacing:-.02em}
+
+/* cards */
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem}
+.card .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--slate);margin-bottom:.42rem}
+.card .v{font-family:var(--display);font-weight:600;font-size:1.02rem;letter-spacing:-.012em}
+.card .n{font-size:.85rem;color:var(--slate);margin-top:.3rem;line-height:1.45}
+
+/* tables */
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:.62rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--slate);border-bottom:1.5px solid var(--ink);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:.84rem;white-space:nowrap}
+
+/* pills */
+.pill{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2em .55em;border-radius:3px;border:1px solid;white-space:nowrap}
+.pill.done{color:var(--moss);border-color:var(--moss-dim);background:rgba(85,105,47,.09)}
+.pill.hold{color:var(--amber);border-color:var(--amber-lite);background:rgba(150,115,26,.1)}
+.pill.todo{color:var(--slate);border-color:var(--rule);background:rgba(107,111,98,.07)}
+.pill.gate{color:var(--rust);border-color:var(--rust);background:rgba(138,75,42,.09)}
+
+/* checklist */
+ul.check{list-style:none;padding:0;margin:1rem 0}
+ul.check li{position:relative;padding-left:1.9rem;margin-bottom:.62rem}
+ul.check li::before{content:"✓";position:absolute;left:0;top:-.05em;color:var(--moss);
+  font-family:var(--display);font-weight:800}
+ul.check li.pending::before{content:"·";font-size:1.5rem;line-height:1;color:var(--slate)}
+
+/* tree */
+pre.tree{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.1rem 1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.8rem;
+  line-height:1.75;margin:1.2rem 0}
+pre.tree .c{color:var(--slate)}
+pre.tree .n{color:var(--moss);font-weight:500}
+
+/* ticket rows */
+.tk{display:grid;grid-template-columns:3.1rem 1fr;gap:.9rem;padding:.85rem 0;
+  border-bottom:1px solid var(--rule)}
+.tk:last-child{border-bottom:none}
+.tk .id{font-family:var(--mono);font-size:.78rem;color:var(--moss);font-weight:600;padding-top:.15rem}
+.tk h4{font-family:var(--display);font-weight:600;font-size:1rem;letter-spacing:-.012em;margin-bottom:.25rem}
+.tk p{margin:0;font-size:.9rem;color:#3A3D33}
+.tk .dep{font-family:var(--mono);font-size:.7rem;color:var(--slate);margin-top:.35rem;display:block}
+
+.note{border-left:3px solid var(--moss-dim);padding:.15rem 0 .15rem 1.1rem;
+  margin:1.4rem 0;color:#3A3D33;font-size:.96rem}
+footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+@media(max-width:560px){
+  body{font-size:16px}
+  .tk{grid-template-columns:1fr;gap:.2rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">
+    <span>Divergence</span><span class="dot"></span>
+    <span>Progress report 00</span><span class="dot"></span>
+    <span>Setup &amp; P0 planning</span><span class="dot"></span>
+    <span>19 Aug 2026</span>
+  </div>
+  <h1>Setup complete<span class="sub">Toolchain, repo scaffolding, and a proposed P0 ticket set awaiting your approval</span></h1>
+  <p class="standfirst">The <code>mattpocock-skills</code> plugin is installed and its per-repo configuration
+  has been generated. The repository now has the structure the engineering skills expect. No detection
+  code has been written — per the spec, P0 builds ground truth before any scanner exists.</p>
+</header>
+
+<div class="banner">
+  <span class="mark">⏸</span>
+  <p><strong>Stopped for your go-ahead.</strong> You asked me to pause before building the baseline
+  adapters so the Matt Pocock skills drive the work. The <code>/to-tickets</code> flow reaches a
+  mandatory approval step at exactly this point — §04 below is the breakdown it wants signed off
+  before any ticket files get written.</p>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>What landed</h2></div>
+  <div class="grid">
+    <div class="card">
+      <div class="k">Plugin</div>
+      <div class="v">mattpocock-skills 1.2.3</div>
+      <div class="n">25 skills, user scope, from the official marketplace. ~1,609 always-on tokens.</div>
+    </div>
+    <div class="card">
+      <div class="k">Repository</div>
+      <div class="v">git init · branch main</div>
+      <div class="n">Was not a git repo. Required by <code>/code-review</code>, which diffs against a fixed point.</div>
+    </div>
+    <div class="card">
+      <div class="k">Skill config</div>
+      <div class="v">docs/agents/ · 3 files</div>
+      <div class="n">Issue tracker, triage labels, domain doc rules — generated from the skill's own seed templates.</div>
+    </div>
+    <div class="card">
+      <div class="k">Spec ingested</div>
+      <div class="v">divergence-spec.html v2</div>
+      <div class="n">11 sections, 9 components, 7 phases. Scope locked. Now referenced from CLAUDE.md.</div>
+    </div>
+  </div>
+
+  <ul class="check">
+    <li>Read <code>build-plan/divergence-spec.html</code> in full — the divergence thesis, the C/S/B<sub>s</sub>/B<sub>d</sub> rule table, all nine components A1–A9, and the P0–P6 gate sequence.</li>
+    <li>Installed the plugin via <code>claude plugin install mattpocock-skills</code>.</li>
+    <li>Ran the <code>setup-matt-pocock-skills</code> process against this repo.</li>
+    <li>Wrote <code>CLAUDE.md</code> carrying the spec pointer, the two-channel output rule, and the phase-gate discipline. <code>AGENTS.md</code> symlinks to it.</li>
+    <li class="pending">Ticket files not yet written — awaiting approval of §04.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Toolchain check</h2></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Requirement</th><th>Spec calls for</th><th>Found on this machine</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Core language</td><td class="mono">Python 3.12</td><td class="mono">3.14.7 system · 3.13 brew</td><td><span class="pill hold">pin needed</span></td></tr>
+      <tr><td>Distribution</td><td class="mono">uvx</td><td class="mono">uv 0.12.0</td><td><span class="pill done">ready</span></td></tr>
+      <tr><td>Sandbox crate</td><td class="mono">Rust</td><td class="mono">rustc 1.89.0</td><td><span class="pill done">ready</span></td></tr>
+      <tr><td>TS corpus samples</td><td class="mono">node</td><td class="mono">v24.6.0</td><td><span class="pill done">ready</span></td></tr>
+      <tr><td>Issue tracker CLI</td><td class="mono">gh (optional)</td><td class="mono">not installed</td><td><span class="pill done">n/a</span></td></tr>
+      <tr><td>Sandbox kernel APIs</td><td class="mono">Landlock · seccomp</td><td class="mono">macOS (Darwin 25.2)</td><td><span class="pill gate">P5 blocker</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note"><strong>Two things worth flagging now rather than at the gate.</strong>
+  Python 3.12 is not installed — <code>uv</code> will fetch and pin it per-project, so this costs
+  nothing, but the project must not silently run on 3.14.
+  More importantly, <strong>P5's sandbox cannot run on this machine.</strong> Landlock and seccomp-bpf
+  are Linux kernel features; §10 of the spec already declares macOS degrades to static-only. That is
+  consistent, not a contradiction — but it means P5 development will need a Linux VM or container,
+  and it is worth knowing eight weeks early rather than on day one of P5.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Decisions recorded</h2></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Decision</th><th>Choice</th><th>Consequence</th></tr></thead>
+    <tbody>
+      <tr><td>Issue tracker</td><td>Local markdown under <code>.scratch/</code></td><td>No <code>gh</code> CLI and no remote. <code>/to-tickets</code> and <code>/triage</code> read and write files.</td></tr>
+      <tr><td>Triage labels</td><td>Five canonical defaults</td><td><code>needs-triage</code>, <code>needs-info</code>, <code>ready-for-agent</code>, <code>ready-for-human</code>, <code>wontfix</code>.</td></tr>
+      <tr><td>Domain docs</td><td>Single-context</td><td>No monorepo signals found. Root <code>CONTEXT.md</code> + <code>docs/adr/</code>, both created lazily by <code>/domain-modeling</code>.</td></tr>
+      <tr><td>Agent file</td><td><code>CLAUDE.md</code> + symlink</td><td><code>AGENTS.md → CLAUDE.md</code>, mirroring the skills repo's own layout. One file to maintain.</td></tr>
+      <tr><td>Phase reports</td><td>Local HTML only</td><td>Written to <code>build-plan/reports/</code>, versioned alongside the spec. Nothing published externally.</td></tr>
+      <tr><td>P0 baselines</td><td>Adapters now, run later</td><td>No third-party scanner is downloaded or executed without a separate explicit approval from you.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <pre class="tree"><span class="c">Divergence/</span>
+├── <span class="n">CLAUDE.md</span>              <span class="c">← spec pointer · core rule · phase discipline</span>
+├── <span class="n">AGENTS.md</span>              <span class="c">→ symlink to CLAUDE.md</span>
+├── .gitignore
+├── build-plan/
+│   ├── divergence-spec.html   <span class="c">← source of truth, unmodified</span>
+│   └── reports/
+│       └── <span class="n">phase-00-setup.html</span> <span class="c">← this file</span>
+└── docs/
+    ├── adr/                   <span class="c">← empty; filled lazily by /domain-modeling</span>
+    └── agents/
+        ├── <span class="n">issue-tracker.md</span>    <span class="c">← local-markdown conventions</span>
+        ├── <span class="n">triage-labels.md</span>    <span class="c">← five canonical roles</span>
+        └── <span class="n">domain.md</span>           <span class="c">← single-context consumer rules</span></pre>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>Proposed P0 breakdown</h2><span class="pill hold">needs your approval</span></div>
+
+  <p>P0's mandate from §07: <em>80 labelled samples — 25 malicious, 35 traps, 20 benign — a scoring
+  harness, and a baseline table, all before a single line of detection code.</em> The exit gate is that
+  <code>make bench</code> reproduces that table from a clean checkout.</p>
+
+  <p>Eleven tracer-bullet tickets. Ticket 01 is a walking skeleton: <code>make bench</code> works
+  end-to-end on one sample and one null scanner before anything real exists, so every ticket after it
+  fills in a pipeline that already runs rather than building toward one that might.</p>
+
+  <div class="tk"><span class="id">01</span><div>
+    <h4>Walking skeleton — <code>make bench</code> prints a table</h4>
+    <p><code>uv</code> project pinned to Python 3.12, one fixture sample, one null scanner adapter, one table on stdout. Thin but complete, end to end.</p>
+    <span class="dep">Blocked by: none — can start immediately</span></div></div>
+
+  <div class="tk"><span class="id">02</span><div>
+    <h4>Corpus sample format + validator</h4>
+    <p>The on-disk shape of a sample: artifact type, stratum, attack class, and the written label rationale §06 insists on. <code>make validate-corpus</code> fails loudly on a malformed or unrationalised sample. One fixture per stratum.</p>
+    <span class="dep">Blocked by: 01</span></div></div>
+
+  <div class="tk"><span class="id">03</span><div>
+    <h4>Malicious stratum — MCP servers (~13)</h4>
+    <p>Description poisoning, schema poisoning, return-value injection, shadowing, preference manipulation, post-approval mutation. Includes hand-authored variants that evade the obvious keyword.</p>
+    <span class="dep">Blocked by: 02</span></div></div>
+
+  <div class="tk"><span class="id">04</span><div>
+    <h4>Malicious stratum — agent skills (~12)</h4>
+    <p>The skill-specific classes from §03: trigger-scope hijack, remote fetch at load time, script capability exceeding <code>allowed-tools</code>, bundled binary with no source.</p>
+    <span class="dep">Blocked by: 02</span></div></div>
+
+  <div class="tk"><span class="id">05</span><div>
+    <h4>FP traps — privileged by design (~12)</h4>
+    <p>Legitimate shell executors, credential managers, database tools running arbitrary SQL, browser automation doing browser automation. The nine false positives from the April audit live here.</p>
+    <span class="dep">Blocked by: 02</span></div></div>
+
+  <div class="tk"><span class="id">06</span><div>
+    <h4>FP traps — imperative &amp; dependency language (~12)</h4>
+    <p>Genuine <em>"You must call this function first"</em> instructions. Eight of the audit's 27 flags fired on exactly this. Text-identical to poisoning; distinguishable only by reach.</p>
+    <span class="dep">Blocked by: 02</span></div></div>
+
+  <div class="tk"><span class="id">07</span><div>
+    <h4>FP traps — wildcard permissions &amp; broad triggers (~11)</h4>
+    <p>Benign published skills declaring <code>"*"</code> and honestly broad descriptions. §03 calls this out as the mistake that has already forced a competing benchmark to withdraw headline scores.</p>
+    <span class="dep">Blocked by: 02</span></div></div>
+
+  <div class="tk"><span class="id">08</span><div>
+    <h4>Benign-plain stratum (~20)</h4>
+    <p>Ordinary servers and skills sampled across categories for realistic base rates. Unremarkable by construction — that is the point.</p>
+    <span class="dep">Blocked by: 02</span></div></div>
+
+  <div class="tk"><span class="id">09</span><div>
+    <h4>Scoring harness</h4>
+    <p>Precision, recall and F1 — but the table leads with FPR-on-traps, computed per scanner from a normalised findings format. Works off ticket 02's fixtures, so it does not wait on the corpus.</p>
+    <span class="dep">Blocked by: 02</span></div></div>
+
+  <div class="tk"><span class="id">10</span><div>
+    <h4>Baseline adapter interface + stubs</h4>
+    <p>Pluggable contract: run a scanner, normalise its output, score it. Real OSS tools get adapters that report <code>not run — not installed</code> until you approve the installs. The table has their rows from day one.</p>
+    <span class="dep">Blocked by: 09</span></div></div>
+
+  <div class="tk"><span class="id">11</span><div>
+    <h4>Reproducible <code>make bench</code> — P0 exit gate</h4>
+    <p>Clean checkout, one command, same table every time, fully offline after the first pass. §09's reproducibility constraint is what separates a benchmark from a bill.</p>
+    <span class="dep">Blocked by: 03, 04, 05, 06, 07, 08, 10</span></div></div>
+
+  <p class="note"><strong>Three questions the skill wants answered before I write the files.</strong>
+  Does the granularity feel right — are the four corpus tickets (03–08) too coarse to fit one context
+  window each, or too fine? Are the blocking edges correct, particularly ticket 09 depending only on
+  the sample <em>format</em> rather than on the samples themselves? And should anything be merged or
+  split further?</p>
+
+  <p class="note"><strong>One thing I will do unless you object.</strong> The malicious samples are
+  inert fixtures for a scanner to read, not working attacks: payloads will point at
+  <code>localhost</code> sinkholes and decoy paths rather than live endpoints, and every sample stays
+  under the corpus directory. This costs nothing in detection signal — a scanner reads the artifact,
+  not the destination — and keeps the published corpus safe to clone.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Next, on your word</h2></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Step</th><th>Skill</th><th>Waiting on</th></tr></thead>
+    <tbody>
+      <tr><td>Publish the 11 tickets to <code>.scratch/p0-ground-truth/issues/</code></td><td class="mono">/to-tickets</td><td><span class="pill hold">your approval of §04</span></td></tr>
+      <tr><td>Build tickets 01–02, red-green-refactor</td><td class="mono">/implement → /tdd</td><td><span class="pill todo">ticket files</span></td></tr>
+      <tr><td>Author the corpus, 03–08</td><td class="mono">/implement</td><td><span class="pill todo">02</span></td></tr>
+      <tr><td>Harness and adapters, 09–10</td><td class="mono">/implement → /tdd</td><td><span class="pill todo">02</span></td></tr>
+      <tr><td>Install and run the real OSS scanners</td><td class="mono">—</td><td><span class="pill gate">separate approval from you</span></td></tr>
+      <tr><td>Close out the phase</td><td class="mono">/code-review</td><td><span class="pill todo">gate 11</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">A restart of the Claude Code session will register the 25 skills as real slash
+  commands. Until then they are being followed by reading their <code>SKILL.md</code> files directly —
+  same instructions, same outputs, just invoked by hand rather than by <code>/name</code>.</p>
+</section>
+
+<footer>Divergence · progress report 00 · setup &amp; P0 planning · precision over coverage</footer>
+
+</div>
+</body>
+</html>

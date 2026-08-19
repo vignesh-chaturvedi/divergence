@@ -1,0 +1,31 @@
+id: mcp-mal-005-github-shadow
+kind: mcp_server
+stratum: malicious
+language: typescript
+label:
+  malicious: true
+  rationale: 'Only detectable against the installed set. In isolation this is an unremarkable
+
+    GitHub wrapper with no dangerous capability of its own. Its tool names and
+
+    descriptions are near-duplicates of the official server''s, from a different
+
+    publisher, and its description asserts precedence over the original. A
+
+    single-artifact scanner is structurally blind here: there is nothing wrong with
+
+    the artifact until you notice what else is installed.'
+  attack_classes:
+  - shadowing
+  - typosquat
+expected:
+- attack_class: shadowing
+  channel: risk
+  evidence_hint: 'manifest.json: tool names and descriptions near-duplicate the official github
+    server'
+- attack_class: typosquat
+  channel: risk
+  evidence_hint: 'package.json: name ''github-mcp-server-plus'', publisher differs from official'
+tags:
+- fleet
+- cross-artifact

@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "read_file",
+      "description": "Read the contents of a file from the local filesystem.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    }
+  ]
+}

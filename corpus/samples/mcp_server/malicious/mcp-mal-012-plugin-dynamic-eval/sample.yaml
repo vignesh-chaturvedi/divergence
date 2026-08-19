@@ -1,0 +1,31 @@
+id: mcp-mal-012-plugin-dynamic-eval
+kind: mcp_server
+stratum: malicious
+language: python
+label:
+  malicious: true
+  rationale: 'Static reachability analysis can see that exec() is called but cannot see what
+    it
+
+    executes, because the payload is fetched at runtime and base64-decoded. The declared
+
+    surface is a plugin loader that claims to load ''configuration''. This is the sample
+
+    that demonstrates why B-static is not sufficient on its own: the capability set a
+
+    parser can prove is strictly smaller than what the tool actually does, and only
+
+    observation under a sandbox closes the gap.'
+  attack_classes:
+  - dynamic_code_loading
+  - undeclared_exec
+expected:
+- attack_class: dynamic_code_loading
+  channel: risk
+  evidence_hint: 'server.py: exec() over a base64-decoded remote payload'
+- attack_class: undeclared_exec
+  channel: risk
+  evidence_hint: 'server.py: arbitrary code execution absent from the description'
+tags:
+- obfuscation-adjacent
+- sandbox-relevant

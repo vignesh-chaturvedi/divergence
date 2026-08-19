@@ -1,0 +1,158 @@
+"""`divergence-bench` — the P0 command line.
+
+Three verbs:
+
+    validate   every sample is well-formed, rationalised and inert
+    bench      run every registered scanner, print the comparison table
+    describe   show what the corpus contains, without running anything
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+# Importing these registers the adapters. Explicit, so the registry never depends on
+# import order elsewhere.
+import divergence.adapters.external  # noqa: F401
+import divergence.adapters.reference  # noqa: F401
+from divergence.adapters import available_adapters, get_adapter
+from divergence.adapters.base import run_adapter
+from divergence.bench import report
+from divergence.bench.corpus import CorpusError, counts_by_stratum, load_corpus, validate
+from divergence.bench.metrics import score_all
+from divergence.bench.models import Stratum
+
+DEFAULT_CORPUS = Path("corpus/samples")
+
+# The P0 target from §07 of the spec: 80 samples, 25 malicious, 35 traps, 20 benign.
+P0_TARGET = {
+    Stratum.MALICIOUS: 25,
+    Stratum.FP_TRAP: 35,
+    Stratum.BENIGN_PLAIN: 20,
+}
+
+
+def _load(root: Path):
+    try:
+        return load_corpus(root)
+    except CorpusError as exc:
+        print(f"corpus error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None
+
+
+def cmd_validate(args) -> int:
+    samples = _load(args.corpus)
+    violations = validate(samples)
+
+    print(report.corpus_summary(samples))
+    print()
+
+    if violations:
+        print(f"{len(violations)} violation(s):\n", file=sys.stderr)
+        for v in violations:
+            print(f"  {v}", file=sys.stderr)
+        return 1
+
+    print(f"✓ {len(samples)} samples valid — all rationalised, all inert.")
+
+    if args.check_p0_target:
+        counts = counts_by_stratum(samples)
+        short = {st: need - counts.get(st, 0) for st, need in P0_TARGET.items()}
+        missing = {st: n for st, n in short.items() if n > 0}
+        if missing:
+            print("\nP0 target not yet met:", file=sys.stderr)
+            for st, n in missing.items():
+                print(f"  {st.value}: {counts.get(st, 0)}/{P0_TARGET[st]} ({n} short)", file=sys.stderr)
+            return 1
+        print("✓ P0 corpus target met (25 malicious / 35 traps / 20 benign).")
+
+    return 0
+
+
+def cmd_describe(args) -> int:
+    samples = _load(args.corpus)
+    print(report.corpus_summary(samples))
+    print()
+    print(f"{'id':<40} {'kind':<13} {'stratum':<14} {'lang':<11} classes")
+    print("─" * 110)
+    for s in samples:
+        classes = ",".join(a.value for a in s.attack_classes) or ",".join(
+            f.value for f in s.trap_families
+        ) or "—"
+        print(f"{s.id:<40} {s.kind.value:<13} {s.stratum.value:<14} {s.language:<11} {classes[:40]}")
+    return 0
+
+
+def cmd_bench(args) -> int:
+    samples = _load(args.corpus)
+
+    violations = validate(samples)
+    if violations and not args.ignore_violations:
+        print(
+            f"corpus has {len(violations)} violation(s) — run `validate` first, "
+            "or pass --ignore-violations",
+            file=sys.stderr,
+        )
+        return 2
+
+    adapters = (
+        [get_adapter(n) for n in args.scanner] if args.scanner else available_adapters()
+    )
+
+    runs = [run_adapter(a, samples) for a in adapters]
+    scores = score_all(samples, runs)
+
+    print(report.corpus_summary(samples))
+    print()
+    print(report.comparison_table(scores))
+    print()
+    print(report.per_stratum_table(scores))
+
+    if args.detail:
+        for extra in (report.trap_family_table(scores), report.attack_class_table(scores)):
+            if extra:
+                print()
+                print(extra)
+
+    if args.json:
+        args.json.parent.mkdir(parents=True, exist_ok=True)
+        args.json.write_text(report.to_json(samples, scores))
+        print(f"\nwrote {args.json}")
+
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="divergence-bench",
+        description="The Divergence benchmark — precision measured against traps, not just recall.",
+    )
+    parser.add_argument(
+        "--corpus", type=Path, default=DEFAULT_CORPUS, help="corpus root (default: corpus/samples)"
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_val = sub.add_parser("validate", help="check every corpus invariant")
+    p_val.add_argument(
+        "--check-p0-target", action="store_true", help="also assert the P0 stratum counts"
+    )
+    p_val.set_defaults(func=cmd_validate)
+
+    p_desc = sub.add_parser("describe", help="list the corpus without running anything")
+    p_desc.set_defaults(func=cmd_describe)
+
+    p_bench = sub.add_parser("bench", help="run scanners and print the comparison table")
+    p_bench.add_argument("--scanner", action="append", help="limit to one scanner (repeatable)")
+    p_bench.add_argument("--json", type=Path, help="also write machine-readable results here")
+    p_bench.add_argument("--detail", action="store_true", help="per-class and per-trap-family tables")
+    p_bench.add_argument("--ignore-violations", action="store_true", help="bench a dirty corpus")
+    p_bench.set_defaults(func=cmd_bench)
+
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

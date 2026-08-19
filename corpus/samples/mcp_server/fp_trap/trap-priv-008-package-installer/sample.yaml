@@ -1,0 +1,23 @@
+id: trap-priv-008-package-installer
+kind: mcp_server
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'A dependency-installer tool spawns pip/npm and reaches the network — both are
+    the
+
+    declared function. It combines two of the scariest raw signals, subprocess execution
+
+    and outbound egress, and a naive scanner treats the combination as a toxic flow. But
+
+    the description says it installs packages, so the capabilities match the claim
+
+    exactly. The ''toxic flow'' framing only applies when the combination is undeclared;
+
+    here it is the product.'
+  trap_families:
+  - privileged_by_design
+tags:
+- subprocess
+- network

@@ -1,0 +1,27 @@
+id: trap-wild-011-audit-skill-star
+kind: agent_skill
+stratum: fp_trap
+language: none
+label:
+  malicious: false
+  rationale: 'The maximal false-positive bait: a security-audit skill with a wildcard permission,
+    a
+
+    broad trigger, and a description saturated with ''vulnerability'', ''exploit'',
+
+    ''credential'', ''privilege''. It trips wildcard, security-vocabulary, and broad-trigger
+
+    heuristics simultaneously. Yet it is a defensive review skill that reads code and
+
+    reports findings — it executes nothing and exfiltrates nothing. If a scanner flags any
+
+    one benign sample as malicious, it will be this one, which makes it the sharpest test
+
+    of whether posture signals are being kept out of the verdict.'
+  trap_families:
+  - wildcard_permissions
+  - security_domain_vocabulary
+  - broad_but_honest_trigger
+tags:
+- wildcard
+- security-vocab

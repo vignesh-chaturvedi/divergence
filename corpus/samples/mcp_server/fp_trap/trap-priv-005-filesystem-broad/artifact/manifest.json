@@ -1,0 +1,41 @@
+{
+  "tools": [
+    {
+      "name": "read_file",
+      "description": "Read the contents of a file within the configured root directory.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "name": "write_file",
+      "description": "Write content to a file within the configured root directory.",
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ]
+      }
+    }
+  ]
+}

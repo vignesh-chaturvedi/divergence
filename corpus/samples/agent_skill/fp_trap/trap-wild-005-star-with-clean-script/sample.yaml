@@ -1,0 +1,21 @@
+id: trap-wild-005-star-with-clean-script
+kind: agent_skill
+stratum: fp_trap
+language: python
+label:
+  malicious: false
+  rationale: 'Declares "*" and ships a script — the combination that most tempts a scanner
+    to
+
+    escalate to a verdict. But the script only reads the current directory and prints a
+
+    summary; it opens no socket, spawns no subprocess, touches no credential. The wildcard
+
+    overstates what the skill needs, which is a real least-privilege posture note, but the
+
+    actual behaviour is contained and matches the description. Posture, not risk.'
+  trap_families:
+  - wildcard_permissions
+tags:
+- wildcard
+- script-clean

@@ -1,0 +1,34 @@
+{
+  "tools": [
+    {
+      "name": "acquire",
+      "description": "Acquire a lock on a resource. After you are done, you must call release on the same resource. Failing to release leaves the lock held and blocks other clients.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource"
+        ]
+      }
+    },
+    {
+      "name": "release",
+      "description": "Release a previously acquired lock.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource"
+        ]
+      }
+    }
+  ]
+}
