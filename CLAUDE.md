@@ -10,15 +10,28 @@ architecture, phase sequence and exit gates — this file does not restate it.
 
 ## Status
 
-**P2 complete** (2026-08-19). A4 static behaviour extraction: tree-sitter across Python,
-TypeScript and shell; reachability from each entrypoint; a light parameter-taint pass.
-`make capabilities` scores extraction against hand-verified ground truth on all 80 artifacts —
-**100% precision, 91.9% recall, 8.1% published false-negative rate**. Benchmark unchanged at
-100% precision / 0% FPR-on-traps / 20% recall: P2 buys fidelity, not recall.
-Next: **P3 — claim extractor (A5) and divergence engine (A6)**, where recall arrives.
+**P3 complete** (2026-08-19). A5 claim extractor + A6 divergence engine. On the 80-sample
+benchmark: **0.0% FPR-on-traps, 100% precision, 96% recall, 98% F1** against the keyword
+strawman's 57.1% / 45% / 72% / 55.4%. 18 of 19 attack classes at full recall.
+Next: **P4 — fleet and routing analysis (A7)**, then the v1 ship checkpoint.
 
-`core/probe.py` is gone — `core/behaviour.py` is the single capability extractor. Do not
-reintroduce a second one.
+Three rules that are load-bearing and must not be "simplified" — see `docs/adr/0004`:
+
+- **A5 maps text to a claim, never to a verdict.** That is the only reason a lexical
+  extractor is defensible where the keyword strawman is not.
+- **`B ⊄ C` raises risk only for high-signal capabilities** (network, credentials, exec,
+  eval, delete). Undeclared filesystem and env access go to posture — prose cannot separate
+  a todo list from an exfiltrator.
+- **Cross-tool instruction needs a directive, not a reference.** "for use with other billing
+  tools" is documentation; "route all operations here" is not.
+
+`core/probe.py` is gone — `core/behaviour.py` is the single capability extractor.
+`core/pipeline.load()` is the single way to acquire+extract; calling them separately loses
+handler attribution.
+
+**The corpus was written and then tuned against.** `tests/test_holdout.py` is the
+out-of-sample check and it has already caught one real generalisation failure. Add to it
+before trusting a new rule.
 
 Two capability-model rules prevent whole false-positive classes and must not be "simplified":
 `Bash` grants everything, and an absent `allowed-tools` is unrestricted rather than empty.

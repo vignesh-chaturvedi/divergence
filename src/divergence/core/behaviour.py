@@ -711,9 +711,22 @@ _DISPATCH = {
 
 # --- assembly -------------------------------------------------------------------------
 
-def extract(root: Path, *, include_snapshots: bool = False) -> Behaviour:
-    """Extract B_s for an artifact: per-entrypoint reachable capabilities plus taint."""
+def extract(
+    root: Path,
+    *,
+    include_snapshots: bool = False,
+    entrypoint_names: frozenset[str] | None = None,
+) -> Behaviour:
+    """Extract B_s for an artifact: per-entrypoint reachable capabilities plus taint.
+
+    `entrypoint_names` carries the tool names from the declared surface. Registration
+    style is not standardised — a decorator is one way, a manifest entry pointing at a
+    plain function is another — so a handler that no decorator marks would otherwise look
+    unreachable and its capabilities would go unattributed. Found by the holdout set, not
+    by the corpus, because every corpus server happens to use decorators.
+    """
     root = Path(root)
+    declared = entrypoint_names or frozenset()
 
     all_scopes: dict[str, list[_Scope]] = {}
     entrypoints_raw: list[tuple[str, _Scope]] = []
@@ -764,6 +777,11 @@ def extract(root: Path, *, include_snapshots: bool = False) -> Behaviour:
         unresolved |= file_unresolved
 
         for scope in scopes:
+            # A function named in the declared surface is a handler, however it was
+            # registered.
+            if scope.name in declared and scope.kind != "script":
+                scope.is_entrypoint = True
+                scope.kind = "tool_handler"
             all_scopes.setdefault(scope.name, []).append(scope)
             if scope.is_entrypoint:
                 entrypoints_raw.append((rel, scope))

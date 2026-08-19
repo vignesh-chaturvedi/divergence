@@ -13,20 +13,23 @@ server that quietly opens a socket is not.
 
 ## Status
 
-**Phase P2 — static behaviour extraction.** A tree-sitter parse of the implementation
-across Python, TypeScript and shell, with reachability from each entrypoint and a light
-parameter-taint pass. Capabilities are attributed to the handlers that can actually
-reach them, which is what lets a per-tool annotation check work at all.
+**Phase P3 — the divergence engine.** Claim extraction (C) and set algebra over C, S and
+B against §02's rule table.
 
-Against hand-verified ground truth on all 80 corpus artifacts, extraction scores
-**100% precision and 91.9% recall, with a published 8.1% false-negative rate.** Every
-miss is the same class: a capability reached through a spawned process (`ssh`, `pip
-install`, `git push`) that no parser can follow.
+| | divergence | keyword strawman |
+|---|---|---|
+| **FPR-on-traps** | **0.0%** | 57.1% |
+| Precision | **100%** | 45.0% |
+| Recall | **96.0%** | 72.0% |
+| F1 | **98.0%** | 55.4% |
 
-Against the benchmark, the scanner scores **100% precision at 0% false positives on the
-trap stratum**, with 20% recall. The keyword strawman scores 45% precision at 57.1%
-FPR-on-traps. That trade — far less recall, no false positives — is the thesis, and P3
-is where recall arrives.
+18 of 19 attack classes at full recall, zero false positives across all 55 benign and
+trap artifacts, fully offline and deterministic with no model in the pipeline.
+
+**Read that with the caveat it deserves:** the corpus was written by the same author and
+then tuned against. `tests/test_holdout.py` is an out-of-sample check written after
+tuning, and it caught a real generalisation failure the benchmark could not. The
+third-party scanner comparison is still gated and unrun.
 
 See `build-plan/divergence-spec.html` for the full build specification, and
 `build-plan/reports/` for phase progress reports.

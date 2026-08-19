@@ -14,30 +14,29 @@ import tempfile
 from pathlib import Path
 
 from divergence.adapters.base import register
-from divergence.core.acquire import acquire
+from divergence.core.pipeline import load
 from divergence.core.declared import analyze_declared
+from divergence.core.engine import analyze_divergence
 from divergence.core.ledger import Ledger
-from divergence.core.behaviour import extract
 from divergence.bench.models import Sample
 from divergence.core.vocabulary import Finding
 
 
 class DivergenceScanner:
-    """P1: A1 acquisition + A2 declared-interface analysis + A3 manifest ledger."""
+    """A1 acquisition + A2 declared interface + A3 ledger + A4 behaviour + A6 divergence."""
 
     name = "divergence"
     homepage = "https://github.com/vignesh-chaturvedi/divergence"
     kind = "reference"
 
     def probe(self) -> str:
-        return "0.1.0-p1"
+        return "0.1.0-p3"
 
     def scan(self, sample: Sample) -> list[Finding]:
-        root = sample.artifact_path
-        artifact = acquire(root)
-        behaviour = extract(root)
+        artifact, behaviour = load(sample.artifact_path)
 
         findings = analyze_declared(artifact, behaviour, sample_id=sample.id)
+        findings += analyze_divergence(artifact, behaviour, sample_id=sample.id)
         findings += self._ledger_findings(sample, artifact)
 
         return findings
@@ -57,8 +56,8 @@ class DivergenceScanner:
 
         with tempfile.TemporaryDirectory() as tmp:
             ledger = Ledger(Path(tmp) / "ledger.db")
-            approved = acquire(artifact.snapshots[0].root)
-            current = acquire(artifact.snapshots[-1].root)
+            approved, _ = load(artifact.snapshots[0].root)
+            current, _ = load(artifact.snapshots[-1].root)
 
             ledger.record(approved, artifact_id=sample.id)
             return ledger.diff(current, artifact_id=sample.id)

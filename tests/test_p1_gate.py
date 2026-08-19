@@ -41,10 +41,20 @@ def test_gate_beats_the_strawman_on_precision(samples):
     assert ours.fpr_on_traps < theirs.fpr_on_traps
 
 
-def test_every_detection_is_correctly_attributed(samples):
-    """Right answer for the right reason. Deterministic checks have no excuse otherwise."""
+def test_most_detections_are_correctly_attributed(samples):
+    """Right answer for the right reason — for most, and knowingly not all.
+
+    At P1 this was 100%, because the only detections were deterministic contradictions
+    that name themselves. P3 added rules that catch real attacks under a *related* class:
+    shadowing and preference manipulation both surface as `cross_tool_instruction`,
+    because from a single artifact that is exactly what they look like. Distinguishing
+    them needs the installed set, which is P4's fleet analyzer.
+
+    Renaming them to chase this metric would be gaming it, so the bar is high rather than
+    perfect and the gap is documented.
+    """
     score = _score(DivergenceScanner(), samples)
-    assert score.attribution_rate == 1.0
+    assert score.attribution_rate > 0.75
 
 
 def test_posture_is_emitted_but_never_decides(samples):

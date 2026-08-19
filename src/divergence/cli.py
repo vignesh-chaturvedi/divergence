@@ -18,7 +18,7 @@ from pathlib import Path
 from divergence.core.acquire import Artifact
 from divergence.core.declared import analyze_declared
 from divergence.core.ledger import Ledger
-from divergence.core.behaviour import extract
+from divergence.core.pipeline import load
 from divergence.core.resolve import ResolutionError, ResolvedTarget, resolve
 from divergence.core.vocabulary import Channel, Finding
 
@@ -115,7 +115,7 @@ def cmd_scan(args) -> int:
             continue
 
         artifact = t.artifact
-        behaviour = extract(artifact.root)
+        artifact, behaviour = load(artifact.root)
         findings = analyze_declared(artifact, behaviour, sample_id=t.name)
 
         if args.ledger_check:
@@ -145,7 +145,7 @@ def cmd_approve(args) -> int:
         if not t.resolved:
             _print_unresolved(t)
             continue
-        behaviour = extract(t.artifact.root)
+        _, behaviour = load(t.artifact.root)
         ledger.record(t.artifact, artifact_id=t.name, observed_capabilities=behaviour.capabilities)
         print(f"approved {t.name}  fingerprint {ledger.fingerprint(t.artifact, behaviour.capabilities)[:16]}")
     print(f"\nledger: {args.ledger}")
@@ -160,7 +160,7 @@ def cmd_diff(args) -> int:
         if not t.resolved:
             _print_unresolved(t)
             continue
-        behaviour = extract(t.artifact.root)
+        _, behaviour = load(t.artifact.root)
         findings = ledger.diff(t.artifact, artifact_id=t.name, observed_capabilities=behaviour.capabilities)
         if not findings:
             print("  unchanged since approval")
