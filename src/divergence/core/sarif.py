@@ -14,6 +14,7 @@ exactly the alert fatigue this project exists to remove.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from divergence.core.vocabulary import Channel, Finding
@@ -49,14 +50,52 @@ def _rule_id(finding: Finding) -> str:
     return f"divergence/{finding.channel.value}/{base}"
 
 
+# A path, and nothing else. No spaces, no commas, no angle brackets, and crucially no
+# colon — GitHub code scanning reads a leading `word:` as a URI *scheme* and rejects the
+# entire upload when it does not match the checkout's `file` scheme.
+_PATH_RE = re.compile(r"^[A-Za-z0-9._][A-Za-z0-9._\-/]*$")
+
+
+def _looks_like_path(candidate: str) -> bool:
+    return bool(candidate) and bool(_PATH_RE.match(candidate))
+
+
 def _split_location(evidence: str) -> tuple[str, int | None]:
-    """Split a `file:line` evidence string, tolerating either half being absent."""
+    """Split a `file:line` evidence string into a path and a line, or into nothing.
+
+    Not every finding is anchored to a file. Fleet analysis reports things like
+    `'code-review-pro: publisher=unknown, signed=None'` — a perfectly good piece of
+    evidence that is not a location. Returning it as one made GitHub parse
+    `code-review-pro:` as a URI scheme and refuse the whole SARIF file.
+
+    So this returns a path only when the evidence actually is one. Prose is the caller's
+    problem, and the caller keeps it in `properties` rather than discarding it.
+    """
     if not evidence:
         return "", None
+
     head, _, tail = evidence.rpartition(":")
-    if head and tail.isdigit():
+    if head and tail.isdigit() and _looks_like_path(head):
         return head, int(tail)
-    return evidence, None
+
+    return (evidence, None) if _looks_like_path(evidence) else ("", None)
+
+
+def _repo_relative(uri: str, root: Path | None) -> str:
+    """Rebase an artifact-relative path onto the repository.
+
+    Evidence locations are relative to the artifact being scanned — `scripts/collect.py`,
+    not `corpus/.../artifact/scripts/collect.py`. A code-scanning alert pointing at a path
+    that does not exist in the checkout is an alert nobody can act on.
+    """
+    if root is None:
+        return uri
+
+    candidate = Path(root) / uri
+    try:
+        return candidate.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except (ValueError, OSError):
+        return candidate.as_posix().lstrip("/")
 
 
 def _rules(findings: list[Finding]) -> list[dict]:
@@ -81,8 +120,10 @@ def _rules(findings: list[Finding]) -> list[dict]:
     return list(seen.values())
 
 
-def _result(finding: Finding, base: Path | None) -> dict:
+def _result(finding: Finding, roots: dict[str, Path] | None, anchor: str) -> dict:
     uri, line = _split_location(finding.evidence)
+    if uri:
+        uri = _repo_relative(uri, (roots or {}).get(finding.sample_id))
 
     result = {
         "ruleId": _rule_id(finding),
@@ -97,20 +138,37 @@ def _result(finding: Finding, base: Path | None) -> dict:
             # otherwise strip the half that makes it reviewable.
             "divergence.claim": finding.claim,
             "divergence.artifact": finding.sample_id,
+            # Always carried, whether or not it was location-shaped. A finding that loses
+            # its evidence stops being reviewable, which is the one thing §04 forbids.
+            "divergence.evidence": finding.evidence,
         },
     }
 
-    if uri:
-        physical: dict = {"artifactLocation": {"uri": uri}}
-        if line is not None:
+    # Fall back to the anchor — the file that was scanned — so a finding whose evidence is
+    # prose still lands somewhere real in the repository instead of nowhere.
+    location_uri = uri or anchor
+    if location_uri:
+        physical: dict = {"artifactLocation": {"uri": location_uri}}
+        if uri and line is not None:
             physical["region"] = {"startLine": line}
         result["locations"] = [{"physicalLocation": physical}]
 
     return result
 
 
-def to_sarif(findings: list[Finding], *, base: Path | None = None, version: str = "0.1.0") -> dict:
-    """Render findings as a SARIF 2.1.0 log."""
+def to_sarif(
+    findings: list[Finding],
+    *,
+    roots: dict[str, Path] | None = None,
+    anchor: str = "",
+    version: str = "0.1.0",
+) -> dict:
+    """Render findings as a SARIF 2.1.0 log.
+
+    `roots` maps an artifact id to the directory its evidence paths are relative to, so
+    locations come out relative to the repository rather than to the artifact. `anchor` is
+    a repo-relative file used for findings whose evidence is not a location at all.
+    """
     return {
         "$schema": SCHEMA,
         "version": VERSION,
@@ -124,7 +182,7 @@ def to_sarif(findings: list[Finding], *, base: Path | None = None, version: str 
                         "rules": _rules(findings),
                     }
                 },
-                "results": [_result(f, base) for f in findings],
+                "results": [_result(f, roots, anchor) for f in findings],
             }
         ],
     }
@@ -132,3 +190,73 @@ def to_sarif(findings: list[Finding], *, base: Path | None = None, version: str 
 
 def dumps(findings: list[Finding], **kwargs) -> str:
     return json.dumps(to_sarif(findings, **kwargs), indent=2, sort_keys=False)
+
+
+# --- validation -----------------------------------------------------------------------
+
+def check(path: Path) -> list[str]:
+    """Report why a consumer would reject this SARIF file.
+
+    Schema validity is not the bar. GitHub code scanning refused an upload that parsed
+    perfectly well, because one `artifactLocation.uri` began with `code-review-pro:` and
+    it read that as a URI scheme. Rejection is all-or-nothing, so a single bad location
+    silently discards every finding in the file.
+    """
+    problems: list[str] = []
+
+    try:
+        doc = json.loads(Path(path).read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"unreadable: {exc}"]
+
+    if doc.get("version") != VERSION:
+        problems.append(f"version is {doc.get('version')!r}, expected {VERSION!r}")
+
+    for run_index, run in enumerate(doc.get("runs", [])):
+        for result_index, result in enumerate(run.get("results", [])):
+            where = f"runs[{run_index}].results[{result_index}]"
+
+            if not result.get("ruleId"):
+                problems.append(f"{where}: no ruleId")
+
+            for loc in result.get("locations", []):
+                uri = (
+                    loc.get("physicalLocation", {})
+                    .get("artifactLocation", {})
+                    .get("uri", "")
+                )
+                if not uri:
+                    problems.append(f"{where}: location with no uri")
+                elif re.match(r"^[A-Za-z][A-Za-z0-9+.\-]*:", uri):
+                    problems.append(
+                        f"{where}: uri {uri!r} starts with what looks like a scheme — "
+                        "code scanning will reject the upload"
+                    )
+                elif uri.startswith("/"):
+                    problems.append(f"{where}: uri {uri!r} is absolute, must be repo-relative")
+                elif " " in uri:
+                    problems.append(f"{where}: uri {uri!r} contains a space")
+
+    return problems
+
+
+def _main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="divergence.core.sarif")
+    parser.add_argument("--check", type=Path, required=True, help="SARIF file to validate")
+    args = parser.parse_args(argv)
+
+    problems = check(args.check)
+    if problems:
+        print(f"{args.check}: {len(problems)} problem(s)")
+        for problem in problems:
+            print(f"  {problem}")
+        return 1
+
+    print(f"{args.check}: ok")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_main())

@@ -242,6 +242,40 @@ footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
       one of them.</li>
   </ul>
 
+  <h3>And a fourth, found by CI after the push</h3>
+
+  <p>The first real workflow run failed at <strong>Upload SARIF</strong>. Code scanning
+  rejected the file outright:</p>
+
+  <pre class="term"><span class="r">Error: Code Scanning could not process the submitted SARIF file:</span>
+SARIF URI scheme "code-review-pro" did not match the checkout URI scheme "file"</pre>
+
+  <p>Two bugs, both mine:</p>
+
+  <ul class="check">
+    <li><strong>Prose evidence became a URI.</strong> Fleet findings carry evidence like
+      <code>code-review-pro: publisher=unknown, signed=None</code> — good evidence, not a
+      location. It went into <code>artifactLocation.uri</code>, and GitHub parsed the
+      leading <code>code-review-pro:</code> as a <em>URI scheme</em>.</li>
+    <li><strong>Valid paths were relative to the wrong root.</strong> The <code>base</code>
+      parameter was accepted and never used, so <code>scripts/collect.py</code> was emitted
+      artifact-relative — a path that does not exist in the checkout, pointing every alert
+      at nothing.</li>
+  </ul>
+
+  <p class="note warn"><strong>My ship-checkpoint verification is what let this through.</strong>
+  I validated SARIF against a single-artifact <code>scan</code>, where evidence really is
+  <code>server.py:18</code> — the one case that worked. I never generated SARIF from a
+  <code>fleet</code> run, which is precisely what the workflow uploads. Checking the happy
+  path and calling it verified is the same mistake as the CLI bug above, one level up.</p>
+
+  <p>Fixed by making <code>_split_location</code> return a path only when the evidence is
+  path-shaped, keeping prose in <code>properties.divergence.evidence</code> so no finding
+  loses its evidence, rebasing locations onto the repository via the roots the caller
+  already knows, and anchoring location-less findings to the scanned file. A
+  <code>--check</code> validator now runs in CI <em>before</em> upload — rejection is
+  all-or-nothing, so one bad URI silently discards every finding in the file.</p>
+
   <p class="note">All three are the same shape: the corpus is 80 artifacts in one house style,
   written by one person, and anything outside that style was untested. That is the argument for
   the holdout set, and it keeps paying.</p>

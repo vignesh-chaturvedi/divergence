@@ -44,8 +44,13 @@ jobs:
           uv run divergence fleet corpus/fleets/installed-config/fleet.yaml \
             --sarif divergence.sarif
 
+      # Validate before uploading. Code scanning rejects the whole file on one bad URI,
+      # and a failed upload is a silent loss of every finding in it.
+      - name: Validate SARIF
+        run: uv run python -m divergence.core.sarif --check divergence.sarif
+
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: divergence.sarif

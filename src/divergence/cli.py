@@ -110,6 +110,7 @@ def cmd_inspect(args) -> int:
 def cmd_scan(args) -> int:
     total_risk = 0
     collected: list[Finding] = []
+    sarif_roots: dict[str, Path] = {}
     for t in _resolve_or_exit(args.target):
         print(f"\n{t.name}  ({t.source})")
         if not t.resolved:
@@ -118,6 +119,7 @@ def cmd_scan(args) -> int:
 
         artifact = t.artifact
         artifact, behaviour, findings = scan_artifact(artifact.root, artifact_id=t.name)
+        sarif_roots[t.name] = artifact.root
 
         if args.ledger_check:
             ledger = Ledger(args.ledger)
@@ -138,12 +140,20 @@ def cmd_scan(args) -> int:
 
     if args.sarif:
         args.sarif.parent.mkdir(parents=True, exist_ok=True)
-        args.sarif.write_text(sarif_dumps(collected))
+        args.sarif.write_text(sarif_dumps(collected, roots=sarif_roots))
         print(f"\nwrote {args.sarif}")
 
     print(f"\n{total_risk} risk finding(s).")
     # Non-zero exit on risk so this drops into CI without a wrapper.
     return 1 if (total_risk and args.fail_on_risk) else 0
+
+
+def _repo_relative_str(path: Path) -> str:
+    """Path relative to the working directory, for use as a SARIF anchor."""
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except (ValueError, OSError):
+        return path.name
 
 
 def cmd_fleet(args) -> int:
@@ -177,7 +187,13 @@ def cmd_fleet(args) -> int:
 
     if args.sarif:
         args.sarif.parent.mkdir(parents=True, exist_ok=True)
-        args.sarif.write_text(sarif_dumps(findings))
+        args.sarif.write_text(
+            sarif_dumps(
+                findings,
+                roots={m.id: m.root for m in fleet.members},
+                anchor=_repo_relative_str(target),
+            )
+        )
         print(f"\nwrote {args.sarif}")
 
     print(f"\n{risk_count} cross-artifact risk finding(s).")

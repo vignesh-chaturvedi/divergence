@@ -1,3 +1,5 @@
+import re
+from pathlib import Path
 """SARIF output.
 
 The contract that matters is the channel split: a consumer must be able to drop posture
@@ -80,3 +82,130 @@ def test_empty_findings_produce_a_valid_empty_run():
     doc = to_sarif([])
     assert doc["runs"][0]["results"] == []
     assert json.loads(json.dumps(doc))
+
+
+# --- regressions from the first CI run ------------------------------------------------
+# GitHub code scanning rejected the uploaded SARIF outright. Both causes are here, because
+# a schema-valid document that a consumer refuses is not valid in any useful sense.
+
+def _uris(doc):
+    out = []
+    for r in doc["runs"][0]["results"]:
+        for loc in r.get("locations", []):
+            out.append(loc["physicalLocation"]["artifactLocation"]["uri"])
+    return out
+
+
+def test_prose_evidence_never_becomes_a_uri():
+    """Fleet findings carry prose, not `file:line`.
+
+    `'code-review-pro: publisher=unknown, ...'` was emitted as an artifactLocation URI,
+    and GitHub parsed the leading `code-review-pro:` as a URI *scheme*, failing the whole
+    upload. Anything that is not path-shaped must not be a location.
+    """
+    findings = [
+        Finding(
+            sample_id="code-review-pro",
+            channel=Channel.RISK,
+            attack_class=AttackClass.SHADOWING,
+            severity="critical",
+            message="'code-review-pro' closely imitates 'code-review'",
+            evidence="code-review-pro: publisher=unknown, signed=None, downloads30d=None",
+            claim="code-review: publisher=unknown",
+        ),
+    ]
+    doc = to_sarif(findings)
+    for uri in _uris(doc):
+        assert ":" not in uri, f"prose leaked into a URI: {uri!r}"
+        assert " " not in uri
+
+
+def test_prose_evidence_is_preserved_in_properties():
+    """Dropping it from the location must not drop it from the finding."""
+    findings = [
+        Finding(
+            sample_id="installed-config",
+            channel=Channel.POSTURE,
+            severity="medium",
+            message="toxic flow available across this config",
+            evidence="16 artifacts in the installed set",
+            claim="posture: no single artifact declares this path",
+        ),
+    ]
+    result = to_sarif(findings)["runs"][0]["results"][0]
+    assert result["properties"]["divergence.evidence"] == "16 artifacts in the installed set"
+
+
+def test_every_uri_is_relative_and_scheme_free():
+    """Code scanning compares the SARIF URI scheme against the checkout's `file` scheme."""
+    findings = [
+        Finding(sample_id="a", channel=Channel.RISK, attack_class=AttackClass.UNDECLARED_NETWORK,
+                severity="high", message="m", evidence="scripts/collect.py:7", claim="c"),
+        Finding(sample_id="b", channel=Channel.POSTURE, severity="low",
+                message="m", evidence="16 artifacts in the installed set", claim="c"),
+    ]
+    for uri in _uris(to_sarif(findings)):
+        assert not uri.startswith("/"), f"absolute path: {uri}"
+        assert "://" not in uri
+        # A bare `word:` prefix is what GitHub reads as a scheme.
+        assert not re.match(r"^[A-Za-z][A-Za-z0-9+.\-]*:", uri), f"looks like a scheme: {uri}"
+
+
+def test_roots_make_locations_repo_relative():
+    """`scripts/collect.py` is relative to the artifact, not to the checkout.
+
+    Without this the alert points at a path that does not exist in the repository.
+    """
+    findings = [
+        Finding(sample_id="code-formatter", channel=Channel.RISK,
+                attack_class=AttackClass.UNDECLARED_NETWORK, severity="high",
+                message="m", evidence="scripts/collect.py:7", claim="c"),
+    ]
+    doc = to_sarif(findings, roots={"code-formatter": Path("corpus/fleets/x/members/cf")})
+    assert _uris(doc) == ["corpus/fleets/x/members/cf/scripts/collect.py"]
+    region = doc["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["region"]
+    assert region["startLine"] == 7
+
+
+def test_real_fleet_scan_produces_only_valid_uris():
+    """End to end against the actual fleet — this is what CI uploads."""
+    from divergence.core.fleet import analyze_fleet, load_fleet
+
+    fleet = load_fleet(Path("corpus/fleets/installed-config/fleet.yaml"))
+    findings = analyze_fleet(fleet)
+    roots = {m.id: m.root for m in fleet.members}
+
+    for uri in _uris(to_sarif(findings, roots=roots)):
+        assert not re.match(r"^[A-Za-z][A-Za-z0-9+.\-]*:", uri), f"invalid URI: {uri!r}"
+        assert " " not in uri, f"space in URI: {uri!r}"
+
+
+def test_check_rejects_a_scheme_like_uri(tmp_path):
+    """The validator must catch exactly what CI caught."""
+    from divergence.core.sarif import check
+
+    bad = tmp_path / "bad.sarif"
+    bad.write_text(json.dumps({
+        "version": "2.1.0",
+        "runs": [{"results": [{
+            "ruleId": "x",
+            "locations": [{"physicalLocation": {
+                "artifactLocation": {"uri": "code-review-pro: publisher=unknown"}}}],
+        }]}],
+    }))
+    problems = check(bad)
+    assert problems and "scheme" in problems[0]
+
+
+def test_check_passes_a_real_fleet_sarif(tmp_path):
+    from divergence.core.fleet import analyze_fleet, load_fleet
+    from divergence.core.sarif import check, dumps
+
+    fleet = load_fleet(Path("corpus/fleets/installed-config/fleet.yaml"))
+    out = tmp_path / "f.sarif"
+    out.write_text(dumps(
+        analyze_fleet(fleet),
+        roots={m.id: m.root for m in fleet.members},
+        anchor="corpus/fleets/installed-config/fleet.yaml",
+    ))
+    assert check(out) == []
