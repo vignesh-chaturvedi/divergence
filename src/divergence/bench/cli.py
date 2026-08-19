@@ -15,6 +15,7 @@ from pathlib import Path
 
 # Importing these registers the adapters. Explicit, so the registry never depends on
 # import order elsewhere.
+import divergence.adapters.divergence  # noqa: F401
 import divergence.adapters.external  # noqa: F401
 import divergence.adapters.reference  # noqa: F401
 from divergence.adapters import available_adapters, get_adapter

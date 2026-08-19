@@ -11,6 +11,15 @@ import enum
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Channel, AttackClass and Finding are core scanner vocabulary, not benchmark concepts.
+# They are re-exported here so existing importers keep working.
+from divergence.core.vocabulary import AttackClass, Channel, Finding
+
+__all__ = [
+    "AttackClass", "Channel", "Finding", "Kind", "Stratum", "TrapFamily",
+    "ExpectedFinding", "Sample", "SampleResult", "ScanRun",
+]
+
 
 class Kind(enum.StrEnum):
     """What sort of artifact a sample is."""
@@ -35,53 +44,6 @@ class Stratum(enum.StrEnum):
     def is_positive(self) -> bool:
         """True when a scanner *should* flag samples in this stratum."""
         return self in (Stratum.MALICIOUS, Stratum.OBFUSCATED)
-
-
-class Channel(enum.StrEnum):
-    """The two output channels that must never be mixed.
-
-    POSTURE describes what an artifact *can* do — high blast radius, broad filesystem
-    access, wildcard permissions. Useful, non-urgent, and fires on benign and malicious
-    artifacts alike.
-
-    RISK describes divergence — a claim the artifact contradicts. Only RISK findings
-    count toward a verdict. Splitting these is what removes most of the false-positive
-    rate before a single model runs.
-    """
-
-    POSTURE = "posture"
-    RISK = "risk"
-
-
-class AttackClass(enum.StrEnum):
-    """The published taxonomy, plus the classes that only exist for skills.
-
-    Used for per-class recall breakdowns: a scanner can score well overall while being
-    structurally blind to one family, and that is worth seeing.
-    """
-
-    # Shared between servers and skills
-    DESCRIPTION_POISONING = "description_poisoning"
-    SCHEMA_POISONING = "schema_poisoning"
-    RETURN_VALUE_INJECTION = "return_value_injection"
-    SHADOWING = "shadowing"
-    PREFERENCE_MANIPULATION = "preference_manipulation"
-    POST_APPROVAL_MUTATION = "post_approval_mutation"
-    TYPOSQUAT = "typosquat"
-    ANNOTATION_LIE = "annotation_lie"
-    UNDECLARED_NETWORK = "undeclared_network"
-    UNDECLARED_FILESYSTEM = "undeclared_filesystem"
-    UNDECLARED_SECRETS = "undeclared_secrets"
-    UNDECLARED_EXEC = "undeclared_exec"
-    CROSS_TOOL_INSTRUCTION = "cross_tool_instruction"
-    DYNAMIC_CODE_LOADING = "dynamic_code_loading"
-
-    # Skill-specific — no MCP equivalent
-    TRIGGER_SCOPE_HIJACK = "trigger_scope_hijack"
-    REMOTE_FETCH_AT_LOAD = "remote_fetch_at_load"
-    SCRIPT_EXCEEDS_ALLOWED_TOOLS = "script_exceeds_allowed_tools"
-    BUNDLED_BINARY_NO_SOURCE = "bundled_binary_no_source"
-    PROGRESSIVE_DISCLOSURE_PAYLOAD = "progressive_disclosure_payload"
 
 
 class TrapFamily(enum.StrEnum):
@@ -133,27 +95,6 @@ class Sample:
     def is_positive(self) -> bool:
         """True when a scanner is *supposed* to flag this sample."""
         return self.stratum.is_positive
-
-
-@dataclass(frozen=True, slots=True)
-class Finding:
-    """A single normalised finding emitted by some scanner.
-
-    Third-party scanners report wildly different shapes. An adapter's whole job is to
-    collapse its tool's output into a list of these so the metrics never special-case.
-    """
-
-    sample_id: str
-    channel: Channel
-    attack_class: AttackClass | None = None
-    severity: str = "unknown"
-    message: str = ""
-    evidence: str = ""
-
-    @property
-    def counts_toward_verdict(self) -> bool:
-        """Posture findings never decide a verdict. This is the whole thesis."""
-        return self.channel is Channel.RISK
 
 
 @dataclass(frozen=True, slots=True)

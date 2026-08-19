@@ -13,12 +13,31 @@ server that quietly opens a socket is not.
 
 ## Status
 
-**Phase P0 — ground truth.** The benchmark exists before the scanner does. There is
-no detection code in this repository yet, by design: the corpus and the scoring
-harness come first so that everything downstream is measurable rather than asserted.
+**Phase P1 — deterministic core.** Acquisition (A1), the declared-interface analyzer
+(A2), and the manifest ledger (A3). No inference of any kind: every finding is a parse
+or set algebra, so a scan costs nothing and is reproducible offline.
+
+Against the 80-sample benchmark, the deterministic core alone scores **100% precision
+at 0% false positives on the trap stratum**, with 20% recall. The keyword strawman
+scores 45% precision at 57.1% FPR-on-traps. That trade — far less recall, no false
+positives — is the thesis, and P2/P3 are where recall arrives.
 
 See `build-plan/divergence-spec.html` for the full build specification, and
 `build-plan/reports/` for phase progress reports.
+
+## Using it
+
+```bash
+divergence inspect <path>    # print the declared surface — executes nothing
+divergence scan    <path>    # findings, split into risk and posture
+divergence approve <path>    # record a fingerprint for later diffing
+divergence diff    <path>    # detect post-approval mutation
+```
+
+A target is a directory, a skill bundle, or a local MCP client config
+(`claude_desktop_config.json`, `mcp.json`) — pointing at a config scans every server
+in it. Remote specs raise rather than reaching the network: §10 makes offline-by-default
+a feature, because the configuration you are asking about is itself sensitive.
 
 ## The benchmark
 

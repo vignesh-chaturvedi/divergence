@@ -10,11 +10,15 @@ architecture, phase sequence and exit gates — this file does not restate it.
 
 ## Status
 
-**P0 complete** (2026-08-19). Benchmark harness and 80-sample corpus land before any
-detection code, per §07. `make bench` reproduces the baseline comparison table byte-for-byte
-from a clean checkout; `null` and `keyword` reference scanners are in-repo, third-party
-scanners are wired but gated behind `DIVERGENCE_ALLOW_EXTERNAL=1`. Next: **P1 — deterministic
-core** (A1 acquisition, A2 declared-interface analyzer, A3 manifest ledger), no inference.
+**P1 complete** (2026-08-19). A1 acquisition, A2 declared-interface analyzer, A3 manifest
+ledger. Zero inference — every finding is a parse or set algebra. On the 80-sample benchmark
+the deterministic core scores **100% precision, 0% FPR-on-traps, 20% recall, 100% attribution**
+against the keyword strawman's 45% / 57.1% / 72%. `make bench` remains byte-reproducible.
+Next: **P2 — static behaviour extraction** (tree-sitter, reachability, taint).
+
+Two capability-model rules prevent whole false-positive classes and must not be "simplified":
+`Bash` grants everything, and an absent `allowed-tools` is unrestricted rather than empty.
+See `docs/adr/0002-deterministic-core-scope.md`.
 
 ## Core rule
 

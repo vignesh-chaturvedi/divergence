@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Divergence — Progress 02 · P1 Deterministic Core</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E4E5DF; --panel:#DBDCD3; --panel-2:#D1D3C7;
+  --ink:#22241D; --slate:#6B6F62; --rule:#C2C4B6;
+  --moss:#55692F; --moss-dim:#7C8C5C;
+  --amber:#96731A; --amber-lite:#C9A93F; --rust:#8A4B2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+  font-size:17px;line-height:1.62;padding:0 0 6rem}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;margin:0}
+h3{font-family:var(--display);font-weight:600;font-size:1.1rem;margin:2.2rem 0 .6rem}
+code,kbd{font-family:var(--mono);font-size:.86em;background:var(--panel-2);
+  padding:.12em .38em;border-radius:3px;border:1px solid var(--rule)}
+a{color:var(--moss)}
+
+header.mast{border-bottom:2px solid var(--ink);padding:3.2rem 0 1.4rem;margin-bottom:2.4rem}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--slate);display:flex;gap:.9rem;flex-wrap:wrap;
+  align-items:center;margin-bottom:1.4rem}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--moss-dim)}
+h1{font-size:clamp(2.4rem,6.2vw,3.8rem);font-weight:800;letter-spacing:-.028em}
+h1 .sub{display:block;font-weight:400;font-size:clamp(1rem,2.4vw,1.32rem);
+  color:var(--slate);letter-spacing:-.01em;margin-top:.5rem}
+.standfirst{margin:1.5rem 0 0;max-width:64ch;font-size:1.08rem;color:#3A3D33}
+
+.banner{display:flex;gap:1rem;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-left:4px solid var(--moss);
+  padding:1.1rem 1.3rem;border-radius:4px;margin:2.2rem 0}
+.banner.hold{border-left-color:var(--amber)}
+.banner .mark{font-family:var(--display);font-weight:800;color:var(--moss);
+  font-size:1.3rem;line-height:1.2;flex:none}
+.banner.hold .mark{color:var(--amber)}
+.banner p{margin:0;font-size:.97rem}
+.banner p + p{margin-top:.6rem}
+.banner strong{font-family:var(--display);font-weight:600}
+
+section{margin:3.4rem 0 0}
+.sec-head{display:flex;align-items:baseline;gap:.9rem;border-bottom:1px solid var(--rule);
+  padding-bottom:.6rem;margin-bottom:1.6rem;flex-wrap:wrap}
+.sec-num{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--moss);
+  text-transform:uppercase;flex:none}
+.sec-head h2{font-size:clamp(1.4rem,3.2vw,1.9rem);font-weight:600;letter-spacing:-.02em}
+
+.headline{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.6rem 1.5rem;margin:1.6rem 0;display:grid;gap:1.4rem;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.metric .lbl{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--slate);margin-bottom:.3rem}
+.metric .num{font-family:var(--display);font-weight:800;font-size:2.5rem;
+  letter-spacing:-.035em;line-height:1}
+.metric .num.good{color:var(--moss)}
+.metric .num.bad{color:var(--rust)}
+.metric .cap{font-size:.85rem;color:var(--slate);margin-top:.35rem;line-height:1.45}
+
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem}
+.card .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--slate);margin-bottom:.42rem}
+.card .v{font-family:var(--display);font-weight:600;font-size:1.02rem;letter-spacing:-.012em}
+.card .n{font-size:.85rem;color:var(--slate);margin-top:.3rem;line-height:1.45}
+
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--slate);border-bottom:1.5px solid var(--ink);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:.84rem;white-space:nowrap}
+td.num{text-align:right;font-family:var(--mono);font-size:.85rem;white-space:nowrap}
+tr.emph td{background:rgba(85,105,47,.08)}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2em .55em;border-radius:3px;border:1px solid;white-space:nowrap}
+.pill.done{color:var(--moss);border-color:var(--moss-dim);background:rgba(85,105,47,.09)}
+.pill.hold{color:var(--amber);border-color:var(--amber-lite);background:rgba(150,115,26,.1)}
+.pill.todo{color:var(--slate);border-color:var(--rule);background:rgba(107,111,98,.07)}
+.pill.gate{color:var(--rust);border-color:var(--rust);background:rgba(138,75,42,.09)}
+
+ul.check{list-style:none;padding:0;margin:1rem 0}
+ul.check li{position:relative;padding-left:1.9rem;margin-bottom:.62rem}
+ul.check li::before{content:"✓";position:absolute;left:0;top:-.05em;color:var(--moss);
+  font-family:var(--display);font-weight:800}
+ul.check li.pending::before{content:"·";font-size:1.5rem;line-height:1;color:var(--slate)}
+
+pre.term{background:#1E201A;color:#D6D8CC;border:1px solid var(--rule);border-radius:4px;
+  padding:1.1rem 1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.75rem;
+  line-height:1.65;margin:1.2rem 0}
+pre.term .c{color:#7C8C5C}
+pre.term .h{color:#C9A93F}
+pre.term .g{color:#9FBF6A}
+pre.term .r{color:#C98A6A}
+pre.term .d{color:#8C9080}
+
+pre.tree{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.1rem 1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.78rem;
+  line-height:1.72;margin:1.2rem 0}
+pre.tree .c{color:var(--slate)}
+pre.tree .n{color:var(--moss);font-weight:500}
+
+.note{border-left:3px solid var(--moss-dim);padding:.15rem 0 .15rem 1.1rem;
+  margin:1.4rem 0;color:#3A3D33;font-size:.96rem}
+.note.warn{border-left-color:var(--rust)}
+
+.split{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin:1.4rem 0}
+.split .box{border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem;background:var(--panel)}
+.split .box h4{font-size:.95rem;font-weight:600;margin-bottom:.5rem}
+.split .box.bad{border-left:3px solid var(--rust)}
+.split .box.good{border-left:3px solid var(--moss)}
+.split .box p{margin:0;font-size:.9rem;color:#3A3D33}
+
+footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+@media(max-width:560px){ body{font-size:16px} .metric .num{font-size:2rem} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">
+    <span>Divergence</span><span class="dot"></span>
+    <span>Progress report 02</span><span class="dot"></span>
+    <span>Phase P1 — deterministic core</span><span class="dot"></span>
+    <span>19 Aug 2026</span>
+  </div>
+  <h1>P1 complete<span class="sub">A scanner with no model in it, scoring 100% precision at zero false positives</span></h1>
+  <p class="standfirst">A1 acquisition, A2 declared-interface analysis, A3 manifest ledger.
+  Every finding is a parse or set algebra — nothing infers, nothing executes, nothing leaves
+  the host. The exit gate asked for a non-zero score without a model; the core clears it and
+  beats the strawman on the metric that matters.</p>
+</header>
+
+<div class="banner">
+  <span class="mark">✓</span>
+  <div>
+    <p><strong>Exit gate met, on every clause.</strong> §07 asked for "a non-zero score on the
+    benchmark using no model whatsoever." The deterministic core detects 5 of 25 malicious
+    artifacts and flags <em>none</em> of the 55 negatives — 100% precision, 0% FPR-on-traps,
+    100% attribution.</p>
+    <p>98 tests pass. <code>make bench</code> remains byte-reproducible. The gate itself is
+    encoded as seven assertions in <code>tests/test_p1_gate.py</code>, so it cannot silently
+    regress.</p>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>The result</h2></div>
+
+  <div class="headline">
+    <div class="metric">
+      <div class="lbl">Precision</div>
+      <div class="num good">100%</div>
+      <div class="cap">5 true positives, 0 false. Strawman: 45%.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">FPR on traps</div>
+      <div class="num good">0.0%</div>
+      <div class="cap">Zero of 35 trap artifacts flagged. Strawman: 57.1%.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">Recall</div>
+      <div class="num">20%</div>
+      <div class="cap">Deliberately low. Recall is what P2 and P3 are for.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">Attribution</div>
+      <div class="num good">100%</div>
+      <div class="cap">Every detection named the right attack class.</div>
+    </div>
+  </div>
+
+  <pre class="term"><span class="c">$ make bench</span>
+
+<span class="h">Baseline comparison  —  lower FPR-on-traps is better, it is the headline</span>
+──────────────────────────────────────────────────────────────────────────────────────────────
+scanner         FPR-traps                precision   recall      F1  FPR-benign   attrib   err
+──────────────────────────────────────────────────────────────────────────────────────────────
+<span class="g">divergence           0.0% ············      100.0%    20.0%   33.3%        0.0%   100.0%     0</span>
+<span class="d">null                 0.0% ············           —     0.0%       —        0.0%        —     0</span>
+<span class="r">keyword             57.1% ███████·····       45.0%    72.0%   55.4%       10.0%    72.2%     0</span>
+mcp-scan          not run   not run — third-party execution is opt-in. Set DIVERGENCE_
+──────────────────────────────────────────────────────────────────────────────────────────────</pre>
+
+  <p class="note"><strong>Read the recall column honestly.</strong> The strawman catches more
+  malicious artifacts than we do — 18 against 5 — and it will keep doing so until the claim
+  extractor lands. What it cannot do is tell you which 18 to believe: 22 of its 40 alerts are
+  wrong. Ours are all correct. That is the whole trade the project is built on, and at P1 it is
+  measured rather than argued.</p>
+
+  <h3>Which classes the core reaches</h3>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Attack class</th><th class="num">divergence</th><th class="num">keyword</th><th>How the core proves it</th></tr></thead>
+    <tbody>
+      <tr class="emph"><td><code>annotation_lie</code></td><td class="num">1 / 1</td><td class="num">0 / 1</td><td><code>readOnlyHint: true</code> against an observed mutating capability. Pure set algebra.</td></tr>
+      <tr class="emph"><td><code>post_approval_mutation</code></td><td class="num">2 / 2</td><td class="num">2 / 2</td><td>Canonical-hash diff between approved and current, classified by severity.</td></tr>
+      <tr class="emph"><td><code>script_exceeds_allowed_tools</code></td><td class="num">1 / 1</td><td class="num">1 / 1</td><td>Declared grant against observed capability set, coarsened to tool-gated capabilities.</td></tr>
+      <tr class="emph"><td><code>undeclared_filesystem</code></td><td class="num">1 / 1</td><td class="num">0 / 1</td><td>Reached via the annotation contradiction on the same sample.</td></tr>
+      <tr><td><code>typosquat</code></td><td class="num">1 / 2</td><td class="num">2 / 2</td><td>Edit distance to a popular name plus registry corroboration.</td></tr>
+      <tr><td><code>undeclared_network</code></td><td class="num">4 / 6</td><td class="num">6 / 6</td><td>Via the ledger and annotation paths, not by spotting network calls.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><strong>Three of the four classes the strawman was structurally blind to are now closed</strong>
+  — <code>annotation_lie</code> and <code>undeclared_filesystem</code> outright, and
+  <code>post_approval_mutation</code> through the ledger. Report 01 predicted these would need
+  the divergence engine rather than better patterns. They needed set algebra, and they arrived
+  a phase earlier than the model does.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>The core rule, working</h2></div>
+
+  <p>The clearest demonstration is a matched pair from the corpus. Two artifacts read the
+  <em>same</em> credential path with the <em>same</em> API call. One is a finding; one is not.</p>
+
+  <div class="split">
+    <div class="box good">
+      <h4>trap-priv-009 · SSH server</h4>
+      <p>Reads <code>~/.ssh/id_rsa</code> because it opens SSH connections, and says so.
+      <strong>0 risk findings.</strong> One posture note: reaches credential-bearing paths.</p>
+    </div>
+    <div class="box bad">
+      <h4>skill-mal-003 · linter</h4>
+      <p>Declares <code>allowed-tools: Read</code>, then opens a socket and spawns a
+      subprocess. <strong>1 risk finding</strong>, with the grant it broke and the line that
+      broke it.</p>
+    </div>
+  </div>
+
+  <pre class="term"><span class="c">$ divergence scan corpus/samples/agent_skill/malicious/skill-mal-003-.../artifact</span>
+
+  capabilities net_outbound, proc_spawn
+
+  <span class="r">RISK — divergence between what it says and what it does</span>
+    [high] script_exceeds_allowed_tools
+      bundle reaches net_outbound, proc_spawn but allowed-tools grants only fs_read
+      <span class="h">claim:</span>    SKILL.md: allowed-tools = Read
+      <span class="h">evidence:</span> scripts/lint.py:7
+
+  <span class="d">POSTURE — capability, not a verdict</span>
+    [low] combines subprocess execution with outbound network access
+      scripts/lint.py:5</pre>
+
+  <p class="note">Both halves of the contradiction are attached to every risk finding — the
+  exact claim and a <code>file:line</code> — and a test asserts it across all detections. §04
+  requires this, and it is what makes output reviewable rather than merely alarming. Posture
+  fires 65 times across the corpus and moves no verdict; the strawman has no posture channel
+  at all, which is most of why it fails.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Two false positives caught in review</h2><span class="pill done">both fixed</span></div>
+
+  <p>Running <code>/code-review</code> before closing the phase found two bugs that the
+  benchmark could not have caught, because neither shape exists in the corpus. Both were
+  latent false positives — the expensive kind of error here.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Bug</th><th>What it did</th><th>Why the corpus missed it</th></tr></thead>
+    <tbody>
+      <tr><td>A bare URL counted as network capability</td><td>A read-only skill citing its own documentation was flagged for exceeding <code>allowed-tools</code></td><td>No corpus skill has both a restrictive grant and a documentation link. In the wild that combination is everywhere.</td></tr>
+      <tr><td>Capability attributed artifact-wide, not per tool</td><td>A server exposing an honest reader beside an honest writer had the reader blamed for the writer's <code>write_text</code></td><td>Every annotated corpus server has exactly one tool. Most real servers have both readers and writers — this would have been the most common false positive in the field.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>The first fix says a documentation link is a reference, not an action — only
+  <code>curl</code>, <code>wget</code> or a <code>fetch(</code> counts. The second is a scope
+  admission: attributing a sink to one specific handler needs reachability from each entrypoint,
+  which is P2's job, so P1 now asserts an annotation lie only when no sibling tool can account
+  for the mutation. <strong>Neither fix cost any detection</strong> — the benchmark was unchanged
+  at 100% precision. Both carry regression tests.</p>
+
+  <p class="note warn"><strong>The lesson is about the corpus, not the code.</strong> An 80-sample
+  benchmark cannot cover shapes nobody thought to author. Both bugs were found by reading, not by
+  measuring. Worth carrying into P2, where the analysis gets much harder and the temptation to
+  trust the number gets much stronger.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>What was built</h2></div>
+
+  <pre class="tree"><span class="c">src/divergence/</span>
+├── <span class="n">cli.py</span>              <span class="c">inspect · scan · approve · diff</span>
+├── core/
+│   ├── <span class="n">vocabulary.py</span>   <span class="c">Capability · Channel · AttackClass · Finding</span>
+│   ├── <span class="n">resolve.py</span>      <span class="c">A1 — directory · skill bundle · MCP client config</span>
+│   ├── <span class="n">acquire.py</span>      <span class="c">A1 — declared surface + provenance, executes nothing</span>
+│   ├── <span class="n">probe.py</span>        <span class="c">minimal sink scan (P1 floor — P2 replaces)</span>
+│   ├── <span class="n">declared.py</span>     <span class="c">A2 — annotation · allowed-tools · typosquat</span>
+│   └── <span class="n">ledger.py</span>       <span class="c">A3 — canonical hash, SQLite, change classification</span>
+└── adapters/
+    └── <span class="n">divergence.py</span>   <span class="c">scored by the same path as every baseline</span></pre>
+
+  <div class="grid">
+    <div class="card"><div class="k">A1 · acquisition</div><div class="v">Parse, never import</div>
+      <div class="n">Python tools lifted via <code>ast</code> — importing an MCP server runs its module body. Full bundle walk for skills.</div></div>
+    <div class="card"><div class="k">A2 · declared interface</div><div class="v">4 provable checks</div>
+      <div class="n">Annotation lie, allowed-tools excess, typosquat distance, plus posture. No description judgement.</div></div>
+    <div class="card"><div class="k">A3 · ledger</div><div class="v">Order-independent hash</div>
+      <div class="n">Cosmetic / capability-expanding / semantics-inverting. Only the last two reach a verdict.</div></div>
+    <div class="card"><div class="k">Entry point</div><div class="v">Client config</div>
+      <div class="n">Point it at <code>claude_desktop_config.json</code> and it scans every server in it.</div></div>
+  </div>
+
+  <h3>Two capability-model rules that prevent whole false-positive classes</h3>
+  <ul class="check">
+    <li><strong><code>Bash</code> grants everything.</strong> Understating it would flag any
+      honest skill that declares <code>Bash</code> and then spawns a subprocess.</li>
+    <li><strong>An absent <code>allowed-tools</code> is unrestricted, not empty.</strong>
+      Treating absence as the empty set would make every undeclared skill appear to exceed its
+      permissions — a false-positive stratum on its own.</li>
+    <li><strong>Reading a credential file is a filesystem read.</strong> <code>SECRETS_READ</code>
+      coarsens to <code>FS_READ</code> when checking a grant, or every honest credential manager
+      becomes a finding.</li>
+  </ul>
+  <p class="note">These are recorded in <code>docs/adr/0002</code> and flagged in
+  <code>CLAUDE.md</code> as things not to "simplify" later. Each one looks like an
+  over-permissive shortcut until you see the false positives it prevents.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Deliberately not built</h2></div>
+
+  <p>§04 lists more under A1 and A2 than P1 implements. Each omission is a decision, recorded
+  so it does not read as an oversight.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Spec item</th><th>Status</th><th>Reasoning</th></tr></thead>
+    <tbody>
+      <tr><td>A2 — undocumented parameters</td><td><span class="pill hold">deferred</span></td><td>The naive rule (property name absent from the description) fires on <code>add(a, b)</code>. The useful version needs taint (P2) plus claim extraction (P3).</td></tr>
+      <tr><td>A2 — over-permissive types where an enum belongs</td><td><span class="pill hold">deferred</span></td><td>Requires reading an enumeration out of prose. Posture-grade at best; not worth untested surface now.</td></tr>
+      <tr><td>A1 — npm / PyPI / GitHub resolution</td><td><span class="pill hold">raises clearly</span></td><td>Needs network. §10 makes offline-by-default a feature — the config you are asking about is itself sensitive. Remote targets fail with a reason, never silently.</td></tr>
+      <tr><td>A1 — sandboxed <code>tools/list</code> fallback</td><td><span class="pill hold">deferred</span></td><td>Nothing executes in P1. Belongs with the sandbox in P5.</td></tr>
+      <tr><td>Description poisoning, shadowing, preference manipulation</td><td><span class="pill todo">P3 / P4</span></td><td>All need C-versus-B reasoning. Guessing at P1 would trade precision for recall that arrives properly later.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Next — P2, static behaviour extraction</h2></div>
+
+  <p>P2 is tree-sitter grammars for TypeScript, Python and shell; capability sets from actual
+  API surface; reachability from handler and script entrypoints; then parameter taint into
+  sinks. Its gate is capability sets manually verified on 50 real artifacts, with our own
+  false-negative rate published.</p>
+
+  <p>The P1 probe is the thing P2 replaces, and review already named its two weaknesses
+  precisely: <strong>no per-handler attribution</strong> (which forced the sibling-tool guard)
+  and <strong>no reachability</strong> (a sink in dead code counts). Both are exactly what
+  reachability from entrypoints fixes, so P2 should let the annotation check become per-tool
+  and recover the recall the guard currently costs.</p>
+
+  <p class="note warn"><strong>§07 says to expect P2 to overrun, and that shell will fight you.</strong>
+  The corpus already contains shell payloads in skill bundles and markdown prose, so that fight
+  is measurable from day one rather than discovered at the gate.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Phase</th><th>Scope</th><th>Exit gate</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>P0</td><td>Corpus, harness, baseline</td><td><code>make bench</code> reproduces the table</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P1</td><td>A1 · A2 · A3 — no inference</td><td>Non-zero score using no model</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P2</td><td>tree-sitter · reachability · taint</td><td>Capability sets verified on 50 artifacts</td><td><span class="pill todo">next</span></td></tr>
+      <tr><td>P3</td><td>Claim extractor + divergence engine</td><td>FPR-on-traps beats every baseline</td><td><span class="pill todo">queued</span></td></tr>
+      <tr><td>P4</td><td>Fleet &amp; routing analysis</td><td>Shadow tool caught, originals clean</td><td><span class="pill todo">queued</span></td></tr>
+      <tr><td>◇</td><td>Ship v1</td><td>The project is defensible here</td><td><span class="pill gate">checkpoint</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note">Still open from report 01: the comparison table has one independent competitor
+  and it is one I wrote. The four third-party adapters remain wired and gated. Running them is a
+  single command whenever you want the table to become citable —
+  <code>DIVERGENCE_ALLOW_EXTERNAL=1 make bench</code>. And P5's sandbox still needs Linux.</p>
+</section>
+
+<footer>Divergence · progress report 02 · phase P1 complete · precision over coverage</footer>
+
+</div>
+</body>
+</html>
