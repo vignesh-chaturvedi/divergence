@@ -52,7 +52,7 @@ def corpus_summary(samples: list[Sample]) -> str:
 def comparison_table(scores: list[Score]) -> str:
     """The P0 deliverable: one table, every scanner, headline metric first."""
     header = (
-        f"{'scanner':<14} {'FPR-traps':>10} {'':<13} {'precision':>10} "
+        f"{'scanner':<18} {'FPR-traps':>10} {'':<13} {'precision':>10} "
         f"{'recall':>8} {'F1':>7} {'FPR-benign':>11} {'attrib':>8} {'err':>5}"
     )
     rule = "─" * len(header)
@@ -65,11 +65,11 @@ def comparison_table(scores: list[Score]) -> str:
 
     for s in scores:
         if not s.available:
-            lines.append(f"{s.scanner:<14} {'not run':>10}   {s.unavailable_reason[:58]}")
+            lines.append(f"{s.scanner:<18} {'not run':>10}   {s.unavailable_reason[:54]}")
             continue
 
         lines.append(
-            f"{s.scanner:<14} {pct(s.fpr_on_traps):>10} "
+            f"{s.scanner:<18} {pct(s.fpr_on_traps):>10} "
             f"{_bar(s.fpr_on_traps, invert=True):<13} "
             f"{pct(s.precision):>10} {pct(s.recall):>8} {pct(s.f1):>7} "
             f"{pct(s.fpr_on_benign):>11} {pct(s.attribution_rate):>8} {s.errors:>5}"
@@ -86,12 +86,12 @@ def per_stratum_table(scores: list[Score]) -> str:
         return ""
 
     strata = [st for st in Stratum if any(st in s.by_stratum for s in available)]
-    header = f"{'scanner':<14}" + "".join(f"{st.value:>16}" for st in strata)
+    header = f"{'scanner':<18}" + "".join(f"{st.value:>16}" for st in strata)
     rule = "─" * len(header)
     lines = ["Flag rate by stratum", rule, header, rule]
 
     for s in available:
-        row = f"{s.scanner:<14}"
+        row = f"{s.scanner:<18}"
         for st in strata:
             entry = s.by_stratum.get(st)
             cell = "—" if entry is None else f"{entry.flagged}/{entry.total} {pct(entry.flag_rate)}"
@@ -109,12 +109,12 @@ def trap_family_table(scores: list[Score]) -> str:
         return ""
 
     families = sorted({f for s in available for f in s.fpr_by_trap_family}, key=lambda f: f.value)
-    header = f"{'scanner':<14}" + "".join(f"{f.value[:20]:>22}" for f in families)
+    header = f"{'scanner':<18}" + "".join(f"{f.value[:20]:>22}" for f in families)
     rule = "─" * len(header)
     lines = ["False positives by trap family", rule, header, rule]
 
     for s in available:
-        row = f"{s.scanner:<14}"
+        row = f"{s.scanner:<18}"
         for fam in families:
             hits, total = s.fpr_by_trap_family.get(fam, (0, 0))
             cell = "—" if not total else f"{hits}/{total} {pct(hits / total)}"
@@ -134,16 +134,16 @@ def attack_class_table(scores: list[Score]) -> str:
     classes = sorted(
         {c for s in available for c in s.recall_by_attack_class}, key=lambda c: c.value
     )
-    lines = ["Recall by attack class", "─" * 78, f"{'attack class':<34}" + "".join(f"{s.scanner:>11}" for s in available), "─" * 78]
+    lines = ["Recall by attack class", "─" * 96, f"{'attack class':<30}" + "".join(f"{s.scanner:>18}" for s in available), "─" * 78]
 
     for cls in classes:
-        row = f"{cls.value:<34}"
+        row = f"{cls.value:<30}"
         for s in available:
             hits, total = s.recall_by_attack_class.get(cls, (0, 0))
-            row += f"{('—' if not total else f'{hits}/{total}'):>11}"
+            row += f"{('—' if not total else f'{hits}/{total}'):>18}"
         lines.append(row)
 
-    lines.append("─" * 78)
+    lines.append("─" * 96)
     return "\n".join(lines)
 
 

@@ -38,6 +38,11 @@ class Adapter(Protocol):
         """Run the scanner over one sample and normalise its output."""
         ...
 
+    # Optional: `prepare(samples)` is called once before scanning, for adapters that need
+    # the whole installed set. Cross-artifact analysis cannot be done per sample by
+    # definition — "always use this one" carries no information until you know what else
+    # is installed.
+
 
 registry: dict[str, Adapter] = {}
 
@@ -81,6 +86,15 @@ def run_adapter(adapter: Adapter, samples: list[Sample]) -> ScanRun:
         )
 
     run = ScanRun(scanner=adapter.name, version=version, available=True)
+
+    prepare = getattr(adapter, "prepare", None)
+    if callable(prepare):
+        try:
+            prepare(samples)
+        except Exception as exc:  # noqa: BLE001 — a failed pre-pass must not lose the run
+            run.results["<prepare>"] = SampleResult(
+                sample_id="<prepare>", error=f"{type(exc).__name__}: {exc}"
+            )
 
     for sample in samples:
         sample_started = time.perf_counter()

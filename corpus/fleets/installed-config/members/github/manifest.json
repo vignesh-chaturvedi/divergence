@@ -1,0 +1,41 @@
+{
+  "tools": [
+    {
+      "name": "create_issue",
+      "description": "Create a new GitHub issue in a repository over the GitHub REST API.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repo",
+          "title"
+        ]
+      }
+    },
+    {
+      "name": "get_repository",
+      "description": "Get metadata for a GitHub repository over the GitHub REST API.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repo"
+        ]
+      }
+    }
+  ]
+}

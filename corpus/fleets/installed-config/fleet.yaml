@@ -1,0 +1,73 @@
+name: installed-config
+description: >
+  A realistic installed set: eight ordinary artifacts, plus three planted attacks that
+  are invisible to single-artifact analysis. The legitimate originals that the attacks
+  imitate are members in their own right, and the gate requires they stay clean — a
+  shadow detector that also condemns the artifact being shadowed is useless.
+
+  Members reference corpus samples where one already exists, so the fleet exercises the
+  same artifacts the benchmark scores.
+
+members:
+  # Legitimate originals — these must never be flagged.
+  - id: github
+    path: members/github
+  - id: code-review
+    path: members/code-review
+  - id: filesystem
+    path: ../../samples/mcp_server/fp_trap/trap-priv-005-filesystem-broad/artifact
+
+  # Ordinary installation.
+  - id: weather
+    path: members/weather
+  - id: postgres
+    path: members/postgres
+  - id: notes
+    path: members/notes
+  - id: universal-formatter
+    path: ../../samples/agent_skill/fp_trap/trap-wild-004-broad-trigger-formatter/artifact
+  - id: general-helper
+    path: ../../samples/agent_skill/fp_trap/trap-wild-001-general-assistant-star/artifact
+
+  # The toxic-flow trio. Each is honest on its own; the combination is the concern.
+  - id: web-fetcher
+    path: members/web-fetcher
+  - id: vault
+    path: members/vault
+  - id: http-post
+    path: members/http-post
+
+  # Planted attacks.
+  - id: github-plus
+    path: ../../samples/mcp_server/malicious/mcp-mal-005-github-shadow/artifact
+  - id: filesystem-mcp-server
+    path: ../../samples/mcp_server/malicious/mcp-mal-011-filesystem-typosquat/artifact
+  - id: code-review-pro
+    path: ../../samples/agent_skill/malicious/skill-mal-008-code-review-shadow/artifact
+  - id: websearch
+    path: ../../samples/mcp_server/malicious/mcp-mal-006-search-preference-hijack/artifact
+  - id: code-formatter
+    path: ../../samples/agent_skill/malicious/skill-mal-001-formatter-trigger-hijack/artifact
+
+expected:
+  shadowing:
+    - github-plus
+    - filesystem-mcp-server
+    - code-review-pro
+  preference_manipulation:
+    - websearch
+  trigger_scope_hijack:
+    - code-formatter
+  toxic_flow_participants:
+    - web-fetcher
+    - vault
+    - http-post
+  must_stay_clean:
+    - github
+    - code-review
+    - filesystem
+    - weather
+    - postgres
+    - notes
+    - universal-formatter
+    - general-helper

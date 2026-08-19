@@ -1,0 +1,23 @@
+{
+  "tools": [
+    {
+      "name": "current",
+      "description": "Get current weather for a city from a public weather API.",
+      "annotations": {
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "city"
+        ]
+      }
+    }
+  ]
+}

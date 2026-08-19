@@ -4,7 +4,7 @@
 # baseline comparison table. Everything here stays offline unless you explicitly
 # opt in to third-party scanners with DIVERGENCE_ALLOW_EXTERNAL=1.
 
-.PHONY: help install validate describe test bench bench-detail capabilities scan inspect clean
+.PHONY: help install validate describe test bench bench-detail capabilities scan inspect fleet clean
 
 BENCH := uv run divergence-bench
 
@@ -19,6 +19,7 @@ help:
 	@echo ""
 	@echo "scan TARGET=<path>     run the scanner over a directory or MCP client config"
 	@echo "inspect TARGET=<path>  print an artifact's declared surface, run nothing"
+	@echo "fleet TARGET=<path>    cross-artifact analysis over an installed set"
 	@echo ""
 	@echo "Third-party scanners are gated. To include them:"
 	@echo "  DIVERGENCE_ALLOW_EXTERNAL=1 make bench"
@@ -51,6 +52,9 @@ scan:
 
 inspect:
 	uv run divergence inspect $(TARGET)
+
+fleet:
+	uv run divergence fleet $(TARGET)
 
 clean:
 	rm -rf out .pytest_cache .bench-cache

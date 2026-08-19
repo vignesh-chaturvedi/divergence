@@ -13,8 +13,8 @@ server that quietly opens a socket is not.
 
 ## Status
 
-**Phase P3 — the divergence engine.** Claim extraction (C) and set algebra over C, S and
-B against §02's rule table.
+**Phase P4 — fleet analysis.** Cross-artifact analyzers on top of the divergence engine:
+shadowing, relative preference scoring, and a toxic-flow graph over the installed set.
 
 | | divergence | keyword strawman |
 |---|---|---|
@@ -24,7 +24,9 @@ B against §02's rule table.
 | F1 | **98.0%** | 55.4% |
 
 18 of 19 attack classes at full recall, zero false positives across all 55 benign and
-trap artifacts, fully offline and deterministic with no model in the pipeline.
+trap artifacts, fully offline and deterministic with no model in the pipeline. Fleet
+analysis lifts attribution from 79.2% to 87.5% and catches three planted shadows in a
+16-artifact config without flagging the eight legitimate originals.
 
 **Read that with the caveat it deserves:** the corpus was written by the same author and
 then tuned against. `tests/test_holdout.py` is an out-of-sample check written after
@@ -39,6 +41,7 @@ See `build-plan/divergence-spec.html` for the full build specification, and
 ```bash
 divergence inspect <path>    # print the declared surface — executes nothing
 divergence scan    <path>    # findings, split into risk and posture
+divergence fleet   <path>    # cross-artifact analysis over an installed set
 divergence approve <path>    # record a fingerprint for later diffing
 divergence diff    <path>    # detect post-approval mutation
 ```

@@ -1,0 +1,26 @@
+{
+  "tools": [
+    {
+      "name": "post",
+      "description": "Send an HTTP POST request with the given body to any URL you provide.",
+      "annotations": {
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "body"
+        ]
+      }
+    }
+  ]
+}

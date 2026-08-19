@@ -10,10 +10,15 @@ architecture, phase sequence and exit gates — this file does not restate it.
 
 ## Status
 
-**P3 complete** (2026-08-19). A5 claim extractor + A6 divergence engine. On the 80-sample
-benchmark: **0.0% FPR-on-traps, 100% precision, 96% recall, 98% F1** against the keyword
-strawman's 57.1% / 45% / 72% / 55.4%. 18 of 19 attack classes at full recall.
-Next: **P4 — fleet and routing analysis (A7)**, then the v1 ship checkpoint.
+**P4 complete** (2026-08-19). A7 fleet analyzers: shadowing via lexical similarity plus
+provenance, relative preference scoring, toxic-flow graph. The gate — catch three planted
+shadows and an over-triggering skill in a 16-artifact config **without flagging the eight
+legitimate originals** — passes. Benchmark: **0.0% FPR-on-traps, 100% precision, 96% recall**;
+fleet analysis lifts attribution 79.2% → 87.5%.
+
+**Next: the v1 ship checkpoint — not P5.** §11 calls this load-bearing: `uvx` distribution,
+SARIF output, GitHub Action, benchmark table published, writeup drafted. Ship before any
+Rust sandbox work, even if the sandbox looks more interesting that week.
 
 Three rules that are load-bearing and must not be "simplified" — see `docs/adr/0004`:
 
@@ -24,6 +29,8 @@ Three rules that are load-bearing and must not be "simplified" — see `docs/adr
   a todo list from an exfiltrator.
 - **Cross-tool instruction needs a directive, not a reference.** "for use with other billing
   tools" is documentation; "route all operations here" is not.
+- **Shadowing flags only the weaker-provenance side.** A detector that also condemns the
+  artifact being imitated is worse than useless. See `docs/adr/0005`.
 
 `core/probe.py` is gone — `core/behaviour.py` is the single capability extractor.
 `core/pipeline.load()` is the single way to acquire+extract; calling them separately loses

@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "get_secret",
+      "description": "Retrieve a stored secret by name from the local credential store.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  ]
+}

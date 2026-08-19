@@ -14,6 +14,7 @@ import tempfile
 from pathlib import Path
 
 from divergence.adapters.base import register
+from divergence.core.fleet import analyze_fleet, build_fleet
 from divergence.core.pipeline import load
 from divergence.core.declared import analyze_declared
 from divergence.core.engine import analyze_divergence
@@ -22,15 +23,58 @@ from divergence.bench.models import Sample
 from divergence.core.vocabulary import Finding
 
 
-class DivergenceScanner:
-    """A1 acquisition + A2 declared interface + A3 ledger + A4 behaviour + A6 divergence."""
+def _dedupe(findings: list[Finding]) -> list[Finding]:
+    """Collapse repeats of the same class on the same artifact, keeping the strongest.
 
-    name = "divergence"
+    Several analyzers legitimately reach the same conclusion by different routes — the
+    single-artifact trigger check asks whether a skill's breadth is honest, and the fleet
+    one asks whether it is honest relative to what else is installed. Both are worth
+    running; saying it twice is noise.
+    """
+    best: dict[tuple, Finding] = {}
+    passthrough: list[Finding] = []
+
+    for finding in findings:
+        if finding.attack_class is None:
+            passthrough.append(finding)
+            continue
+        key = (finding.sample_id, finding.attack_class, finding.channel)
+        current = best.get(key)
+        if current is None or finding.confidence > current.confidence:
+            best[key] = finding
+
+    return list(best.values()) + passthrough
+
+
+class DivergenceScanner:
+    """A1 acquisition + A2 declared interface + A3 ledger + A4 behaviour + A6 divergence.
+
+    With `fleet=True`, A7's cross-artifact analyzers run once over the whole set and their
+    findings are merged per artifact. Kept as a flag rather than folded in silently, so the
+    contribution of fleet analysis is a number the writeup can report rather than an
+    unattributed lift.
+    """
+
     homepage = "https://github.com/vignesh-chaturvedi/divergence"
     kind = "reference"
 
+    def __init__(self, *, fleet: bool = False) -> None:
+        self.fleet = fleet
+        self.name = "divergence+fleet" if fleet else "divergence"
+        self._fleet_findings: dict[str, list[Finding]] = {}
+
     def probe(self) -> str:
-        return "0.1.0-p3"
+        return "0.1.0-p4"
+
+    def prepare(self, samples: list[Sample]) -> None:
+        """Run A7 over the whole set once. Only meaningful across artifacts."""
+        self._fleet_findings = {}
+        if not self.fleet:
+            return
+
+        built = build_fleet([(s.id, s.artifact_path) for s in samples], name="corpus")
+        for finding in analyze_fleet(built):
+            self._fleet_findings.setdefault(finding.sample_id, []).append(finding)
 
     def scan(self, sample: Sample) -> list[Finding]:
         artifact, behaviour = load(sample.artifact_path)
@@ -38,8 +82,9 @@ class DivergenceScanner:
         findings = analyze_declared(artifact, behaviour, sample_id=sample.id)
         findings += analyze_divergence(artifact, behaviour, sample_id=sample.id)
         findings += self._ledger_findings(sample, artifact)
+        findings += self._fleet_findings.get(sample.id, [])
 
-        return findings
+        return _dedupe(findings)
 
     def _ledger_findings(self, sample: Sample, artifact) -> list[Finding]:
         """Drive A3 over an artifact that ships more than one version.
@@ -64,3 +109,4 @@ class DivergenceScanner:
 
 
 register(DivergenceScanner())
+register(DivergenceScanner(fleet=True))

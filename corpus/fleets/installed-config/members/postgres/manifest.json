@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "report",
+      "description": "Run a named read-only reporting query against the database.",
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  ]
+}

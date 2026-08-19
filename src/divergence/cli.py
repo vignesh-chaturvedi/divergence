@@ -17,6 +17,7 @@ from pathlib import Path
 
 from divergence.core.acquire import Artifact
 from divergence.core.declared import analyze_declared
+from divergence.core.fleet import analyze_fleet, build_fleet, load_fleet
 from divergence.core.ledger import Ledger
 from divergence.core.pipeline import load
 from divergence.core.resolve import ResolutionError, ResolvedTarget, resolve
@@ -139,6 +140,39 @@ def cmd_scan(args) -> int:
     return 1 if (total_risk and args.fail_on_risk) else 0
 
 
+def cmd_fleet(args) -> int:
+    """Cross-artifact analysis over an installed set.
+
+    Accepts a fleet manifest or an MCP client config. The config path is the real one: the
+    attacks A7 exists for are invisible until you look at everything installed at once.
+    """
+    target = Path(args.target)
+
+    if target.name == "fleet.yaml" or target.suffix in (".yaml", ".yml"):
+        fleet = load_fleet(target)
+    else:
+        targets = _resolve_or_exit(args.target)
+        entries = [(t.name, t.artifact.root) for t in targets if t.resolved]
+        for t in targets:
+            if not t.resolved:
+                _print_unresolved(t)
+        if not entries:
+            print("error: no analysable artifacts in this config", file=sys.stderr)
+            return 2
+        fleet = build_fleet(entries, name=target.stem)
+
+    print(f"{fleet.name}  ({len(fleet.members)} artifacts)")
+    for member in fleet.members:
+        caps = ", ".join(sorted(c.value for c in member.behaviour.capabilities)) or "none"
+        print(f"  {member.id:<28} {caps}")
+
+    findings = analyze_fleet(fleet)
+    risk_count = _print_findings(findings)
+
+    print(f"\n{risk_count} cross-artifact risk finding(s).")
+    return 1 if (risk_count and args.fail_on_risk) else 0
+
+
 def cmd_approve(args) -> int:
     ledger = Ledger(args.ledger)
     for t in _resolve_or_exit(args.target):
@@ -191,6 +225,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("target")
     p.add_argument("--ledger-check", action="store_true", help="also diff against the ledger")
     p.set_defaults(func=cmd_scan)
+
+    p = sub.add_parser(
+        "fleet", help="cross-artifact analysis over an installed set or fleet manifest"
+    )
+    p.add_argument("target")
+    p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("approve", help="record a fingerprint for later diffing")
     p.add_argument("target")
