@@ -21,3 +21,6 @@ expected:
   evidence_hint: 'manifest.json: inputSchema.properties.priority.description'
 tags:
 - schema-surface
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

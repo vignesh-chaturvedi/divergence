@@ -21,3 +21,9 @@ label:
 tags:
 - audit-echo
 - browser
+capabilities:
+  verified:
+  - dynamic_eval
+  - net_outbound
+  - proc_spawn
+  method: source read by hand, 2026-08-19

@@ -32,3 +32,7 @@ expected:
 tags:
 - fifth-row
 - c-exceeds-reach
+capabilities:
+  verified:
+  - net_outbound
+  method: source read by hand, 2026-08-19

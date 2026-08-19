@@ -18,3 +18,7 @@ label:
   - imperative_language
 tags:
 - dependency
+capabilities:
+  verified:
+  - proc_spawn
+  method: source read by hand, 2026-08-19

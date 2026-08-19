@@ -18,3 +18,7 @@ label:
   - security_domain_vocabulary
 tags:
 - environment
+capabilities:
+  verified:
+  - env_read
+  method: source read by hand, 2026-08-19

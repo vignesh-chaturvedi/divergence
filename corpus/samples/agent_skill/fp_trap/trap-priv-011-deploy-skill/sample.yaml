@@ -21,3 +21,12 @@ label:
 tags:
 - skill
 - deploy
+capabilities:
+  verified:
+  - env_read
+  - net_outbound
+  - proc_spawn
+  method: source read by hand, 2026-08-19
+  extractor_misses:
+  - net_outbound
+  miss_reason: deploy-cli releases to a remote environment — egress via the spawned process

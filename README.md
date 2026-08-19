@@ -13,14 +13,20 @@ server that quietly opens a socket is not.
 
 ## Status
 
-**Phase P1 — deterministic core.** Acquisition (A1), the declared-interface analyzer
-(A2), and the manifest ledger (A3). No inference of any kind: every finding is a parse
-or set algebra, so a scan costs nothing and is reproducible offline.
+**Phase P2 — static behaviour extraction.** A tree-sitter parse of the implementation
+across Python, TypeScript and shell, with reachability from each entrypoint and a light
+parameter-taint pass. Capabilities are attributed to the handlers that can actually
+reach them, which is what lets a per-tool annotation check work at all.
 
-Against the 80-sample benchmark, the deterministic core alone scores **100% precision
-at 0% false positives on the trap stratum**, with 20% recall. The keyword strawman
-scores 45% precision at 57.1% FPR-on-traps. That trade — far less recall, no false
-positives — is the thesis, and P2/P3 are where recall arrives.
+Against hand-verified ground truth on all 80 corpus artifacts, extraction scores
+**100% precision and 91.9% recall, with a published 8.1% false-negative rate.** Every
+miss is the same class: a capability reached through a spawned process (`ssh`, `pip
+install`, `git push`) that no parser can follow.
+
+Against the benchmark, the scanner scores **100% precision at 0% false positives on the
+trap stratum**, with 20% recall. The keyword strawman scores 45% precision at 57.1%
+FPR-on-traps. That trade — far less recall, no false positives — is the thesis, and P3
+is where recall arrives.
 
 See `build-plan/divergence-spec.html` for the full build specification, and
 `build-plan/reports/` for phase progress reports.
@@ -57,6 +63,7 @@ make install        # uv sync, pinned to Python 3.12
 make validate       # every corpus sample is well-formed and carries a rationale
 make test           # unit tests
 make bench          # the baseline comparison table
+make capabilities   # B_s extraction vs verified ground truth
 ```
 
 ## Corpus layout

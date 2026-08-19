@@ -11,3 +11,6 @@ label:
     dangerous. Correct output: no findings, at most a mild posture note. Pure list manipulation.'
 tags:
 - benign
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

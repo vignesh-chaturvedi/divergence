@@ -19,3 +19,11 @@ label:
 tags:
 - git
 - subprocess
+capabilities:
+  verified:
+  - net_outbound
+  - proc_spawn
+  method: source read by hand, 2026-08-19
+  extractor_misses:
+  - net_outbound
+  miss_reason: git push reaches the remote — egress via the spawned process

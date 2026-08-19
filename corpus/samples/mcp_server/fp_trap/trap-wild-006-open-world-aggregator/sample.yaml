@@ -21,3 +21,6 @@ label:
   - privileged_by_design
 tags:
 - open-world
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

@@ -25,3 +25,6 @@ label:
 tags:
 - wildcard
 - security-vocab
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

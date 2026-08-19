@@ -20,3 +20,9 @@ label:
 tags:
 - skill
 - credentials
+capabilities:
+  verified:
+  - fs_read
+  - fs_write
+  - secrets_read
+  method: source read by hand, 2026-08-19

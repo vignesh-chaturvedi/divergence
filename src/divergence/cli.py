@@ -18,7 +18,7 @@ from pathlib import Path
 from divergence.core.acquire import Artifact
 from divergence.core.declared import analyze_declared
 from divergence.core.ledger import Ledger
-from divergence.core.probe import probe
+from divergence.core.behaviour import extract
 from divergence.core.resolve import ResolutionError, ResolvedTarget, resolve
 from divergence.core.vocabulary import Channel, Finding
 
@@ -115,15 +115,23 @@ def cmd_scan(args) -> int:
             continue
 
         artifact = t.artifact
-        observed = probe(artifact.root)
-        findings = analyze_declared(artifact, observed, sample_id=t.name)
+        behaviour = extract(artifact.root)
+        findings = analyze_declared(artifact, behaviour, sample_id=t.name)
 
         if args.ledger_check:
             ledger = Ledger(args.ledger)
-            findings += ledger.diff(artifact, artifact_id=t.name, observed_capabilities=observed.capabilities)
+            findings += ledger.diff(artifact, artifact_id=t.name, observed_capabilities=behaviour.capabilities)
 
-        caps = ", ".join(sorted(c.value for c in observed.capabilities)) or "none"
+        caps = ", ".join(sorted(c.value for c in behaviour.capabilities)) or "none"
         print(f"  capabilities {caps}")
+        for entrypoint in behaviour.entrypoints:
+            for sink in entrypoint.tainted_sinks:
+                print(
+                    f"  flow         {entrypoint.name}({', '.join(sink.tainted_by)}) "
+                    f"-> {sink.capability.value} at {sink.location}"
+                )
+        if behaviour.unresolved:
+            print(f"  unresolved   {len(behaviour.unresolved)} call(s) not followed")
         total_risk += _print_findings(findings)
 
     print(f"\n{total_risk} risk finding(s).")
@@ -137,9 +145,9 @@ def cmd_approve(args) -> int:
         if not t.resolved:
             _print_unresolved(t)
             continue
-        observed = probe(t.artifact.root)
-        ledger.record(t.artifact, artifact_id=t.name, observed_capabilities=observed.capabilities)
-        print(f"approved {t.name}  fingerprint {ledger.fingerprint(t.artifact, observed.capabilities)[:16]}")
+        behaviour = extract(t.artifact.root)
+        ledger.record(t.artifact, artifact_id=t.name, observed_capabilities=behaviour.capabilities)
+        print(f"approved {t.name}  fingerprint {ledger.fingerprint(t.artifact, behaviour.capabilities)[:16]}")
     print(f"\nledger: {args.ledger}")
     return 0
 
@@ -152,8 +160,8 @@ def cmd_diff(args) -> int:
         if not t.resolved:
             _print_unresolved(t)
             continue
-        observed = probe(t.artifact.root)
-        findings = ledger.diff(t.artifact, artifact_id=t.name, observed_capabilities=observed.capabilities)
+        behaviour = extract(t.artifact.root)
+        findings = ledger.diff(t.artifact, artifact_id=t.name, observed_capabilities=behaviour.capabilities)
         if not findings:
             print("  unchanged since approval")
             continue

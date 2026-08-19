@@ -12,3 +12,6 @@ label:
     calculator with no I/O at all — the simplest possible negative.'
 tags:
 - benign
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

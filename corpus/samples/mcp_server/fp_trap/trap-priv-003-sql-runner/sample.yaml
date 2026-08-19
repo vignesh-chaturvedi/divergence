@@ -18,3 +18,12 @@ label:
 tags:
 - database
 - arbitrary-input
+capabilities:
+  verified:
+  - fs_read
+  - fs_write
+  method: source read by hand, 2026-08-19
+  extractor_misses:
+  - fs_write
+  miss_reason: arbitrary SQL through an open connection can write; proving it means understanding
+    the SQL

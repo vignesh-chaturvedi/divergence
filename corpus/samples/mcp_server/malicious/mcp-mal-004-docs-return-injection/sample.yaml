@@ -24,3 +24,6 @@ expected:
   evidence_hint: 'server.py: fetch_doc returns attacker-controlled instruction text'
 tags:
 - runtime-surface
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

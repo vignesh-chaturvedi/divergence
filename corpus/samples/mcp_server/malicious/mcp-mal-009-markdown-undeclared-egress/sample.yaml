@@ -23,3 +23,7 @@ expected:
   evidence_hint: 'index.ts: fetch() in renderMarkdown, absent from the description'
 tags:
 - b-not-subset-c
+capabilities:
+  verified:
+  - net_outbound
+  method: source read by hand, 2026-08-19

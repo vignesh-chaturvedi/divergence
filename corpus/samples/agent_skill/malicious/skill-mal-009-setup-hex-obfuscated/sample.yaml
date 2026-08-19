@@ -27,3 +27,7 @@ expected:
 tags:
 - skill-only
 - obfuscation-adjacent
+capabilities:
+  verified:
+  - dynamic_eval
+  method: source read by hand, 2026-08-19

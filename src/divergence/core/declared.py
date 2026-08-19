@@ -22,7 +22,7 @@ Two rules govern everything below:
 from __future__ import annotations
 
 from divergence.core.acquire import Artifact
-from divergence.core.probe import Observed
+from divergence.core.behaviour import Behaviour
 from divergence.core.vocabulary import (
     MUTATING,
     AttackClass,
@@ -57,15 +57,31 @@ def _coarsen(caps: set[Capability]) -> set[Capability]:
     return {_COARSEN.get(c, c) for c in caps} & TOOL_GATED
 
 
-def _mutation_is_explained_by_a_sibling(artifact: Artifact) -> bool:
-    """True when some other tool on this artifact is entitled to mutate.
+def _capabilities_for_tool(behaviour: Behaviour, tool_name: str) -> tuple[set[Capability], dict]:
+    """Capabilities reachable from one tool's handler, with evidence.
 
-    The probe reports capabilities for the artifact as a whole, not per handler —
-    attributing a sink to one specific tool needs reachability from each entrypoint,
-    which is P2's job. Until then, a server exposing both a reader and a writer (the
-    shape of most real servers) would have its reader blamed for the writer's
-    `write_text`. That would be the single most common false positive in the field, so
-    P1 only asserts an annotation lie when nothing else can account for the mutation.
+    P1 could not do this. It scanned for sinks flatly and attributed everything to the
+    whole artifact, so a server exposing an honest reader beside an honest writer had the
+    reader blamed for the writer's `write_text`. A2 had to compensate with a guard that
+    suppressed the check whenever any sibling might explain the mutation, which cost real
+    detections.
+
+    A4's call graph removes the guess. When a handler for this tool is found, its
+    reachable set is the answer. When it is not — a TypeScript server whose handler name
+    does not match the declared tool, say — `None` is returned and the caller falls back
+    to the conservative artifact-wide reading rather than inventing an attribution.
+    """
+    match = behaviour.find(tool_name)
+    if match is not None and match.kind in ("tool_handler", "function"):
+        return set(match.capabilities), {s.capability: s.location for s in match.sinks}
+    return None, {}
+
+
+def _sibling_could_explain(artifact: Artifact) -> bool:
+    """Fallback guard, used only when per-tool attribution is unavailable.
+
+    Retained because attribution can still fail — an unparsed grammar, a handler
+    registered dynamically. Where it fails, the conservative reading is the right one.
     """
     return any(
         tool.annotations.get("readOnlyHint") is False
@@ -75,22 +91,33 @@ def _mutation_is_explained_by_a_sibling(artifact: Artifact) -> bool:
     )
 
 
-def _annotation_findings(artifact: Artifact, observed: Observed, sample_id: str) -> list[Finding]:
+def _annotation_findings(
+    artifact: Artifact, behaviour: Behaviour, sample_id: str
+) -> list[Finding]:
     """MCP annotation contradictions.
 
     The cheapest high-severity finding in the design. An annotation is a machine-readable
-    promise, so disproving it needs no interpretation — only a capability set.
+    promise, so disproving it needs no interpretation — only a capability set, now scoped
+    to the handler that actually made the promise.
     """
     findings: list[Finding] = []
-    mutation_explained = _mutation_is_explained_by_a_sibling(artifact)
+    fallback_caps = behaviour.capabilities
+    fallback_evidence = behaviour.evidence
+    fallback_blocked = _sibling_could_explain(artifact)
 
     for tool in artifact.tools:
         annotations = tool.annotations
         if not annotations:
             continue
 
-        if annotations.get("readOnlyHint") is True and not mutation_explained:
-            violations = observed.capabilities & MUTATING
+        scoped, scoped_evidence = _capabilities_for_tool(behaviour, tool.name)
+        if scoped is not None:
+            caps, evidence, attributed = scoped, scoped_evidence, True
+        else:
+            caps, evidence, attributed = fallback_caps, fallback_evidence, False
+
+        if annotations.get("readOnlyHint") is True and (attributed or not fallback_blocked):
+            violations = caps & MUTATING
             if violations:
                 cap = sorted(violations)[0]
                 findings.append(
@@ -100,15 +127,15 @@ def _annotation_findings(artifact: Artifact, observed: Observed, sample_id: str)
                         attack_class=AttackClass.ANNOTATION_LIE,
                         severity="critical",
                         message=(
-                            f"tool {tool.name!r} declares readOnlyHint: true but the "
-                            f"implementation reaches {cap.value}"
+                            f"tool {tool.name!r} declares readOnlyHint: true but its handler "
+                            f"reaches {cap.value}"
                         ),
-                        evidence=observed.evidence.get(cap, ""),
+                        evidence=evidence.get(cap, ""),
                         claim=f"{tool.source_ref}: {tool.name}.annotations.readOnlyHint = true",
                     )
                 )
 
-        if annotations.get("openWorldHint") is False and Capability.NET_OUTBOUND in observed:
+        if annotations.get("openWorldHint") is False and Capability.NET_OUTBOUND in caps:
             findings.append(
                 Finding(
                     sample_id=sample_id,
@@ -116,18 +143,18 @@ def _annotation_findings(artifact: Artifact, observed: Observed, sample_id: str)
                     attack_class=AttackClass.UNDECLARED_NETWORK,
                     severity="high",
                     message=(
-                        f"tool {tool.name!r} declares openWorldHint: false but the "
-                        "implementation opens an outbound connection"
+                        f"tool {tool.name!r} declares openWorldHint: false but its handler "
+                        "opens an outbound connection"
                     ),
-                    evidence=observed.evidence.get(Capability.NET_OUTBOUND, ""),
+                    evidence=evidence.get(Capability.NET_OUTBOUND, ""),
                     claim=f"{tool.source_ref}: {tool.name}.annotations.openWorldHint = false",
                 )
             )
 
         if (
             annotations.get("destructiveHint") is False
-            and Capability.FS_DELETE in observed
-            and not mutation_explained
+            and Capability.FS_DELETE in caps
+            and (attributed or not fallback_blocked)
         ):
             findings.append(
                 Finding(
@@ -136,10 +163,10 @@ def _annotation_findings(artifact: Artifact, observed: Observed, sample_id: str)
                     attack_class=AttackClass.ANNOTATION_LIE,
                     severity="high",
                     message=(
-                        f"tool {tool.name!r} declares destructiveHint: false but the "
-                        "implementation deletes from the filesystem"
+                        f"tool {tool.name!r} declares destructiveHint: false but its handler "
+                        "deletes from the filesystem"
                     ),
-                    evidence=observed.evidence.get(Capability.FS_DELETE, ""),
+                    evidence=evidence.get(Capability.FS_DELETE, ""),
                     claim=f"{tool.source_ref}: {tool.name}.annotations.destructiveHint = false",
                 )
             )
@@ -147,7 +174,9 @@ def _annotation_findings(artifact: Artifact, observed: Observed, sample_id: str)
     return findings
 
 
-def _allowed_tools_findings(artifact: Artifact, observed: Observed, sample_id: str) -> list[Finding]:
+def _allowed_tools_findings(
+    artifact: Artifact, behaviour: Behaviour, sample_id: str
+) -> list[Finding]:
     """The skill analogue of the annotation lie.
 
     `allowed-tools` is a least-privilege promise. When the bundle reaches for something
@@ -177,7 +206,7 @@ def _allowed_tools_findings(artifact: Artifact, observed: Observed, sample_id: s
         ]
 
     granted = _coarsen(capabilities_for_allowed_tools(declaration))
-    used = _coarsen(observed.capabilities)
+    used = _coarsen(behaviour.capabilities)
     excess = used - granted
     if not excess:
         return []
@@ -193,7 +222,7 @@ def _allowed_tools_findings(artifact: Artifact, observed: Observed, sample_id: s
                 f"bundle reaches {', '.join(sorted(c.value for c in excess))} but "
                 f"allowed-tools grants only {', '.join(sorted(c.value for c in granted)) or 'nothing'}"
             ),
-            evidence=observed.evidence.get(cap, ""),
+            evidence=behaviour.evidence.get(cap, ""),
             claim=f"{skill.source_ref}: allowed-tools = {declaration}",
         )
     ]
@@ -230,31 +259,71 @@ def _provenance_findings(artifact: Artifact, sample_id: str) -> list[Finding]:
     ]
 
 
-def _posture_findings(artifact: Artifact, observed: Observed, sample_id: str) -> list[Finding]:
+def _posture_findings(
+    artifact: Artifact, behaviour: Behaviour, sample_id: str
+) -> list[Finding]:
     """What the artifact can do. Recorded, displayed, and never counted toward a verdict."""
     findings: list[Finding] = []
 
-    if Capability.SECRETS_READ in observed:
+    if Capability.SECRETS_READ in behaviour.capabilities:
         findings.append(
             Finding(
                 sample_id=sample_id,
                 channel=Channel.POSTURE,
                 severity="low",
                 message="reaches credential-bearing paths",
-                evidence=observed.evidence.get(Capability.SECRETS_READ, ""),
+                evidence=behaviour.evidence.get(Capability.SECRETS_READ, ""),
                 claim="posture: high-value target, not evidence of exfiltration",
             )
         )
 
-    if {Capability.PROC_SPAWN, Capability.NET_OUTBOUND} <= observed.capabilities:
+    if {Capability.PROC_SPAWN, Capability.NET_OUTBOUND} <= behaviour.capabilities:
         findings.append(
             Finding(
                 sample_id=sample_id,
                 channel=Channel.POSTURE,
                 severity="low",
                 message="combines subprocess execution with outbound network access",
-                evidence=observed.evidence.get(Capability.PROC_SPAWN, ""),
+                evidence=behaviour.evidence.get(Capability.PROC_SPAWN, ""),
                 claim="posture: broad blast radius",
+            )
+        )
+
+    # §04's taint pass, surfaced. A parameter reaching a sink is what an injection path
+    # looks like — but on a shell executor it is the advertised function, so it belongs
+    # in posture. P3 promotes it to risk precisely when the claim does not cover it.
+    flows: list[tuple[str, str, str, str]] = []
+    for entrypoint in behaviour.entrypoints:
+        for sink in entrypoint.tainted_sinks:
+            flows.append(
+                (entrypoint.name, ", ".join(sink.tainted_by), sink.capability.value, sink.location)
+            )
+
+    for name, params, capability, location in flows[:5]:
+        findings.append(
+            Finding(
+                sample_id=sample_id,
+                channel=Channel.POSTURE,
+                severity="low",
+                message=f"parameter {params} of {name!r} flows into a {capability} sink",
+                evidence=location,
+                claim="posture: caller-controlled input reaches a capability",
+            )
+        )
+
+    if behaviour.unreachable_capabilities:
+        cap = sorted(behaviour.unreachable_capabilities)[0]
+        findings.append(
+            Finding(
+                sample_id=sample_id,
+                channel=Channel.POSTURE,
+                severity="info",
+                message=(
+                    "ships code no entrypoint can reach, carrying "
+                    f"{', '.join(sorted(c.value for c in behaviour.unreachable_capabilities))}"
+                ),
+                evidence=behaviour.unreachable_evidence.get(cap, ""),
+                claim="posture: unreferenced today, callable tomorrow",
             )
         )
 
@@ -275,18 +344,18 @@ def _posture_findings(artifact: Artifact, observed: Observed, sample_id: str) ->
 
 
 def analyze_declared(
-    artifact: Artifact, observed: Observed, *, sample_id: str = ""
+    artifact: Artifact, behaviour: Behaviour, *, sample_id: str = ""
 ) -> list[Finding]:
     """Run every A2 check over one artifact.
 
     Returns risk findings first so a caller truncating the list keeps what matters.
     """
     checked = (
-        _annotation_findings(artifact, observed, sample_id)
-        + _allowed_tools_findings(artifact, observed, sample_id)
+        _annotation_findings(artifact, behaviour, sample_id)
+        + _allowed_tools_findings(artifact, behaviour, sample_id)
         + _provenance_findings(artifact, sample_id)
     )
     risks = [f for f in checked if f.channel is Channel.RISK]
     posture = [f for f in checked if f.channel is Channel.POSTURE]
 
-    return risks + posture + _posture_findings(artifact, observed, sample_id)
+    return risks + posture + _posture_findings(artifact, behaviour, sample_id)

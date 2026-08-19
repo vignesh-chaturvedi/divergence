@@ -10,11 +10,15 @@ architecture, phase sequence and exit gates — this file does not restate it.
 
 ## Status
 
-**P1 complete** (2026-08-19). A1 acquisition, A2 declared-interface analyzer, A3 manifest
-ledger. Zero inference — every finding is a parse or set algebra. On the 80-sample benchmark
-the deterministic core scores **100% precision, 0% FPR-on-traps, 20% recall, 100% attribution**
-against the keyword strawman's 45% / 57.1% / 72%. `make bench` remains byte-reproducible.
-Next: **P2 — static behaviour extraction** (tree-sitter, reachability, taint).
+**P2 complete** (2026-08-19). A4 static behaviour extraction: tree-sitter across Python,
+TypeScript and shell; reachability from each entrypoint; a light parameter-taint pass.
+`make capabilities` scores extraction against hand-verified ground truth on all 80 artifacts —
+**100% precision, 91.9% recall, 8.1% published false-negative rate**. Benchmark unchanged at
+100% precision / 0% FPR-on-traps / 20% recall: P2 buys fidelity, not recall.
+Next: **P3 — claim extractor (A5) and divergence engine (A6)**, where recall arrives.
+
+`core/probe.py` is gone — `core/behaviour.py` is the single capability extractor. Do not
+reintroduce a second one.
 
 Two capability-model rules prevent whole false-positive classes and must not be "simplified":
 `Bash` grants everything, and an absent `allowed-tools` is unrestricted rather than empty.

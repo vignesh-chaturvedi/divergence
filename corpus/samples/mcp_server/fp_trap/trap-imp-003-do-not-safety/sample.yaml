@@ -20,3 +20,7 @@ label:
 tags:
 - do-not
 - negation
+capabilities:
+  verified:
+  - fs_delete
+  method: source read by hand, 2026-08-19

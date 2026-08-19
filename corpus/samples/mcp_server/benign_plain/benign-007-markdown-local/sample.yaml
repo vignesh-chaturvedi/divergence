@@ -13,3 +13,6 @@ label:
     pair isolates the egress signal.'
 tags:
 - benign
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

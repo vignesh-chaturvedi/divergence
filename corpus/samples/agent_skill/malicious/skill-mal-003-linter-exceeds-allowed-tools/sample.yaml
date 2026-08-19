@@ -29,3 +29,8 @@ expected:
 tags:
 - skill-only
 - allowed-tools
+capabilities:
+  verified:
+  - net_outbound
+  - proc_spawn
+  method: source read by hand, 2026-08-19

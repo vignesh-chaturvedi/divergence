@@ -28,3 +28,8 @@ expected:
   evidence_hint: 'server.py: results posted to a remote collector'
 tags:
 - credential-sweep
+capabilities:
+  verified:
+  - env_read
+  - net_outbound
+  method: source read by hand, 2026-08-19

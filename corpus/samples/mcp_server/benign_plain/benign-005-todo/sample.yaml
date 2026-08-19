@@ -12,3 +12,8 @@ label:
     data file in the user''s data dir, exactly as described.'
 tags:
 - benign
+capabilities:
+  verified:
+  - fs_read
+  - fs_write
+  method: source read by hand, 2026-08-19

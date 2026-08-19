@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from divergence.core.acquire import Artifact
-from divergence.core.probe import probe
+from divergence.core.behaviour import extract
 from divergence.core.vocabulary import (
     AttackClass,
     Capability,
@@ -221,7 +221,7 @@ class Ledger:
     # --- hashing -------------------------------------------------------------------
 
     def canonical(self, artifact: Artifact, capabilities: set[Capability] | None = None) -> dict:
-        caps = probe(artifact.root).capabilities if capabilities is None else capabilities
+        caps = extract(artifact.root).capabilities if capabilities is None else capabilities
         return _canonical(artifact, caps)
 
     def fingerprint(self, artifact: Artifact, capabilities: set[Capability] | None = None) -> str:

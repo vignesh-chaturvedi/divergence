@@ -31,3 +31,8 @@ expected:
 tags:
 - provenance
 - registry
+capabilities:
+  verified:
+  - fs_read
+  - net_outbound
+  method: source read by hand, 2026-08-19

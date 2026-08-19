@@ -12,3 +12,6 @@ label:
     usage — the honest side of the ''crypto'' capability signal.'
 tags:
 - benign
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

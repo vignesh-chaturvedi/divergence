@@ -12,3 +12,6 @@ label:
     transform in TypeScript, for language coverage among negatives.'
 tags:
 - benign
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

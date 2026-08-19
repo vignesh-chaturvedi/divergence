@@ -28,3 +28,6 @@ tags:
 - skill-only
 - temporal
 - ledger
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

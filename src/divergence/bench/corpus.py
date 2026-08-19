@@ -16,6 +16,7 @@ import yaml
 
 from divergence.bench.models import (
     AttackClass,
+    Capability,
     Channel,
     ExpectedFinding,
     Kind,
@@ -126,6 +127,16 @@ def load_sample(sample_dir: Path) -> Sample:
         for e in (data.get("expected") or [])
     )
 
+    caps_block = data.get("capabilities") or {}
+    verified = caps_block.get("verified")
+    verified_capabilities = (
+        None
+        if verified is None
+        else tuple(
+            _coerce_enum(Capability, c, sample_dir, "capabilities.verified") for c in verified
+        )
+    )
+
     return Sample(
         id=sample_id,
         kind=kind,
@@ -139,6 +150,8 @@ def load_sample(sample_dir: Path) -> Sample:
         expected=expected,
         tags=tuple(str(t) for t in (data.get("tags") or [])),
         notes=str(data.get("notes", "")).strip(),
+        verified_capabilities=verified_capabilities,
+        capability_miss_reason=str(caps_block.get("miss_reason", "")).strip(),
     )
 
 

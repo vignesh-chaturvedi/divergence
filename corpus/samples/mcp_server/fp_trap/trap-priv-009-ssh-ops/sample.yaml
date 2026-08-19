@@ -21,3 +21,12 @@ label:
   - security_domain_vocabulary
 tags:
 - ssh
+capabilities:
+  verified:
+  - net_outbound
+  - proc_spawn
+  - secrets_read
+  method: source read by hand, 2026-08-19
+  extractor_misses:
+  - net_outbound
+  miss_reason: the spawned ssh binary opens the connection, not this code

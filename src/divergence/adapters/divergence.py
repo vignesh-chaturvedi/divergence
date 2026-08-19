@@ -17,7 +17,7 @@ from divergence.adapters.base import register
 from divergence.core.acquire import acquire
 from divergence.core.declared import analyze_declared
 from divergence.core.ledger import Ledger
-from divergence.core.probe import probe
+from divergence.core.behaviour import extract
 from divergence.bench.models import Sample
 from divergence.core.vocabulary import Finding
 
@@ -35,9 +35,9 @@ class DivergenceScanner:
     def scan(self, sample: Sample) -> list[Finding]:
         root = sample.artifact_path
         artifact = acquire(root)
-        observed = probe(root)
+        behaviour = extract(root)
 
-        findings = analyze_declared(artifact, observed, sample_id=sample.id)
+        findings = analyze_declared(artifact, behaviour, sample_id=sample.id)
         findings += self._ledger_findings(sample, artifact)
 
         return findings

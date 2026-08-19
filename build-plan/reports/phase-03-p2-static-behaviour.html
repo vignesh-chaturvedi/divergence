@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Divergence — Progress 03 · P2 Static Behaviour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E4E5DF; --panel:#DBDCD3; --panel-2:#D1D3C7;
+  --ink:#22241D; --slate:#6B6F62; --rule:#C2C4B6;
+  --moss:#55692F; --moss-dim:#7C8C5C;
+  --amber:#96731A; --amber-lite:#C9A93F; --rust:#8A4B2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+  font-size:17px;line-height:1.62;padding:0 0 6rem}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;margin:0}
+h3{font-weight:600;font-size:1.1rem;margin:2.2rem 0 .6rem}
+code,kbd{font-family:var(--mono);font-size:.86em;background:var(--panel-2);
+  padding:.12em .38em;border-radius:3px;border:1px solid var(--rule)}
+a{color:var(--moss)}
+header.mast{border-bottom:2px solid var(--ink);padding:3.2rem 0 1.4rem;margin-bottom:2.4rem}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--slate);display:flex;gap:.9rem;flex-wrap:wrap;
+  align-items:center;margin-bottom:1.4rem}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--moss-dim)}
+h1{font-size:clamp(2.4rem,6.2vw,3.8rem);font-weight:800;letter-spacing:-.028em}
+h1 .sub{display:block;font-weight:400;font-size:clamp(1rem,2.4vw,1.32rem);
+  color:var(--slate);letter-spacing:-.01em;margin-top:.5rem}
+.standfirst{margin:1.5rem 0 0;max-width:64ch;font-size:1.08rem;color:#3A3D33}
+.banner{display:flex;gap:1rem;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-left:4px solid var(--moss);
+  padding:1.1rem 1.3rem;border-radius:4px;margin:2.2rem 0}
+.banner.hold{border-left-color:var(--amber)}
+.banner .mark{font-family:var(--display);font-weight:800;color:var(--moss);
+  font-size:1.3rem;line-height:1.2;flex:none}
+.banner.hold .mark{color:var(--amber)}
+.banner p{margin:0;font-size:.97rem}
+.banner p + p{margin-top:.6rem}
+.banner strong{font-family:var(--display);font-weight:600}
+section{margin:3.4rem 0 0}
+.sec-head{display:flex;align-items:baseline;gap:.9rem;border-bottom:1px solid var(--rule);
+  padding-bottom:.6rem;margin-bottom:1.6rem;flex-wrap:wrap}
+.sec-num{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--moss);
+  text-transform:uppercase;flex:none}
+.sec-head h2{font-size:clamp(1.4rem,3.2vw,1.9rem);font-weight:600;letter-spacing:-.02em}
+.headline{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.6rem 1.5rem;margin:1.6rem 0;display:grid;gap:1.4rem;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.metric .lbl{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--slate);margin-bottom:.3rem}
+.metric .num{font-family:var(--display);font-weight:800;font-size:2.5rem;
+  letter-spacing:-.035em;line-height:1}
+.metric .num.good{color:var(--moss)}
+.metric .num.bad{color:var(--rust)}
+.metric .num.warn{color:var(--amber)}
+.metric .cap{font-size:.85rem;color:var(--slate);margin-top:.35rem;line-height:1.45}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem}
+.card .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--slate);margin-bottom:.42rem}
+.card .v{font-family:var(--display);font-weight:600;font-size:1.02rem;letter-spacing:-.012em}
+.card .n{font-size:.85rem;color:var(--slate);margin-top:.3rem;line-height:1.45}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--slate);border-bottom:1.5px solid var(--ink);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:.84rem;white-space:nowrap}
+td.num{text-align:right;font-family:var(--mono);font-size:.85rem;white-space:nowrap}
+tr.emph td{background:rgba(85,105,47,.08)}
+.pill{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2em .55em;border-radius:3px;border:1px solid;white-space:nowrap}
+.pill.done{color:var(--moss);border-color:var(--moss-dim);background:rgba(85,105,47,.09)}
+.pill.hold{color:var(--amber);border-color:var(--amber-lite);background:rgba(150,115,26,.1)}
+.pill.todo{color:var(--slate);border-color:var(--rule);background:rgba(107,111,98,.07)}
+.pill.gate{color:var(--rust);border-color:var(--rust);background:rgba(138,75,42,.09)}
+ul.check{list-style:none;padding:0;margin:1rem 0}
+ul.check li{position:relative;padding-left:1.9rem;margin-bottom:.62rem}
+ul.check li::before{content:"✓";position:absolute;left:0;top:-.05em;color:var(--moss);
+  font-family:var(--display);font-weight:800}
+pre.term{background:#1E201A;color:#D6D8CC;border:1px solid var(--rule);border-radius:4px;
+  padding:1.1rem 1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.75rem;
+  line-height:1.65;margin:1.2rem 0}
+pre.term .c{color:#7C8C5C}
+pre.term .h{color:#C9A93F}
+pre.term .g{color:#9FBF6A}
+pre.term .r{color:#C98A6A}
+pre.term .d{color:#8C9080}
+.note{border-left:3px solid var(--moss-dim);padding:.15rem 0 .15rem 1.1rem;
+  margin:1.4rem 0;color:#3A3D33;font-size:.96rem}
+.note.warn{border-left-color:var(--rust)}
+.split{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));margin:1.4rem 0}
+.split .box{border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem;background:var(--panel)}
+.split .box h4{font-size:.95rem;font-weight:600;margin-bottom:.5rem}
+.split .box.bad{border-left:3px solid var(--rust)}
+.split .box.good{border-left:3px solid var(--moss)}
+.split .box p{margin:0;font-size:.9rem;color:#3A3D33}
+.split .box code{font-size:.8em}
+footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+@media(max-width:560px){ body{font-size:16px} .metric .num{font-size:2rem} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">
+    <span>Divergence</span><span class="dot"></span>
+    <span>Progress report 03</span><span class="dot"></span>
+    <span>Phase P2 — static behaviour</span><span class="dot"></span>
+    <span>19 Aug 2026</span>
+  </div>
+  <h1>P2 complete<span class="sub">A capability extractor measured against hand-verified ground truth, with its own failure rate published</span></h1>
+  <p class="standfirst">tree-sitter across Python, TypeScript and shell. Reachability from
+  every entrypoint, a light parameter-taint pass, and capabilities attributed to the handlers
+  that can actually reach them. The gate asked for verification on 50 artifacts and an honest
+  false-negative rate; this covers all 80 and publishes 8.1%.</p>
+</header>
+
+<div class="banner">
+  <span class="mark">✓</span>
+  <div>
+    <p><strong>Exit gate met.</strong> §07 asked for "capability sets manually verified on 50
+    real artifacts" and to "track and publish your own false-negative rate."
+    <code>make capabilities</code> scores extraction against ground truth read by hand from
+    the source of all 80 artifacts: <strong>100% precision, 91.9% recall, 8.1% false-negative
+    rate.</strong></p>
+    <p>123 tests pass. Both <code>make bench</code> and <code>make capabilities</code> are
+    byte-reproducible.</p>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>The gate</h2></div>
+
+  <div class="headline">
+    <div class="metric">
+      <div class="lbl">Precision</div>
+      <div class="num good">100%</div>
+      <div class="cap">Zero over-claimed capabilities. Treated as a hard failure.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">Recall</div>
+      <div class="num">91.9%</div>
+      <div class="cap">57 of 62 verified capabilities found.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">False-negative rate</div>
+      <div class="num warn">8.1%</div>
+      <div class="cap">Published, per §11. Five misses, all one class.</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">Exact-set match</div>
+      <div class="num">93.8%</div>
+      <div class="cap">75 of 80 artifacts extracted exactly right.</div>
+    </div>
+  </div>
+
+  <p class="note"><strong>Precision and recall are deliberately not symmetric here.</strong>
+  Over-claiming a capability manufactures divergence out of nothing — it is how a scanner
+  invents a finding — so a single false positive fails the gate. A miss is a known cost of
+  static analysis, so it is measured, attributed to a named cause, and published. §11 is blunt
+  about not claiming soundness we do not have.</p>
+
+  <pre class="term"><span class="c">$ make capabilities</span>
+
+<span class="h">Capability extraction vs hand-verified ground truth</span>
+──────────────────────────────────────────────────────────────────
+  artifacts scored        80
+  capabilities expected   62
+  <span class="g">precision               100.0%   (over-claiming is a hard failure)</span>
+  recall                  91.9%
+  <span class="r">false-negative rate     8.1%   &lt;- published, per §11</span>
+  exact-set match         93.8%
+──────────────────────────────────────────────────────────────────
+
+<span class="h">Recall by capability</span>
+  dynamic_eval       3/3    100.0%  ██████████
+  env_read           4/4    100.0%  ██████████
+  fs_delete          1/1    100.0%  ██████████
+  fs_read           11/11   100.0%  ██████████
+  fs_write           7/8     87.5%  █████████
+  <span class="r">net_outbound      13/17    76.5%  ████████</span>
+  proc_spawn        13/13   100.0%  ██████████
+  secrets_read       5/5    100.0%  ██████████</pre>
+
+  <h3>Every miss is the same class</h3>
+  <p>All five false negatives are a capability reached <strong>through a spawned process</strong>.
+  The parser sees the spawn; it cannot follow what the spawned program does — and nothing
+  static can.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Artifact</th><th>Missed</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><code>trap-priv-009-ssh-ops</code></td><td class="mono">net_outbound</td><td>The spawned <code>ssh</code> binary opens the connection, not this code.</td></tr>
+      <tr><td><code>trap-priv-008-package-installer</code></td><td class="mono">net_outbound</td><td><code>pip install</code> fetches from a registry.</td></tr>
+      <tr><td><code>trap-priv-010-git-write</code></td><td class="mono">net_outbound</td><td><code>git push</code> reaches the remote.</td></tr>
+      <tr><td><code>trap-priv-011-deploy-skill</code></td><td class="mono">net_outbound</td><td><code>deploy-cli</code> releases to a remote environment.</td></tr>
+      <tr><td><code>trap-priv-003-sql-runner</code></td><td class="mono">fs_write</td><td>Arbitrary SQL can write; proving it means understanding the SQL.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note"><strong>This is precisely the case §05 says the sandbox exists for.</strong>
+  Static analysis loses at the process boundary; execution under observation does not care what
+  the payload was. P2's honest failure mode is P5's headline number, and it is now quantified
+  eight weeks before that work starts. Each miss is recorded per-sample in
+  <code>sample.yaml</code> under <code>capabilities.miss_reason</code>, and a test asserts no
+  miss may exist without one.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>What reachability bought</h2></div>
+
+  <p>P1's flat scan attributed every capability to the whole artifact. That forced a guard in
+  A2: suppress the annotation check whenever any sibling tool might explain a mutation. A call
+  graph removes the guess.</p>
+
+  <div class="split">
+    <div class="box bad">
+      <h4>P1 · flat scan</h4>
+      <p>Artifact contains <code>write_text</code> → every tool is a suspect. The read-only
+      tool gets blamed for its sibling's write, so the check has to be suppressed.</p>
+    </div>
+    <div class="box good">
+      <h4>P2 · reachability</h4>
+      <p><code>get_value</code> reaches <code>{fs_read}</code>.
+      <code>set_value</code> reaches <code>{fs_write}</code>. The annotation check runs
+      per-tool with no guard.</p>
+    </div>
+  </div>
+
+  <ul class="check">
+    <li><strong>Comments and strings are not sinks.</strong> The concrete gain of a grammar over
+      a regex — the corpus contains artifacts that discuss dangerous operations without
+      performing them, and a pentest scanner's docstring is not an attack.</li>
+    <li><strong>Module scope is reachable.</strong> It runs at import, so a credential path
+      built as a module constant is live. Verification caught the extractor calling it dead.</li>
+    <li><strong>Unreachable sinks are reported, not discarded.</strong> An unreferenced helper
+      that opens a socket earns a posture note — unreferenced today, callable tomorrow.</li>
+    <li><strong>Taint carries provenance.</strong> A sink reports the originating parameter
+      <code>cmd</code>, not the local alias <code>full</code> that happened to carry it. The
+      parameter is what names the attacker-controlled input.</li>
+    <li><strong>147 unresolved calls are counted across the corpus</strong> rather than silently
+      dropped. They are where the remaining false negatives will come from.</li>
+  </ul>
+
+  <pre class="term"><span class="c">$ divergence scan corpus/samples/mcp_server/fp_trap/trap-priv-001-shell-executor/artifact</span>
+
+  capabilities proc_spawn
+  <span class="h">flow         run_command(command, timeout) -&gt; proc_spawn at server.py:16</span>
+  unresolved   2 call(s) not followed
+
+  <span class="g">RISK — none</span>
+
+  <span class="d">POSTURE — capability, not a verdict</span>
+    [low] parameter command, timeout of 'run_command' flows into a proc_spawn sink
+      server.py:16</pre>
+
+  <p class="note">A caller-controlled parameter reaching a subprocess is what an injection path
+  looks like — and on a shell executor it is the advertised function. So it is posture. P3
+  promotes exactly this signal to risk when the claim does not cover it, which is the rule table
+  working as designed rather than a heuristic being tuned.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Benchmark unchanged, and that is correct</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Scanner</th><th class="num">FPR-traps</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">Attribution</th></tr></thead>
+    <tbody>
+      <tr class="emph"><td><code>divergence</code></td><td class="num">0.0%</td><td class="num">100%</td><td class="num">20.0%</td><td class="num">100%</td></tr>
+      <tr><td><code>null</code></td><td class="num">0.0%</td><td class="num">—</td><td class="num">0.0%</td><td class="num">—</td></tr>
+      <tr><td><code>keyword</code></td><td class="num">57.1%</td><td class="num">45.0%</td><td class="num">72.0%</td><td class="num">72.2%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><strong>P2 moved no benchmark number, and it was never going to.</strong> A2's four checks
+  are the same four checks; what changed underneath them is the quality of the capability set
+  they consume. The rule that converts B into recall is <strong>B ⊄ C</strong> — reaching for
+  something never declared — and C does not exist until the claim extractor lands in P3.</p>
+
+  <p class="note warn"><strong>Worth saying plainly rather than dressing up.</strong> A phase
+  that improves fidelity without moving the headline is exactly where a project starts reporting
+  process instead of results. The defence is that P2 has its own gate and its own number — 8.1%,
+  measured against ground truth read by hand — and that number is what P3 builds on. If the
+  capability sets were wrong, every divergence rule downstream would be wrong in a way no
+  benchmark score would reveal.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>Six defects caught by verification</h2><span class="pill done">all fixed</span></div>
+
+  <p>Reading the extractor's output against each artifact's source — the actual work of the
+  gate — found six defects. None would have shown up in the benchmark score.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Defect</th><th>Kind</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Docstrings counted as credential paths</td><td><span class="pill gate">false positive</span></td><td>A tool documenting "reads <code>~/.ssh/id_rsa</code>" was credited with reading it. Hit the security-vocabulary trap family directly.</td></tr>
+      <tr><td>Interpolated strings counted as paths</td><td><span class="pill gate">false positive</span></td><td><code>f"sess-{hash(api_key)}"</code> was read as a credential file.</td></tr>
+      <tr><td>Module-level constants called unreachable</td><td><span class="pill hold">false negative</span></td><td>A credential store built as a module constant looked dead. Import runs it.</td></tr>
+      <tr><td>No <code>sqlite3</code> sink</td><td><span class="pill hold">false negative</span></td><td>Database file access invisible.</td></tr>
+      <tr><td>No browser-driver sinks</td><td><span class="pill hold">false negative</span></td><td>Playwright's <code>goto</code>/<code>launch</code>/<code>evaluate</code> — three real capabilities — all missed.</td></tr>
+      <tr><td>Suffix-less scripts skipped</td><td><span class="pill hold">false negative</span></td><td>A bundled <code>bin/optimize</code> with no extension was never parsed. Now resolved by shebang.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note">The two false positives share a root cause worth naming: <strong>a string that
+  mentions a path is not a path.</strong> The rule is now that a credential literal must be a
+  single whitespace-free token, must not be interpolated, and must not be a docstring.</p>
+
+  <h3>And three more from code review</h3>
+  <p>Running <code>/code-review</code> before closing found the reachability walk written twice,
+  the enclosing-scope resolver duplicated across two language backends, and — the one that
+  mattered — <strong>the taint pass computed and unit-tested but never surfaced anywhere a user
+  could see it.</strong> §04 asks for taint; a feature that reaches no output is not delivered.
+  It now appears in both the CLI and the posture channel.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Limits, stated</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Limit</th><th>Consequence</th><th>Resolved by</th></tr></thead>
+    <tbody>
+      <tr><td>Capability through a spawned process</td><td>The five measured false negatives</td><td>P5 sandbox</td></tr>
+      <tr><td>Prose instructions outside a fenced block</td><td>"Run: <code>curl … | sh</code>" in prose is missed. P1 caught it and also flagged prose that merely mentioned curl.</td><td>P3 claim extractor</td></tr>
+      <tr><td>Taint is intra-procedural and name-based</td><td>A parameter passed into a helper loses its taint label</td><td>Deliberate — §04 asks for a light pass</td></tr>
+      <tr><td>Dynamic dispatch, re-exports, computed attributes</td><td>Invisible by construction</td><td>P5 sandbox</td></tr>
+      <tr><td>Shell command assembled from fragments</td><td>Invisible. §04: "shell is where static analysis is weakest"</td><td>P5 sandbox</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><code>core/probe.py</code> is deleted. Two capability extractors would eventually disagree,
+  and the one that disagreed silently would be the one shipping.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Next — P3, where the thesis is decided</h2></div>
+
+  <p>P3 is the claim extractor (A5) on a local model with constrained decoding, plus the set
+  algebra and rule table (A6). Its gate is the headline of the whole writeup:
+  <strong>FPR on the trap stratum beats every baseline scanner by a wide, defensible margin.</strong></p>
+
+  <p>Everything it needs is now in place. B_s is measured and its error rate is known. The
+  posture and risk channels are separated and tested. Taint flows are surfaced and waiting to be
+  promoted. The corpus contains matched pairs — a note-reader and an SSH server touching the
+  same credential path — whose only difference is the claim, which is exactly what A5 has to
+  read correctly.</p>
+
+  <p class="note warn"><strong>The risk §11 names for P3 is determinism.</strong> Both gates are
+  byte-reproducible today, enforced by test. A model in the pipeline is the first thing that can
+  break that, and if claim extraction drifts between runs the headline number stops meaning
+  anything. Constrained decoding and content-hash caching are load-bearing, not conveniences.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Phase</th><th>Scope</th><th>Exit gate</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>P0</td><td>Corpus, harness, baseline</td><td><code>make bench</code> reproduces the table</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P1</td><td>A1 · A2 · A3 — no inference</td><td>Non-zero score using no model</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P2</td><td>tree-sitter · reachability · taint</td><td>Capability sets verified on 50 artifacts</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P3</td><td>Claim extractor + divergence engine</td><td>FPR-on-traps beats every baseline</td><td><span class="pill todo">next</span></td></tr>
+      <tr><td>P4</td><td>Fleet &amp; routing analysis</td><td>Shadow tool caught, originals clean</td><td><span class="pill todo">queued</span></td></tr>
+      <tr><td>◇</td><td>Ship v1</td><td>The project is defensible here</td><td><span class="pill gate">checkpoint</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note">Still open: the comparison table has one independent competitor and it is one
+  I wrote — <code>DIVERGENCE_ALLOW_EXTERNAL=1 make bench</code> whenever you want the real
+  scanners in it. And P5 still needs Linux.</p>
+</section>
+
+<footer>Divergence · progress report 03 · phase P2 complete · precision over coverage</footer>
+
+</div>
+</body>
+</html>

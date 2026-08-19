@@ -18,3 +18,7 @@ label:
   - privileged_by_design
 tags:
 - network
+capabilities:
+  verified:
+  - net_outbound
+  method: source read by hand, 2026-08-19

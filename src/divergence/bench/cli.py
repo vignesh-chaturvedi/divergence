@@ -21,6 +21,8 @@ import divergence.adapters.reference  # noqa: F401
 from divergence.adapters import available_adapters, get_adapter
 from divergence.adapters.base import run_adapter
 from divergence.bench import report
+from divergence.bench.capability_score import render as render_capabilities
+from divergence.bench.capability_score import score_capabilities
 from divergence.bench.corpus import CorpusError, counts_by_stratum, load_corpus, validate
 from divergence.bench.metrics import score_all
 from divergence.bench.models import Stratum
@@ -86,6 +88,21 @@ def cmd_describe(args) -> int:
     return 0
 
 
+def cmd_capabilities(args) -> int:
+    """The P2 gate: B_s extraction scored against hand-verified ground truth."""
+    samples = _load(args.corpus)
+    report_ = score_capabilities(samples)
+
+    if report_.samples_scored == 0:
+        print("no samples carry verified capability ground truth", file=sys.stderr)
+        return 2
+
+    print(render_capabilities(report_))
+
+    # Over-claiming manufactures divergence that is not there, so it fails the gate.
+    return 1 if report_.false_positives else 0
+
+
 def cmd_bench(args) -> int:
     samples = _load(args.corpus)
 
@@ -143,6 +160,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p_desc = sub.add_parser("describe", help="list the corpus without running anything")
     p_desc.set_defaults(func=cmd_describe)
+
+    p_cap = sub.add_parser(
+        "capabilities", help="score B_s extraction against verified ground truth"
+    )
+    p_cap.set_defaults(func=cmd_capabilities)
 
     p_bench = sub.add_parser("bench", help="run scanners and print the comparison table")
     p_bench.add_argument("--scanner", action="append", help="limit to one scanner (repeatable)")

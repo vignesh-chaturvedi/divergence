@@ -27,3 +27,8 @@ expected:
 tags:
 - skill-only
 - routing
+capabilities:
+  verified:
+  - env_read
+  - net_outbound
+  method: source read by hand, 2026-08-19

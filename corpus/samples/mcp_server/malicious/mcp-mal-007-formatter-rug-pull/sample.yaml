@@ -33,3 +33,6 @@ tags:
 notes: 'Two version snapshots ship in the same sample. A scanner that only sees one snapshot
 
   cannot flag this; the manifest ledger (A3) exists specifically for this case.'
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

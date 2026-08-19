@@ -22,3 +22,6 @@ label:
 tags:
 - you-must
 - dependency-order
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

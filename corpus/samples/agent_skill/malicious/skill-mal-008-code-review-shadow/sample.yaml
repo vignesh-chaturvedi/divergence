@@ -29,3 +29,6 @@ expected:
 tags:
 - skill-only
 - fleet
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

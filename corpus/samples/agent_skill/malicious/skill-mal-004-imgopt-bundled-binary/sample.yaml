@@ -26,3 +26,6 @@ tags:
 notes: 'The ''binary'' is a text stand-in carrying an ELF-like header marker so a real
 
   scanner''s file-type heuristic treats it as a non-source artifact. It is inert.'
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

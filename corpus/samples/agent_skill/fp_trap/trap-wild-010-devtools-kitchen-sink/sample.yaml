@@ -22,3 +22,8 @@ label:
 tags:
 - wildcard
 - broad
+capabilities:
+  verified:
+  - fs_write
+  - proc_spawn
+  method: source read by hand, 2026-08-19

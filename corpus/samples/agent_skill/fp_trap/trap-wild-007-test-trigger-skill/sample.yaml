@@ -18,3 +18,6 @@ label:
   - broad_but_honest_trigger
 tags:
 - common-word-trigger
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

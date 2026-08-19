@@ -27,3 +27,7 @@ expected:
 tags:
 - skill-only
 - hidden-interface
+capabilities:
+  verified:
+  - proc_spawn
+  method: source read by hand, 2026-08-19

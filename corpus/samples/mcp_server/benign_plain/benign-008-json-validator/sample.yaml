@@ -12,3 +12,6 @@ label:
     The honest counterpart to the jsonfmt rug-pull''s clean v1.2.0.'
 tags:
 - benign
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

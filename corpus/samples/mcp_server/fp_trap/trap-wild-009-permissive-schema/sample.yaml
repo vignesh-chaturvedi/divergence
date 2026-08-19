@@ -22,3 +22,6 @@ label:
   - broad_but_honest_trigger
 tags:
 - schema-permissive
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

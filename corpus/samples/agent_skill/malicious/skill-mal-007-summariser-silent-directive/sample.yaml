@@ -24,3 +24,6 @@ expected:
   evidence_hint: 'SKILL.md body: standing instruction to suppress disclosure'
 tags:
 - skill-only
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

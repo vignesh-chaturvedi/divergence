@@ -22,3 +22,6 @@ label:
 tags:
 - prefer
 - efficiency
+capabilities:
+  verified: []
+  method: source read by hand, 2026-08-19

@@ -13,10 +13,10 @@ from pathlib import Path
 
 # Channel, AttackClass and Finding are core scanner vocabulary, not benchmark concepts.
 # They are re-exported here so existing importers keep working.
-from divergence.core.vocabulary import AttackClass, Channel, Finding
+from divergence.core.vocabulary import AttackClass, Capability, Channel, Finding
 
 __all__ = [
-    "AttackClass", "Channel", "Finding", "Kind", "Stratum", "TrapFamily",
+    "AttackClass", "Capability", "Channel", "Finding", "Kind", "Stratum", "TrapFamily",
     "ExpectedFinding", "Sample", "SampleResult", "ScanRun",
 ]
 
@@ -90,6 +90,11 @@ class Sample:
     expected: tuple[ExpectedFinding, ...] = ()
     tags: tuple[str, ...] = ()
     notes: str = ""
+
+    # Hand-verified B_s ground truth. `None` means the sample has not been verified,
+    # which is different from "verified as having no capabilities" (an empty tuple).
+    verified_capabilities: tuple[Capability, ...] | None = None
+    capability_miss_reason: str = ""
 
     @property
     def is_positive(self) -> bool:
