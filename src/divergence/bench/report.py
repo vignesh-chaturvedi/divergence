@@ -53,7 +53,7 @@ def comparison_table(scores: list[Score]) -> str:
     """The P0 deliverable: one table, every scanner, headline metric first."""
     header = (
         f"{'scanner':<18} {'FPR-traps':>10} {'':<13} {'precision':>10} "
-        f"{'recall':>8} {'F1':>7} {'FPR-benign':>11} {'attrib':>8} {'err':>5}"
+        f"{'recall':>8} {'F1':>7} {'FPR-benign':>11} {'attrib':>8} {'cover':>7} {'err':>5}"
     )
     rule = "─" * len(header)
     lines = [
@@ -72,7 +72,8 @@ def comparison_table(scores: list[Score]) -> str:
             f"{s.scanner:<18} {pct(s.fpr_on_traps):>10} "
             f"{_bar(s.fpr_on_traps, invert=True):<13} "
             f"{pct(s.precision):>10} {pct(s.recall):>8} {pct(s.f1):>7} "
-            f"{pct(s.fpr_on_benign):>11} {pct(s.attribution_rate):>8} {s.errors:>5}"
+            f"{pct(s.fpr_on_benign):>11} {pct(s.attribution_rate):>8} "
+            f"{pct(s.coverage):>7} {s.errors:>5}"
         )
 
     lines.append(rule)
@@ -147,6 +148,33 @@ def attack_class_table(scores: list[Score]) -> str:
     return "\n".join(lines)
 
 
+def markdown_table(scores: list[Score]) -> str:
+    """The comparison table as Markdown, for the writeup.
+
+    Generated rather than transcribed. A published number that drifts from the JSON it
+    came from is worse than no number, and hand-copying six rows across three documents is
+    exactly how that happens.
+    """
+    lines = [
+        "| Scanner | FPR-on-traps | Precision | Recall | F1 | FPR-benign | Attribution |",
+        "|---|---:|---:|---:|---:|---:|---:|",
+    ]
+
+    for s in scores:
+        if not s.available:
+            lines.append(
+                f"| `{s.scanner}` | not run | — | — | — | — | — |"
+            )
+            continue
+        lines.append(
+            f"| `{s.scanner}` | **{pct(s.fpr_on_traps)}** | {pct(s.precision)} | "
+            f"{pct(s.recall)} | {pct(s.f1)} | {pct(s.fpr_on_benign)} | "
+            f"{pct(s.attribution_rate)} |"
+        )
+
+    return "\n".join(lines)
+
+
 def to_json(samples: list[Sample], scores: list[Score]) -> str:
     """Machine-readable results, for regression-checking the table across commits."""
     payload = {
@@ -172,6 +200,9 @@ def to_json(samples: list[Sample], scores: list[Score]) -> str:
                 "false_negatives": s.false_negatives,
                 "true_negatives": s.true_negatives,
                 "errors": s.errors,
+                "scored": s.scored,
+                "skipped_not_applicable": s.skipped,
+                "coverage": s.coverage,
                 "risk_findings": s.total_risk_findings,
                 "posture_findings": s.total_posture_findings,
                 "by_stratum": {

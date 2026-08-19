@@ -49,6 +49,12 @@ class Score:
     available: bool = True
     unavailable_reason: str = ""
 
+    # Artifacts this scanner could actually analyse. A scanner that only reads MCP servers
+    # is scored on MCP servers; excluding skills it cannot see is the difference between
+    # a comparison and a rigged one.
+    scored: int = 0
+    skipped: int = 0
+
     true_positives: int = 0
     false_negatives: int = 0
     false_positives: int = 0
@@ -102,6 +108,12 @@ class Score:
         return s.flag_rate if s else None
 
     @property
+    def coverage(self) -> float | None:
+        """Share of the corpus this scanner could analyse at all."""
+        total = self.scored + self.skipped
+        return _ratio(self.scored, total) if total else None
+
+    @property
     def attribution_rate(self) -> float | None:
         """Right answer for the right reason, among true positives."""
         return _ratio(self.correctly_attributed, self.true_positives)
@@ -126,6 +138,12 @@ def score_run(samples: list[Sample], run: ScanRun) -> Score:
 
     for sample in samples:
         result = run.result_for(sample.id)
+
+        if result.not_applicable:
+            score.skipped += 1
+            continue
+
+        score.scored += 1
         flagged = result.flagged
 
         if result.error:

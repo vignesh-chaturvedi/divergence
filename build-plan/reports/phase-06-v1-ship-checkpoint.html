@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Divergence — Progress 06 · v1 Ship Checkpoint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E4E5DF; --panel:#DBDCD3; --panel-2:#D1D3C7;
+  --ink:#22241D; --slate:#6B6F62; --rule:#C2C4B6;
+  --moss:#55692F; --moss-dim:#7C8C5C;
+  --amber:#96731A; --amber-lite:#C9A93F; --rust:#8A4B2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+  font-size:17px;line-height:1.62;padding:0 0 6rem}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;margin:0}
+h3{font-weight:600;font-size:1.1rem;margin:2.2rem 0 .6rem}
+code,kbd{font-family:var(--mono);font-size:.86em;background:var(--panel-2);
+  padding:.12em .38em;border-radius:3px;border:1px solid var(--rule)}
+a{color:var(--moss)}
+header.mast{border-bottom:2px solid var(--ink);padding:3.2rem 0 1.4rem;margin-bottom:2.4rem}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--slate);display:flex;gap:.9rem;flex-wrap:wrap;
+  align-items:center;margin-bottom:1.4rem}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--moss-dim)}
+h1{font-size:clamp(2.4rem,6.2vw,3.8rem);font-weight:800;letter-spacing:-.028em}
+h1 .sub{display:block;font-weight:400;font-size:clamp(1rem,2.4vw,1.32rem);
+  color:var(--slate);letter-spacing:-.01em;margin-top:.5rem}
+.standfirst{margin:1.5rem 0 0;max-width:64ch;font-size:1.08rem;color:#3A3D33}
+.banner{display:flex;gap:1rem;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-left:4px solid var(--moss);
+  padding:1.1rem 1.3rem;border-radius:4px;margin:2.2rem 0}
+.banner.hold{border-left-color:var(--amber)}
+.banner.warn{border-left-color:var(--rust)}
+.banner .mark{font-family:var(--display);font-weight:800;color:var(--moss);
+  font-size:1.3rem;line-height:1.2;flex:none}
+.banner.hold .mark{color:var(--amber)}
+.banner.warn .mark{color:var(--rust)}
+.banner p{margin:0;font-size:.97rem}
+.banner p + p{margin-top:.6rem}
+.banner strong{font-family:var(--display);font-weight:600}
+section{margin:3.4rem 0 0}
+.sec-head{display:flex;align-items:baseline;gap:.9rem;border-bottom:1px solid var(--rule);
+  padding-bottom:.6rem;margin-bottom:1.6rem;flex-wrap:wrap}
+.sec-num{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--moss);
+  text-transform:uppercase;flex:none}
+.sec-head h2{font-size:clamp(1.4rem,3.2vw,1.9rem);font-weight:600;letter-spacing:-.02em}
+.headline{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.6rem 1.5rem;margin:1.6rem 0;display:grid;gap:1.4rem;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.metric .lbl{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--slate);margin-bottom:.3rem}
+.metric .num{font-family:var(--display);font-weight:800;font-size:2.4rem;
+  letter-spacing:-.035em;line-height:1}
+.metric .num.good{color:var(--moss)}
+.metric .num.bad{color:var(--rust)}
+.metric .cap{font-size:.85rem;color:var(--slate);margin-top:.35rem;line-height:1.45}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem}
+.card .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--slate);margin-bottom:.42rem}
+.card .v{font-family:var(--display);font-weight:600;font-size:1.02rem;letter-spacing:-.012em}
+.card .n{font-size:.85rem;color:var(--slate);margin-top:.3rem;line-height:1.45}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--slate);border-bottom:1.5px solid var(--ink);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:.84rem;white-space:nowrap}
+td.num{text-align:right;font-family:var(--mono);font-size:.85rem;white-space:nowrap}
+tr.emph td{background:rgba(85,105,47,.08)}
+tr.rival td{background:rgba(150,115,26,.08)}
+.pill{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2em .55em;border-radius:3px;border:1px solid;white-space:nowrap}
+.pill.done{color:var(--moss);border-color:var(--moss-dim);background:rgba(85,105,47,.09)}
+.pill.hold{color:var(--amber);border-color:var(--amber-lite);background:rgba(150,115,26,.1)}
+.pill.todo{color:var(--slate);border-color:var(--rule);background:rgba(107,111,98,.07)}
+.pill.gate{color:var(--rust);border-color:var(--rust);background:rgba(138,75,42,.09)}
+ul.check{list-style:none;padding:0;margin:1rem 0}
+ul.check li{position:relative;padding-left:1.9rem;margin-bottom:.62rem}
+ul.check li::before{content:"✓";position:absolute;left:0;top:-.05em;color:var(--moss);
+  font-family:var(--display);font-weight:800}
+pre.term{background:#1E201A;color:#D6D8CC;border:1px solid var(--rule);border-radius:4px;
+  padding:1.1rem 1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.74rem;
+  line-height:1.65;margin:1.2rem 0}
+pre.term .c{color:#7C8C5C}
+pre.term .h{color:#C9A93F}
+pre.term .g{color:#9FBF6A}
+pre.term .r{color:#C98A6A}
+.note{border-left:3px solid var(--moss-dim);padding:.15rem 0 .15rem 1.1rem;
+  margin:1.4rem 0;color:#3A3D33;font-size:.96rem}
+.note.warn{border-left-color:var(--rust)}
+.bars{margin:1.4rem 0}
+.barrow{display:grid;grid-template-columns:minmax(120px,180px) 1fr auto;gap:.8rem;
+  align-items:center;margin-bottom:.55rem;font-size:.9rem}
+.barrow .track{background:var(--panel-2);border-radius:3px;height:16px;overflow:hidden;
+  border:1px solid var(--rule)}
+.barrow .fill{height:100%;background:var(--moss)}
+.barrow .fill.warn{background:var(--rust)}
+.barrow .val{font-family:var(--mono);font-size:.8rem;min-width:3.4em;text-align:right}
+footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+@media(max-width:560px){ body{font-size:16px} .metric .num{font-size:2rem} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">
+    <span>Divergence</span><span class="dot"></span>
+    <span>Progress report 06</span><span class="dot"></span>
+    <span>v1 ship checkpoint</span><span class="dot"></span>
+    <span>19 Aug 2026</span>
+  </div>
+  <h1>v1 is shippable<span class="sub">Two independent scanners are now in the table, and the strongest one makes this project's argument better than the strawman ever did</span></h1>
+  <p class="standfirst">§11 called this checkpoint load-bearing: ship before any Rust sandbox
+  work. Everything it asks for exists — <code>uvx</code> distribution, SARIF output, a GitHub
+  Action, a published benchmark table with real competitors, and a drafted writeup.</p>
+</header>
+
+<div class="banner">
+  <span class="mark">✓</span>
+  <div>
+    <p><strong>Checkpoint met.</strong> 204 tests pass. All four phase gates still green.
+    The wheel builds and <code>uvx</code> installs it cleanly; SARIF 2.1.0 validates with
+    declared rules and <code>file:line</code> locations.</p>
+    <p>The benchmark table now contains <strong>two independent third-party scanners at
+    their real numbers</strong> — the thing §06 said was the difference between a citable
+    artifact and a starred one.</p>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>The table, with real competitors</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Scanner</th><th class="num">FPR-traps</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th><th class="num">Attribution</th></tr></thead>
+    <tbody>
+      <tr class="emph"><td><code>divergence+fleet</code></td><td class="num"><strong>0.0%</strong></td><td class="num">100.0%</td><td class="num">96.0%</td><td class="num">98.0%</td><td class="num">87.5%</td></tr>
+      <tr><td><code>divergence</code></td><td class="num">0.0%</td><td class="num">100.0%</td><td class="num">96.0%</td><td class="num">98.0%</td><td class="num">79.2%</td></tr>
+      <tr><td><code>null</code> <span class="pill todo">floor</span></td><td class="num">0.0%</td><td class="num">—</td><td class="num">0.0%</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr class="rival"><td><code>semgrep</code> <span class="pill hold">independent</span></td><td class="num">5.7%</td><td class="num">87.5%</td><td class="num">56.0%</td><td class="num">68.3%</td><td class="num">0.0%</td></tr>
+      <tr class="rival"><td><code>mcp-shield</code> <span class="pill hold">independent</span></td><td class="num">19.0%</td><td class="num">20.0%</td><td class="num">8.3%</td><td class="num">11.8%</td><td class="num">100.0%</td></tr>
+      <tr><td><code>keyword</code> <span class="pill todo">strawman</span></td><td class="num">57.1%</td><td class="num">45.0%</td><td class="num">72.0%</td><td class="num">55.4%</td><td class="num">72.2%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note">Generated by <code>make bench-external</code> and written straight into the
+  writeup as Markdown, not transcribed. A published number that drifts from the JSON it came
+  from is worse than no number, and hand-copying six rows across three documents is exactly
+  how that happens.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Semgrep is the most valuable row</h2></div>
+
+  <p><strong>Semgrep is not a weak competitor, and pretending otherwise would sink the
+  writeup.</strong> It is a mature, well-engineered static analyser, and on this corpus it
+  scores 5.7% FPR-on-traps at 87.5% precision. Any claim that existing tooling is simply bad
+  does not survive contact with it.</p>
+
+  <p>What makes it the most useful row in the table is <em>where</em> its recall goes:</p>
+
+  <div class="bars">
+    <div class="barrow">
+      <span><strong>Code surface</strong></span>
+      <span class="track"><span class="fill" style="width:78%"></span></span>
+      <span class="val">78%</span>
+    </div>
+    <div class="barrow">
+      <span><strong>Reasoning surface</strong></span>
+      <span class="track"><span class="fill warn" style="width:48%"></span></span>
+      <span class="val">48%</span>
+    </div>
+  </div>
+
+  <p>Undeclared network egress: <strong>6 of 6</strong>, as good as this project. Undeclared
+  exec: <strong>3 of 3</strong>. Annotation lies: <strong>0 of 1</strong>. Return-value
+  injection: <strong>0 of 2</strong>. Progressive-disclosure payloads: <strong>0 of 1</strong>.</p>
+
+  <p>§02 predicted this in one sentence — <em>"Read only the code and you miss a poisoned
+  description entirely; the code is clean."</em> A tool that reads the implementation finds
+  what the implementation does. This is that claim, confirmed by somebody else's tool rather
+  than by mine.</p>
+
+  <div class="banner warn">
+    <span class="mark">!</span>
+    <div>
+      <p><strong>And its attribution is 0%.</strong> Not one of semgrep's 14 true positives
+      named the actual attack. It reports <code>subprocess with shell=True</code>; it never
+      reports <em>this server never said it would spawn processes</em>, because it has no
+      representation of what the server claimed.</p>
+      <p>Its detections on the malicious stratum are largely <strong>incidental</strong> —
+      right answer, wrong reason. That is not a criticism of semgrep, which is doing exactly
+      the job it was built for. It is the measurement that says the reasoning surface needs
+      analysis of its own.</p>
+    </div>
+  </div>
+
+  <p><code>mcp-shield</code>, an actual MCP scanner, scores 19.0% FPR-on-traps at 20%
+  precision and completed on only 60% of the corpus. Included at its real numbers rather
+  than quietly omitted.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>The bug this checkpoint was worth</h2></div>
+
+  <div class="banner warn">
+    <span class="mark">!</span>
+    <div>
+      <p><strong><code>divergence scan</code> had never called the divergence engine.</strong>
+      Since P3, the shipped CLI ran only the declared-interface analyzer. The project's
+      headline capability was missing from the actual product for two entire phases while
+      every benchmark number said otherwise.</p>
+      <p>Tests missed it because they call analyzers directly and the benchmark goes through
+      the adapter — so the one path a real user takes was the one path nothing exercised.
+      Fixed by giving the CLI and the adapter a single shared composition point, plus ten
+      end-to-end tests that invoke the CLI the way a person would.</p>
+    </div>
+  </div>
+
+  <p>Two more from the holdout expansion, 10 → 26 artifacts:</p>
+
+  <ul class="check">
+    <li><strong>The holdout harness never ran A2.</strong> It had been blind to the
+      declared-interface checks the whole time it was supposedly guarding them.</li>
+    <li><strong><code>allowed-tools: [Read, Grep]</code> parsed to zero capabilities.</strong>
+      Valid YAML, written that way by real skills, and it would have falsely flagged every
+      one of them.</li>
+  </ul>
+
+  <p class="note">All three are the same shape: the corpus is 80 artifacts in one house style,
+  written by one person, and anything outside that style was untested. That is the argument for
+  the holdout set, and it keeps paying.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>What ships</h2></div>
+
+  <div class="grid">
+    <div class="card"><div class="k">Distribution</div><div class="v"><code>uvx</code> verified</div>
+      <div class="n">Wheel builds, installs, and runs from a clean environment.</div></div>
+    <div class="card"><div class="k">Interchange</div><div class="v">SARIF 2.1.0</div>
+      <div class="n">Schema-valid, declared rules, <code>file:line</code> locations. Consumed by GitHub code scanning.</div></div>
+    <div class="card"><div class="k">CI</div><div class="v">GitHub Action</div>
+      <div class="n">Composite action plus a workflow that runs the gates on every push.</div></div>
+    <div class="card"><div class="k">Evidence</div><div class="v">Writeup drafted</div>
+      <div class="n">202 lines, generated table, an honest "where it loses" section.</div></div>
+  </div>
+
+  <pre class="term"><span class="c"># the whole thing, from a clean checkout</span>
+make install && make validate && make test && make bench
+
+<span class="c"># with third-party scanners — downloads and executes them</span>
+make bench-external
+
+<span class="c"># scan something real</span>
+uvx divergence scan ~/.config/mcp/servers/some-server
+uvx divergence fleet ~/.config/claude/config.json</pre>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Two things I did not do</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Item</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><strong><code>snyk-agent-scan</code> attempted, cannot run</strong> (formerly <code>mcp-scan</code>)</td><td>Run with your authorisation. It <strong>requires a <code>SNYK_TOKEN</code> from a Snyk account</strong> and exits before scanning without one — and it transmits tool descriptions to a hosted API with no offline mode. I cannot obtain or enter API tokens, so this is where it stops. Recorded as a finding, not an omission: see §07.</td></tr>
+      <tr><td><strong>Corpus not published</strong></td><td>Pushing a repo and tagging a dataset is yours to do. Everything is staged and ready.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>The scanner that could not be benchmarked</h3>
+
+  <p><code>mcp-scan</code> — the most-cited open-source scanner in this space — is now
+  <code>snyk-agent-scan</code>, a Snyk product at v0.6.0. It is absent from the table for a
+  reason worth reporting as a result rather than a gap:</p>
+
+  <ul class="check">
+    <li>It <strong>transmits tool descriptions to a hosted Snyk analysis API.</strong> There
+      is no offline mode — <code>--analysis-url</code> only redirects the verification server.</li>
+    <li>It <strong>requires a <code>SNYK_TOKEN</code> from a Snyk account</strong>, and exits 1
+      before scanning anything without one.</li>
+  </ul>
+
+  <p><strong>A benchmark that cannot be reproduced without a vendor account is not
+  reproducible.</strong> §09 requires runs to be fully reproducible offline after the first
+  pass; a hosted analyser behind account registration fails that twice over. Its adapter now
+  reports itself unavailable <em>with that reason</em> rather than silently scoring zero —
+  an absent competitor must never read as a beaten one.</p>
+
+  <p class="note">The observation cuts further than one missing row. For the artefact under
+  examination — an agent's installed configuration, which §10 notes "is itself sensitive" — a
+  scanner that ships that configuration's metadata to a vendor is making a trade the user
+  should get to see. It also explains why <code>semgrep</code> is the more useful competitor:
+  offline, no account, and therefore actually re-runnable by a reader.</p>
+
+  <p class="note warn"><strong>The honest caveat, unchanged.</strong> The corpus was written
+  by the same person who wrote the scanner, and the scanner was tuned until the corpus came
+  back clean. Two independent competitors in the table help. A 26-artifact holdout that keeps
+  finding real bugs helps more. Neither makes the result self-validating, and the writeup says
+  so in its own section rather than in a footnote.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Status</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Phase</th><th>Exit gate</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>P0 — ground truth</td><td><code>make bench</code> reproduces the table</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P1 — deterministic core</td><td>Non-zero score using no model</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P2 — static behaviour</td><td>Capability sets verified on 50 artifacts</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P3 — divergence engine</td><td>FPR-on-traps beats every baseline</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P4 — fleet analysis</td><td>Shadow caught, originals clean</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>◇ <strong>v1 ship checkpoint</strong></td><td>uvx · SARIF · Action · table · writeup</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P5 — Rust sandbox</td><td>Half the obfuscated stratum</td><td><span class="pill gate">needs Linux</span></td></tr>
+      <tr><td>P6 — publish v1.1</td><td>Someone who is not you files an issue</td><td><span class="pill todo">queued</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><strong>P5 cannot run on this machine.</strong> Landlock and seccomp-bpf are Linux kernel
+  features; §10 already declares macOS degrades to static-only. Flagged in report 00 and true
+  ever since — a Linux VM or container is needed before the sandbox work starts. The obfuscated
+  stratum was deliberately deferred to P5 for the same reason: it exists to measure what the
+  sandbox adds, and there is nothing to measure it against yet.</p>
+</section>
+
+<footer>Divergence · progress report 06 · v1 ship checkpoint complete · precision over coverage</footer>
+
+</div>
+</body>
+</html>

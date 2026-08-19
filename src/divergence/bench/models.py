@@ -111,6 +111,13 @@ class SampleResult:
     error: str | None = None
     duration_s: float = 0.0
 
+    # Some scanners structurally cannot analyse some artifact kinds — mcp-shield reads
+    # live MCP servers and has no notion of an agent skill. Counting those as misses
+    # would manufacture a recall gap out of a scope difference and flatter whichever
+    # scanner happens to cover more kinds. They are excluded from scoring and reported
+    # as coverage instead.
+    not_applicable: bool = False
+
     @property
     def flagged(self) -> bool:
         """A sample is flagged when at least one RISK finding lands on it."""

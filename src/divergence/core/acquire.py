@@ -291,6 +291,15 @@ def _parse_skill(path: Path) -> SkillDecl | None:
         meta = {}
 
     allowed = meta.get("allowed-tools", meta.get("allowed_tools"))
+
+    # Frontmatter is YAML, so `allowed-tools` may arrive as a list — either inline
+    # (`[Read, Grep]`) or as a block sequence. `str()` on a list yields "['Read', 'Grep']",
+    # which matches no known tool and grants nothing, so a skill written in that entirely
+    # valid style was flagged for exceeding a permission it had been given. Normalise to
+    # the comma form the capability mapper expects.
+    if isinstance(allowed, (list, tuple)):
+        allowed = ", ".join(str(item) for item in allowed)
+
     return SkillDecl(
         name=str(meta.get("name", path.parent.name)),
         description=str(meta.get("description", "")),

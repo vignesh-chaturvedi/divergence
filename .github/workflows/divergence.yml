@@ -1,0 +1,58 @@
+# Scan this repository's own corpus with Divergence, and publish the results to code
+# scanning. Doubles as a worked example of the action.
+name: divergence
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, because the manifest ledger only catches a rug pull if something rescans.
+    - cron: "17 5 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install
+        run: uv sync --extra dev
+
+      - name: Tests
+        run: uv run pytest
+
+      - name: Corpus validation
+        run: uv run divergence-bench validate --check-p0-target
+
+      - name: Capability extraction gate
+        run: uv run divergence-bench capabilities
+
+      - name: Benchmark
+        run: uv run divergence-bench bench --detail --json out/bench.json
+
+      - name: Fleet scan
+        run: |
+          uv run divergence fleet corpus/fleets/installed-config/fleet.yaml \
+            --sarif divergence.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: divergence.sarif
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark
+          path: out/bench.json

@@ -16,10 +16,10 @@ import sys
 from pathlib import Path
 
 from divergence.core.acquire import Artifact
-from divergence.core.declared import analyze_declared
 from divergence.core.fleet import analyze_fleet, build_fleet, load_fleet
 from divergence.core.ledger import Ledger
-from divergence.core.pipeline import load
+from divergence.core.pipeline import load, scan as scan_artifact
+from divergence.core.sarif import dumps as sarif_dumps
 from divergence.core.resolve import ResolutionError, ResolvedTarget, resolve
 from divergence.core.vocabulary import Channel, Finding
 
@@ -109,6 +109,7 @@ def cmd_inspect(args) -> int:
 
 def cmd_scan(args) -> int:
     total_risk = 0
+    collected: list[Finding] = []
     for t in _resolve_or_exit(args.target):
         print(f"\n{t.name}  ({t.source})")
         if not t.resolved:
@@ -116,8 +117,7 @@ def cmd_scan(args) -> int:
             continue
 
         artifact = t.artifact
-        artifact, behaviour = load(artifact.root)
-        findings = analyze_declared(artifact, behaviour, sample_id=t.name)
+        artifact, behaviour, findings = scan_artifact(artifact.root, artifact_id=t.name)
 
         if args.ledger_check:
             ledger = Ledger(args.ledger)
@@ -133,7 +133,13 @@ def cmd_scan(args) -> int:
                 )
         if behaviour.unresolved:
             print(f"  unresolved   {len(behaviour.unresolved)} call(s) not followed")
+        collected += findings
         total_risk += _print_findings(findings)
+
+    if args.sarif:
+        args.sarif.parent.mkdir(parents=True, exist_ok=True)
+        args.sarif.write_text(sarif_dumps(collected))
+        print(f"\nwrote {args.sarif}")
 
     print(f"\n{total_risk} risk finding(s).")
     # Non-zero exit on risk so this drops into CI without a wrapper.
@@ -168,6 +174,11 @@ def cmd_fleet(args) -> int:
 
     findings = analyze_fleet(fleet)
     risk_count = _print_findings(findings)
+
+    if args.sarif:
+        args.sarif.parent.mkdir(parents=True, exist_ok=True)
+        args.sarif.write_text(sarif_dumps(findings))
+        print(f"\nwrote {args.sarif}")
 
     print(f"\n{risk_count} cross-artifact risk finding(s).")
     return 1 if (risk_count and args.fail_on_risk) else 0
@@ -224,12 +235,14 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("scan", help="flag contradictions")
     p.add_argument("target")
     p.add_argument("--ledger-check", action="store_true", help="also diff against the ledger")
+    p.add_argument("--sarif", type=Path, help="also write SARIF 2.1.0 to this path")
     p.set_defaults(func=cmd_scan)
 
     p = sub.add_parser(
         "fleet", help="cross-artifact analysis over an installed set or fleet manifest"
     )
     p.add_argument("target")
+    p.add_argument("--sarif", type=Path, help="also write SARIF 2.1.0 to this path")
     p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("approve", help="record a fingerprint for later diffing")

@@ -17,6 +17,8 @@ from pathlib import Path
 # import order elsewhere.
 import divergence.adapters.divergence  # noqa: F401
 import divergence.adapters.external  # noqa: F401
+import divergence.adapters.mcp_shield  # noqa: F401
+import divergence.adapters.semgrep_scanner  # noqa: F401
 import divergence.adapters.reference  # noqa: F401
 from divergence.adapters import available_adapters, get_adapter
 from divergence.adapters.base import run_adapter
@@ -134,6 +136,11 @@ def cmd_bench(args) -> int:
                 print()
                 print(extra)
 
+    if args.markdown:
+        args.markdown.parent.mkdir(parents=True, exist_ok=True)
+        args.markdown.write_text(report.markdown_table(scores) + "\n")
+        print(f"\nwrote {args.markdown}")
+
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(report.to_json(samples, scores))
@@ -169,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     p_bench = sub.add_parser("bench", help="run scanners and print the comparison table")
     p_bench.add_argument("--scanner", action="append", help="limit to one scanner (repeatable)")
     p_bench.add_argument("--json", type=Path, help="also write machine-readable results here")
+    p_bench.add_argument("--markdown", type=Path, help="also write the table as Markdown")
     p_bench.add_argument("--detail", action="store_true", help="per-class and per-trap-family tables")
     p_bench.add_argument("--ignore-violations", action="store_true", help="bench a dirty corpus")
     p_bench.set_defaults(func=cmd_bench)

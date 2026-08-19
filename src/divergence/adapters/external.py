@@ -90,9 +90,15 @@ class ExternalAdapter:
     scan_cmd: Callable[[Sample], list[str]]
     parse: Callable[[str, Sample], list[Finding]]
     install_hint: str = ""
+    probe_override: Callable[[], str] | None = None
     kind: str = field(default="external", init=False)
 
     def probe(self) -> str:
+        # Some scanners have preconditions a version check cannot express — a required
+        # account token, a hosted API. Those get to answer for themselves.
+        if self.probe_override is not None:
+            return self.probe_override()
+
         if not external_enabled():
             raise ScannerUnavailable(
                 f"not run — third-party execution is opt-in. Set {OPT_IN_ENV}=1 to enable."
@@ -207,35 +213,53 @@ register(
     )
 )
 
-register(
-    ExternalAdapter(
-        name="mcp-shield",
-        homepage="https://github.com/riseandignite/mcp-shield",
-        probe_cmd=["npx", "--yes", "mcp-shield", "--version"],
-        scan_cmd=lambda s: ["npx", "--yes", "mcp-shield", "--path", str(s.artifact_path), "--json"],
-        parse=parse_flat_json_issues,
-        install_hint="Requires Node. Runs via `npx mcp-shield`.",
-    )
-)
+# mcp-shield has a dedicated adapter in `adapters/mcp_shield.py`: it analyses a live
+# server rather than a directory, so it needs the manifest shim and a one-pass run.
+
+# semgrep has a dedicated adapter in `adapters/semgrep_scanner.py`: rule loading
+# dominates its cost, so it runs once over the whole corpus rather than per sample.
+
+# `mcp-scan`, the most-cited scanner in this space, is now published as `snyk-agent-scan`
+# and is a Snyk product. Three things about it are worth recording, because together they
+# decide whether it can be in a reproducible benchmark at all:
+#
+#   1. It analyses a *live* server from a client config, so it needs the manifest shim.
+#   2. It transmits tool descriptions to a hosted Snyk analysis API — there is no offline
+#      mode; `--analysis-url` only redirects the verification server.
+#   3. **It requires a `SNYK_TOKEN` from a Snyk account.** Without one it exits before
+#      scanning anything.
+#
+# (3) is the binding constraint. A benchmark that cannot be reproduced without a vendor
+# account is not reproducible, so this adapter reports itself unavailable rather than
+# silently scoring zero. If a token is present in the environment it will run.
+# See docs/adr/0006.
+
+
+def _snyk_probe() -> str:
+    if not external_enabled():
+        raise ScannerUnavailable(
+            f"not run — third-party execution is opt-in. Set {OPT_IN_ENV}=1 to enable."
+        )
+    if shutil.which("uvx") is None:
+        raise ScannerUnavailable("uvx not on PATH")
+    if not os.environ.get("SNYK_TOKEN"):
+        raise ScannerUnavailable(
+            "requires a SNYK_TOKEN from a Snyk account, and transmits tool descriptions "
+            "to a hosted API — cannot be part of an offline reproducible benchmark"
+        )
+    return "snyk-agent-scan (token present)"
+
 
 register(
     ExternalAdapter(
-        name="semgrep",
-        homepage="https://semgrep.dev",
-        probe_cmd=["semgrep", "--version"],
-        scan_cmd=lambda s: ["semgrep", "scan", "--sarif", "--quiet", "--config", "auto", str(s.artifact_path)],
-        parse=parse_sarif,
-        install_hint="Install with `uv tool install semgrep`.",
-    )
-)
-
-register(
-    ExternalAdapter(
-        name="mcp-scanner",
-        homepage="https://github.com/cisco-ai-defense/mcp-scanner",
-        probe_cmd=["uvx", "mcp-scanner", "--version"],
-        scan_cmd=lambda s: ["uvx", "mcp-scanner", "--path", str(s.artifact_path), "--format", "json"],
+        name="snyk-agent-scan",
+        homepage="https://github.com/snyk/agent-scan",
+        probe_cmd=["uvx", "snyk-agent-scan@latest", "--help"],
+        scan_cmd=lambda s: ["uvx", "snyk-agent-scan@latest", "scan", "--json"],
         parse=parse_flat_json_issues,
-        install_hint="Requires uv. Cisco AI Defense scanner.",
+        install_hint=(
+            "Requires a SNYK_TOKEN and transmits tool descriptions to a hosted Snyk API."
+        ),
+        probe_override=_snyk_probe,
     )
 )

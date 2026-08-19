@@ -98,16 +98,23 @@ def run_adapter(adapter: Adapter, samples: list[Sample]) -> ScanRun:
 
     for sample in samples:
         sample_started = time.perf_counter()
+        not_applicable = False
         try:
             findings = tuple(adapter.scan(sample))
             error = None
         except Exception as exc:  # noqa: BLE001 — a baseline crashing is data, not a bug
-            findings, error = (), f"{type(exc).__name__}: {exc}"
+            findings = ()
+            # A scanner declining an artifact kind it cannot analyse is scope, not failure.
+            if type(exc).__name__ == "NotApplicable":
+                error, not_applicable = None, True
+            else:
+                error = f"{type(exc).__name__}: {exc}"
 
         run.results[sample.id] = SampleResult(
             sample_id=sample.id,
             findings=findings,
             error=error,
+            not_applicable=not_applicable,
             duration_s=time.perf_counter() - sample_started,
         )
 

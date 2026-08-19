@@ -15,35 +15,10 @@ from pathlib import Path
 
 from divergence.adapters.base import register
 from divergence.core.fleet import analyze_fleet, build_fleet
-from divergence.core.pipeline import load
-from divergence.core.declared import analyze_declared
-from divergence.core.engine import analyze_divergence
+from divergence.core.pipeline import dedupe, load, scan as scan_artifact
 from divergence.core.ledger import Ledger
 from divergence.bench.models import Sample
 from divergence.core.vocabulary import Finding
-
-
-def _dedupe(findings: list[Finding]) -> list[Finding]:
-    """Collapse repeats of the same class on the same artifact, keeping the strongest.
-
-    Several analyzers legitimately reach the same conclusion by different routes — the
-    single-artifact trigger check asks whether a skill's breadth is honest, and the fleet
-    one asks whether it is honest relative to what else is installed. Both are worth
-    running; saying it twice is noise.
-    """
-    best: dict[tuple, Finding] = {}
-    passthrough: list[Finding] = []
-
-    for finding in findings:
-        if finding.attack_class is None:
-            passthrough.append(finding)
-            continue
-        key = (finding.sample_id, finding.attack_class, finding.channel)
-        current = best.get(key)
-        if current is None or finding.confidence > current.confidence:
-            best[key] = finding
-
-    return list(best.values()) + passthrough
 
 
 class DivergenceScanner:
@@ -77,14 +52,12 @@ class DivergenceScanner:
             self._fleet_findings.setdefault(finding.sample_id, []).append(finding)
 
     def scan(self, sample: Sample) -> list[Finding]:
-        artifact, behaviour = load(sample.artifact_path)
+        artifact, _, findings = scan_artifact(sample.artifact_path, artifact_id=sample.id)
 
-        findings = analyze_declared(artifact, behaviour, sample_id=sample.id)
-        findings += analyze_divergence(artifact, behaviour, sample_id=sample.id)
         findings += self._ledger_findings(sample, artifact)
         findings += self._fleet_findings.get(sample.id, [])
 
-        return _dedupe(findings)
+        return dedupe(findings)
 
     def _ledger_findings(self, sample: Sample, artifact) -> list[Finding]:
         """Drive A3 over an artifact that ships more than one version.

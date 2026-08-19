@@ -4,7 +4,7 @@
 # baseline comparison table. Everything here stays offline unless you explicitly
 # opt in to third-party scanners with DIVERGENCE_ALLOW_EXTERNAL=1.
 
-.PHONY: help install validate describe test bench bench-detail capabilities scan inspect fleet clean
+.PHONY: help install validate describe test bench bench-detail bench-external capabilities scan inspect fleet clean
 
 BENCH := uv run divergence-bench
 
@@ -16,6 +16,7 @@ help:
 	@echo "bench         the baseline comparison table  <- P0 exit gate"
 	@echo "bench-detail  ... plus per-attack-class and per-trap-family breakdowns"
 	@echo "capabilities  B_s extraction vs verified ground truth  <- P2 exit gate"
+	@echo "bench-external  ... including third-party scanners (downloads + executes them)"
 	@echo ""
 	@echo "scan TARGET=<path>     run the scanner over a directory or MCP client config"
 	@echo "inspect TARGET=<path>  print an artifact's declared surface, run nothing"
@@ -41,6 +42,13 @@ bench:
 
 capabilities:
 	$(BENCH) capabilities
+
+# Downloads and executes third-party scanners. Opt-in by construction.
+bench-external:
+	DIVERGENCE_ALLOW_EXTERNAL=1 $(BENCH) bench \
+	  --scanner divergence --scanner divergence+fleet --scanner keyword --scanner null \
+	  --scanner mcp-shield --scanner semgrep \
+	  --markdown out/table.md --json out/bench-external.json
 
 bench-detail:
 	$(BENCH) bench --detail --json out/bench.json

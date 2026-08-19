@@ -1,0 +1,78 @@
+name: "Divergence"
+description: >
+  Measure the gap between what your MCP servers and agent skills claim to do and what
+  they actually do. Uploads SARIF to GitHub code scanning.
+author: "Divergence"
+
+branding:
+  icon: "git-branch"
+  color: "green"
+
+inputs:
+  target:
+    description: >
+      Directory, skill bundle, or MCP client config to scan. Point at a client config
+      to scan every server in it.
+    required: false
+    default: "."
+  fail-on-risk:
+    description: >
+      Fail the job when risk findings are present. Posture findings never fail a build —
+      they describe capability, not divergence.
+    required: false
+    default: "true"
+  sarif-file:
+    description: "Where to write the SARIF report."
+    required: false
+    default: "divergence.sarif"
+  fleet:
+    description: >
+      Run cross-artifact analysis instead of a single-artifact scan. Requires the target
+      to be a client config or fleet manifest.
+    required: false
+    default: "false"
+
+outputs:
+  sarif-file:
+    description: "Path to the SARIF report."
+    value: ${{ steps.scan.outputs.sarif-file }}
+  risk-count:
+    description: "Number of risk findings."
+    value: ${{ steps.scan.outputs.risk-count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "latest"
+
+    - name: Scan
+      id: scan
+      shell: bash
+      run: |
+        set -uo pipefail
+
+        VERB="scan"
+        if [ "${{ inputs.fleet }}" = "true" ]; then
+          VERB="fleet"
+        fi
+
+        # Posture findings must never fail a build. Only --fail-on-risk does that, and
+        # only risk findings feed it.
+        ARGS=("$VERB" "${{ inputs.target }}" "--sarif" "${{ inputs.sarif-file }}")
+        if [ "${{ inputs.fail-on-risk }}" = "true" ]; then
+          ARGS+=("--fail-on-risk")
+        fi
+
+        set +e
+        uvx --from divergence divergence "${ARGS[@]}" | tee divergence-output.txt
+        STATUS=${PIPESTATUS[0]}
+        set -e
+
+        COUNT=$(grep -oE '^[0-9]+ (cross-artifact )?risk finding' divergence-output.txt | grep -oE '^[0-9]+' | tail -1 || echo 0)
+        echo "sarif-file=${{ inputs.sarif-file }}" >> "$GITHUB_OUTPUT"
+        echo "risk-count=${COUNT:-0}" >> "$GITHUB_OUTPUT"
+
+        exit "$STATUS"
