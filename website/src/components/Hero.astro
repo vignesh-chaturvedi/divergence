@@ -1,0 +1,68 @@
+---
+const githubUrl = "https://github.com/vignesh-chaturvedi/divergence";
+---
+
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="hero__grid" aria-hidden="true"></div>
+
+  <div class="container hero__content">
+    <a class="hero__notice" href={`${githubUrl}/blob/main/docs/WRITEUP.md`}>
+      <span>Research note</span>
+      Precision before coverage
+      <span aria-hidden="true">↗</span>
+    </a>
+    <p class="eyebrow">Security analysis for MCP servers + agent skills</p>
+    <h1 id="hero-title">
+      Find the gap between what it says and what it
+      <span class="hero__mono">does.</span>
+    </h1>
+    <p class="hero__lede">
+      Divergence compares claims, schemas, source code, installed-set context, and—on
+      supported Linux hosts—sandboxed runtime behaviour. Capabilities stay posture.
+      Contradictions become risk.
+    </p>
+    <div class="hero__actions">
+      <a class="button button--primary" href="#quickstart">
+        Run from source <span aria-hidden="true">↓</span>
+      </a>
+      <a class="text-link" href={githubUrl}>View on GitHub <span aria-hidden="true">↗</span></a>
+    </div>
+    <p class="hero__qualification">
+      v1.1.0 is a release candidate. The package, signed tag, and GitHub release are not
+      published yet.
+    </p>
+  </div>
+
+  <article class="evidence-card evidence-card--claim" aria-hidden="true">
+    <span class="evidence-card__eyebrow">C — claim</span>
+    <strong>“Formats local files.”</strong>
+    <span class="evidence-card__meta">description · line 03</span>
+  </article>
+
+  <article class="evidence-card evidence-card--behaviour" aria-hidden="true">
+    <span class="evidence-card__eyebrow">B — behaviour</span>
+    <strong>Outbound POST</strong>
+    <span class="evidence-card__meta">scripts/collect.py:7</span>
+    <span class="evidence-card__risk">undeclared</span>
+  </article>
+
+  <article class="evidence-card evidence-card--schema" aria-hidden="true">
+    <span class="evidence-card__eyebrow">S — schema</span>
+    <strong>readOnlyHint: true</strong>
+    <span class="evidence-card__meta">handler reaches fs_write</span>
+  </article>
+
+  <article class="scan-card" aria-hidden="true">
+    <div class="scan-card__header">
+      <span>divergence scan</span>
+      <span class="scan-card__status">risk found</span>
+    </div>
+    <div class="scan-card__trace">
+      <span>claim</span><span class="trace-line trace-line--claim"></span>
+      <span>behaviour</span><span class="trace-line trace-line--behaviour"></span>
+      <span class="trace-gap">gap</span>
+    </div>
+    <p><strong>1</strong> evidence-bound contradiction</p>
+  </article>
+
+</section>

@@ -1,0 +1,131 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Benchmark from "../components/Benchmark.astro";
+import Capabilities from "../components/Capabilities.astro";
+import Faq from "../components/Faq.astro";
+import Hero from "../components/Hero.astro";
+import HowItWorks from "../components/HowItWorks.astro";
+import ProofStrip from "../components/ProofStrip.astro";
+import Quickstart from "../components/Quickstart.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import Thesis from "../components/Thesis.astro";
+
+const title = "Divergence — Precision-first security analysis for MCP and agent skills";
+const description =
+  "Find the evidence-backed gap between what an MCP server or agent skill claims to do and what its implementation can do.";
+---
+
+<BaseLayout {title} {description}>
+  <SiteHeader />
+  <main id="main-content">
+    <Hero />
+    <ProofStrip />
+    <Thesis />
+    <HowItWorks />
+    <Capabilities />
+    <Benchmark />
+    <Quickstart />
+    <Faq />
+  </main>
+  <SiteFooter />
+
+  <script>
+    const root = document.documentElement;
+    const themeToggle = document.querySelector<HTMLButtonElement>("[data-theme-toggle]");
+    const themeLabel = document.querySelector<HTMLElement>("[data-theme-label]");
+    const brandMarks = document.querySelectorAll<HTMLImageElement>("[data-brand-mark]");
+
+    const systemPrefersDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const activeTheme = () => root.dataset.theme ?? (systemPrefersDark() ? "dark" : "light");
+
+    const syncThemeControls = () => {
+      const theme = activeTheme();
+      const nextTheme = theme === "dark" ? "light" : "dark";
+      if (themeToggle) {
+        themeToggle.setAttribute("aria-label", `Switch to ${nextTheme} theme`);
+      }
+      if (themeLabel) {
+        themeLabel.textContent = theme === "dark" ? "Dark" : "Light";
+      }
+      brandMarks.forEach((mark) => {
+        mark.src = theme === "dark"
+          ? "/brand/divergence-mark-dark.svg"
+          : "/brand/divergence-mark.svg";
+      });
+    };
+
+    syncThemeControls();
+
+    themeToggle?.addEventListener("click", () => {
+      const nextTheme = activeTheme() === "dark" ? "light" : "dark";
+      root.dataset.theme = nextTheme;
+      try {
+        localStorage.setItem("divergence-theme", nextTheme);
+      } catch {
+        // Persisting the preference is optional.
+      }
+      syncThemeControls();
+    });
+
+    const menuToggle = document.querySelector<HTMLButtonElement>("[data-menu-toggle]");
+    const mobileNav = document.querySelector<HTMLElement>("[data-mobile-nav]");
+
+    const closeMenu = () => {
+      if (!menuToggle || !mobileNav) return;
+      menuToggle.setAttribute("aria-expanded", "false");
+      menuToggle.querySelector(".sr-only")!.textContent = "Open navigation";
+      mobileNav.hidden = true;
+    };
+
+    menuToggle?.addEventListener("click", () => {
+      if (!mobileNav) return;
+      const willOpen = menuToggle.getAttribute("aria-expanded") !== "true";
+      menuToggle.setAttribute("aria-expanded", String(willOpen));
+      menuToggle.querySelector(".sr-only")!.textContent = willOpen
+        ? "Close navigation"
+        : "Open navigation";
+      mobileNav.hidden = !willOpen;
+    });
+
+    mobileNav?.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeMenu));
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && mobileNav && !mobileNav.hidden) {
+        closeMenu();
+        menuToggle?.focus();
+      }
+    });
+
+    window.matchMedia("(min-width: 901px)").addEventListener("change", (event) => {
+      if (event.matches) closeMenu();
+    });
+
+    const copyStatus = document.querySelector<HTMLElement>("[data-copy-status]");
+
+    document.querySelectorAll<HTMLButtonElement>("[data-copy-target]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const targetId = button.dataset.copyTarget;
+        const target = targetId ? document.getElementById(targetId) : null;
+        const label = button.querySelector<HTMLElement>(".copy-button__label");
+        if (!target || !label) return;
+
+        try {
+          await navigator.clipboard.writeText(target.textContent ?? "");
+          label.textContent = "Copied";
+          button.dataset.copied = "true";
+          if (copyStatus) copyStatus.textContent = "Command copied to clipboard.";
+          window.setTimeout(() => {
+            label.textContent = "Copy";
+            delete button.dataset.copied;
+          }, 1500);
+        } catch {
+          label.textContent = "Select command";
+          if (copyStatus) {
+            copyStatus.textContent = "Clipboard access failed. Select the command manually.";
+          }
+        }
+      });
+    });
+  </script>
+</BaseLayout>

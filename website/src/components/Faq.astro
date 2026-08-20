@@ -1,0 +1,52 @@
+---
+const faqs = [
+  {
+    question: "Does Divergence execute the artifact?",
+    answer: "No by default. Static scans parse local files without executing them. Runtime observation happens only when you explicitly pass --dynamic and the verified Linux sandbox is available.",
+  },
+  {
+    question: "Does it upload my MCP configuration?",
+    answer: "The deterministic static path and sandbox execution stay local. Raw source, artifact files, MCP configs, and credentials are never sent through the built-in A9 contract; it receives normalized evidence only. Remote acquisition, external scanners, and adjudication remain separate explicit opt-ins.",
+  },
+  {
+    question: "Which platforms are supported?",
+    answer: "Static analysis is cross-platform. The fail-closed sandbox uses Linux kernel facilities; macOS and Windows remain visibly static-only.",
+  },
+  {
+    question: "Is Divergence a runtime firewall?",
+    answer: "No. It analyzes artifacts before and between runs and emits findings for existing tools to enforce. Inline request interception is intentionally out of scope.",
+  },
+  {
+    question: "Can a clean dynamic result prove safety?",
+    answer: "No. Dynamic evidence only covers paths that actually execute. Divergence reports observed coverage and keeps incomplete analysis visible rather than treating it as clean.",
+  },
+  {
+    question: "Is v1.1.0 published?",
+    answer: "Not yet. Local release engineering is complete, but independent review, Linux x86-64 reproduction, a non-author real-world run, and protected publication remain.",
+  },
+];
+---
+
+<section class="section faq" id="faq" aria-labelledby="faq-heading">
+  <div class="container faq__layout">
+    <div class="section-intro">
+      <p class="eyebrow">Before you run it</p>
+      <h2 id="faq-heading">Questions worth answering plainly.</h2>
+      <p class="section-intro__lede">
+        Security tooling earns trust by explaining its boundary, not hiding it in a footnote.
+      </p>
+    </div>
+
+    <div class="faq-list">
+      {faqs.map((faq, index) => (
+        <details class="faq-item" open={index === 0}>
+          <summary>
+            <span>{faq.question}</span>
+            <span class="faq-item__icon" aria-hidden="true">+</span>
+          </summary>
+          <p>{faq.answer}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>

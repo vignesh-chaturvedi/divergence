@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Divergence mark</title>
+  <desc id="desc">Two offset contours form a D with a coral gap between them.</desc>
+  <path d="M30 13H72L111 52V57" fill="none" stroke="#63DDD2" stroke-width="16" stroke-linejoin="miter" />
+  <path d="M111 71V76L72 115H30" fill="none" stroke="#63DDD2" stroke-width="16" stroke-linejoin="miter" />
+  <path d="M13 36H59L87 64L59 92H13V36Z" fill="none" stroke="#F1F7F5" stroke-width="16" stroke-linejoin="miter" />
+  <rect x="103" y="56" width="16" height="16" rx="1" fill="#FF786E" />
+</svg>

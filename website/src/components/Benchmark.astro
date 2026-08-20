@@ -1,0 +1,79 @@
+---
+const githubUrl = "https://github.com/vignesh-chaturvedi/divergence";
+---
+
+<section class="section benchmark" id="benchmark" aria-labelledby="benchmark-heading">
+  <div class="container">
+    <div class="section-intro section-intro--row">
+      <div>
+        <p class="eyebrow">The benchmark</p>
+        <h2 id="benchmark-heading">Lead with the false-positive traps.</h2>
+      </div>
+      <p>
+        The candidate corpus contains 110 synthetic artifacts: 50 risk-positive and 60
+        benign or control samples. Every result carries its denominator and provenance.
+      </p>
+    </div>
+
+    <div class="benchmark__layout">
+      <div class="benchmark-table-wrap" tabindex="0" aria-label="Benchmark comparison; scroll horizontally on small screens">
+        <table class="benchmark-table">
+          <thead>
+            <tr>
+              <th scope="col">Scanner</th>
+              <th scope="col">Trap false positives</th>
+              <th scope="col">Precision</th>
+              <th scope="col">Recall</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="benchmark-table__featured">
+              <th scope="row">
+                <span class="benchmark-table__mark" aria-hidden="true"></span>
+                Divergence static
+              </th>
+              <td><strong>0/35</strong></td>
+              <td>100%</td>
+              <td>27/50</td>
+            </tr>
+            <tr class="benchmark-table__featured">
+              <th scope="row">
+                <span class="benchmark-table__mark" aria-hidden="true"></span>
+                Divergence + dynamic
+              </th>
+              <td><strong>0/35</strong></td>
+              <td>100%</td>
+              <td><strong>49/50</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Semgrep 1.173.0</th>
+              <td>5/35</td>
+              <td>81.1%</td>
+              <td>30/50</td>
+            </tr>
+            <tr>
+              <th scope="row">Keyword baseline</th>
+              <td>20/35</td>
+              <td>52.9%</td>
+              <td>27/50</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="benchmark-note" aria-label="Benchmark limitations">
+        <p class="eyebrow">Read this with the table</p>
+        <h3>Candidate evidence, not a universal guarantee.</h3>
+        <ul>
+          <li>The scanner and corpus share an author.</li>
+          <li>Independent label and rationale review remains open.</li>
+          <li>Dynamic evidence is path-dependent and Linux-only.</li>
+          <li>83/110 runtime entrypoints were confirmed.</li>
+        </ul>
+        <a class="text-link" href={`${githubUrl}/tree/main/benchmarks/v1.1`}>
+          Inspect the JSON evidence <span aria-hidden="true">↗</span>
+        </a>
+      </aside>
+    </div>
+  </div>
+</section>

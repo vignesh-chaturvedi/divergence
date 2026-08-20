@@ -1,0 +1,59 @@
+---
+const githubUrl = "https://github.com/vignesh-chaturvedi/divergence";
+---
+
+<div class="announcement" role="status">
+  <div class="container announcement__inner">
+    <span class="announcement__label">Release candidate</span>
+    <span>v1.1 is ready for external verification; PyPI publication is still pending.</span>
+    <a href={`${githubUrl}/blob/main/docs/RELEASING.md`}>Release status <span aria-hidden="true">↗</span></a>
+  </div>
+</div>
+
+<header class="site-header" data-site-header>
+  <div class="container site-header__inner">
+    <a class="brand" href="#top" aria-label="Divergence home">
+      <img src="/brand/divergence-mark.svg" alt="" width="36" height="36" data-brand-mark />
+      <span class="brand__word">divergence</span>
+      <span class="brand__badge">RC</span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <a href="#thesis">Why Divergence</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#benchmark">Benchmark</a>
+      <a href="#quickstart">CLI</a>
+    </nav>
+
+    <div class="site-header__actions">
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark theme">
+        <span class="theme-toggle__dot" aria-hidden="true"></span>
+        <span data-theme-label>Theme</span>
+      </button>
+      <a class="button button--small button--ink desktop-github" href={githubUrl}>
+        GitHub <span aria-hidden="true">↗</span>
+      </a>
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-controls="mobile-navigation"
+        aria-expanded="false"
+        data-menu-toggle
+      >
+        <span class="sr-only">Open navigation</span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+
+  <nav id="mobile-navigation" class="mobile-nav" aria-label="Mobile navigation" hidden data-mobile-nav>
+    <a href="#thesis">Why Divergence</a>
+    <a href="#how-it-works">How it works</a>
+    <a href="#capabilities">Capabilities</a>
+    <a href="#benchmark">Benchmark</a>
+    <a href="#quickstart">CLI</a>
+    <a href={githubUrl}>View on GitHub <span aria-hidden="true">↗</span></a>
+  </nav>
+</header>
