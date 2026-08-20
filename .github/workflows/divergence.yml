@@ -75,7 +75,7 @@ jobs:
 
       - name: Fleet scan
         run: |
-          uv run divergence fleet corpus/fleets/installed-config/fleet.yaml \
+          uv run divergence --allow-partial fleet corpus/fleets/installed-config/fleet.yaml \
             --sarif divergence.sarif
 
       # Validate before uploading. Code scanning rejects the whole file on one bad URI,

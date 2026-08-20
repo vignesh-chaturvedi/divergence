@@ -194,6 +194,13 @@ def test_ci_actions_are_commit_pinned_and_release_candidate_cannot_publish():
     ):
         assert required in ci
 
+    fleet_command = next(
+        line.strip()
+        for line in ci.splitlines()
+        if "uv run divergence" in line and " fleet " in line
+    )
+    assert fleet_command.startswith("uv run divergence --allow-partial fleet ")
+
     candidate = (ROOT / ".github" / "workflows" / "release-candidate.yml").read_text()
     assert "id-token: write" not in candidate
     assert "pypa/gh-action-pypi-publish" not in candidate
