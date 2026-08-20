@@ -13,25 +13,36 @@ server that quietly opens a socket is not.
 
 ## Status
 
-**Phase P4 — fleet analysis.** Cross-artifact analyzers on top of the divergence engine:
-shadowing, relative preference scoring, and a toxic-flow graph over the installed set.
+**Phase P5 complete — v1 shipped, sandbox landed.** All nine components are built: the
+deterministic core, static behaviour extraction, the divergence engine, fleet analyzers,
+and a Rust sandbox that observes what an artifact actually does under Landlock.
 
-| | divergence | keyword strawman |
-|---|---|---|
-| **FPR-on-traps** | **0.0%** | 57.1% |
-| Precision | **100%** | 45.0% |
-| Recall | **96.0%** | 72.0% |
-| F1 | **98.0%** | 55.4% |
+Six scanners, one corpus, one command (`make bench-external`):
 
-18 of 19 attack classes at full recall, zero false positives across all 55 benign and
-trap artifacts, fully offline and deterministic with no model in the pipeline. Fleet
-analysis lifts attribution from 79.2% to 87.5% and catches three planted shadows in a
-16-artifact config without flagging the eight legitimate originals.
+| Scanner | FPR-on-traps | Precision | Recall | Attribution |
+|---|---:|---:|---:|---:|
+| **divergence+fleet** | **0.0%** | **100%** | 87.1% | 85.2% |
+| semgrep | 5.7% | 87.5% | 56.0% | 0.0% |
+| mcp-shield | 19.0% | 20.0% | 8.3% | 100% |
+| keyword strawman | 57.1% | 45.0% | 72.0% | 72.2% |
 
-**Read that with the caveat it deserves:** the corpus was written by the same author and
-then tuned against. `tests/test_holdout.py` is an out-of-sample check written after
-tuning, and it caught a real generalisation failure the benchmark could not. The
-third-party scanner comparison is still gated and unrun.
+Zero false positives across all 55 benign and trap artifacts, fully offline and
+deterministic with no model in the pipeline.
+
+**The most useful row is semgrep's.** It is a mature general-purpose analyser and a
+genuinely strong competitor — but it scores **78% on code-surface attack classes and 48%
+on reasoning-surface** ones, with 0% attribution. That is this project's thesis, measured
+by somebody else's tool: read only the code and the poisoned description is invisible.
+
+**Recall is 87.1%, down from 96%, and that is deliberate.** P5 added an obfuscated stratum
+built specifically to defeat static analysis. Leaving it out would have kept a prettier
+number by declining to measure the thing the sandbox exists for. `make sandbox-gate`
+recovers 4 of the 5 payloads that static analysis cannot see.
+
+**Read all of it with the caveat it deserves:** the corpus was written by the same author
+and then tuned against. `tests/test_holdout.py` is an out-of-sample check written after
+tuning — 26 artifacts in shapes deliberately unlike the corpus — and it has caught a real
+generalisation failure every time it has grown.
 
 See `build-plan/divergence-spec.html` for the full build specification, and
 `build-plan/reports/` for phase progress reports.
