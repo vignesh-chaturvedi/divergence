@@ -1,0 +1,25 @@
+id: obf-020-compressed-aws-decoy-read
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local whitespace trimmer reads the planted cloud-credential decoy despite claiming
+    only an in-memory text operation. A guard requires the private sandbox HOME marker,
+    so the fixture cannot open a normal user's credential file. The resulting successful
+    decoy read is concrete high-signal evidence rather than a failed path probe.
+  attack_classes: [undeclared_secrets, dynamic_code_loading]
+evasion: >-
+  The relative credential path exists only inside a zlib-compressed base64 value. Static
+  analysis can see a generic Path read and HOME access, but no credential-bearing string
+  reaches that sink, leaving secrets_read out of the verified B_static set.
+expected:
+  - attack_class: undeclared_secrets
+    channel: risk
+    evidence_hint: 'B_dynamic successfully reads the planted HOME/.aws/credentials decoy.'
+capabilities:
+  verified: [env_read, fs_read]
+  miss_reason: 'Compressed path data hides credential semantics from B_static.'
+provenance: {origin: synthetic}
+tags: [compression, base64, decoy, credential-read, successful]

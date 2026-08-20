@@ -1,30 +1,32 @@
-//! The JSON contract with the Python core.
-//!
-//! Stable and small on purpose: the crate is consumed over this interface, so the Python
-//! side never links against Rust and an absent sandbox is a missing file rather than a
-//! build failure.
+//! Stable JSON contract consumed by `divergence.core.sandbox`.
 
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::capability::Capability;
 
+const MAX_OBSERVATIONS: usize = 10_000;
+
 #[derive(Debug, Serialize)]
 pub struct Observation {
     pub capability: &'static str,
     pub syscall: String,
-    /// The path or address the syscall touched, when there is one.
     pub target: String,
-    /// True when this touched a decoy credential planted by the overlay.
     pub decoy: bool,
+    /// Whether the kernel actually completed the operation. Attempts blocked by the
+    /// sandbox remain useful evidence, but are never presented as successful access.
+    pub succeeded: bool,
+    pub result: i64,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Coverage {
-    /// Syscalls actually observed. Dynamic analysis only sees paths that execute, so this
-    /// number travels with every finding rather than sitting in a footnote.
     pub syscalls_observed: u64,
+    pub observations_dropped: u64,
     pub entrypoints_invoked: usize,
+    pub entrypoints_completed: usize,
+    pub entrypoints_failed: usize,
+    pub confinement_enforced: bool,
     pub exited_cleanly: bool,
     pub exit_code: i32,
     pub timed_out: bool,
@@ -33,24 +35,28 @@ pub struct Coverage {
 #[derive(Debug, Serialize)]
 pub struct Report {
     pub schema: &'static str,
+    pub runner_version: &'static str,
     pub capabilities: BTreeSet<&'static str>,
     pub observations: Vec<Observation>,
     pub coverage: Coverage,
     pub evidence: BTreeMap<&'static str, String>,
-    /// Anything the runner could not do — a missing kernel feature, a dropped privilege.
-    /// Reported rather than silently degrading the result.
     pub limitations: Vec<String>,
 }
 
 impl Report {
     pub fn new() -> Self {
-        Report {
+        Self {
             schema: "divergence.sandbox/1",
+            runner_version: env!("CARGO_PKG_VERSION"),
             capabilities: BTreeSet::new(),
             observations: Vec::new(),
             coverage: Coverage {
                 syscalls_observed: 0,
+                observations_dropped: 0,
                 entrypoints_invoked: 0,
+                entrypoints_completed: 0,
+                entrypoints_failed: 0,
+                confinement_enforced: false,
                 exited_cleanly: false,
                 exit_code: -1,
                 timed_out: false,
@@ -60,16 +66,56 @@ impl Report {
         }
     }
 
-    pub fn observe(&mut self, cap: Capability, syscall: &str, target: &str, decoy: bool) {
+    pub fn observe(
+        &mut self,
+        cap: Capability,
+        syscall: &str,
+        target: &str,
+        decoy: bool,
+        succeeded: bool,
+        result: i64,
+    ) {
         self.capabilities.insert(cap.as_str());
-        self.evidence
-            .entry(cap.as_str())
-            .or_insert_with(|| format!("{}({})", syscall, target));
+        self.evidence.entry(cap.as_str()).or_insert_with(|| {
+            format!(
+                "{}({}) -> {}{}",
+                syscall,
+                target,
+                result,
+                if succeeded { "" } else { " (blocked/failed)" }
+            )
+        });
+        if self.observations.len() >= MAX_OBSERVATIONS {
+            self.coverage.observations_dropped += 1;
+            return;
+        }
         self.observations.push(Observation {
             capability: cap.as_str(),
             syscall: syscall.to_string(),
             target: target.to_string(),
             decoy,
+            succeeded,
+            result,
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn outcome_is_part_of_observation_and_evidence() {
+        let mut report = Report::new();
+        report.observe(
+            Capability::NetOutbound,
+            "connect",
+            "203.0.113.1:443",
+            false,
+            false,
+            -1,
+        );
+        assert!(!report.observations[0].succeeded);
+        assert!(report.evidence["net_outbound"].contains("blocked/failed"));
     }
 }

@@ -1,73 +1,64 @@
-"""Drive an artifact's entrypoints so the sandbox has something to observe.
-
-Dynamic analysis sees only what executes. An MCP server's payload lives inside a tool
-handler, and importing the module never calls it — so a naive "run server.py" observes
-process startup and nothing else, then reports a clean artifact. That is the worst possible
-failure mode: it looks exactly like a real negative.
-
-This driver stubs the MCP SDK so the module imports without it, collects every registered
-tool, and calls each one with synthesised arguments. §05: "Drive it with the benchmark's own
-inputs and report observed coverage alongside every dynamic finding."
-
-Everything here runs *inside* the sandbox, already confined by Landlock and observed by
-ptrace. It is a driver, not a privilege.
-"""
+"""Execute Python artifact entrypoints and report truthful coverage over a private FD."""
 
 from __future__ import annotations
 
 import json
+import os
 import runpy
 import sys
 import types
 from pathlib import Path
 
 _REGISTERED: list = []
+_SCHEMA = "divergence.sandbox.driver/1"
 
 
 def _stub_mcp() -> None:
-    """Install a fake `mcp` package that records tool registrations."""
+    """Install the minimum SDK surface needed to discover common FastMCP handlers."""
 
     class FastMCP:
-        def __init__(self, *a, **k):
-            pass
+        def __init__(self, *args, **kwargs):
+            del args, kwargs
 
-        def tool(self, *a, **k):
-            def decorate(fn):
-                _REGISTERED.append(fn)
-                return fn
-            return decorate
+        def tool(self, fn=None, *args, **kwargs):
+            del args, kwargs
 
-        # Servers call these at import or in __main__; both must be inert here.
-        def run(self, *a, **k):
+            def decorate(function):
+                _REGISTERED.append(function)
+                return function
+
+            return decorate(fn) if callable(fn) else decorate
+
+        def run(self, *args, **kwargs):
+            del args, kwargs
             return None
 
-        def resource(self, *a, **k):
+        def resource(self, *args, **kwargs):
+            del args, kwargs
             return self.tool()
 
-        def prompt(self, *a, **k):
+        def prompt(self, *args, **kwargs):
+            del args, kwargs
             return self.tool()
+
+    class Context:
+        pass
 
     mcp_pkg = types.ModuleType("mcp")
     server = types.ModuleType("mcp.server")
     fastmcp = types.ModuleType("mcp.server.fastmcp")
     fastmcp.FastMCP = FastMCP
+    fastmcp.Context = Context
     server.fastmcp = fastmcp
     mcp_pkg.server = server
-
     sys.modules.setdefault("mcp", mcp_pkg)
     sys.modules.setdefault("mcp.server", server)
     sys.modules.setdefault("mcp.server.fastmcp", fastmcp)
 
 
 def _argument_for(name: str, annotation) -> object:
-    """Synthesise a plausible argument.
-
-    Values are deliberately benign and local — a path under the overlay, a loopback URL.
-    The goal is to get the handler to run, not to fuzz it.
-    """
     text = str(annotation).lower()
     lowered = name.lower()
-
     if "int" in text:
         return 1
     if "float" in text:
@@ -78,11 +69,10 @@ def _argument_for(name: str, annotation) -> object:
         return []
     if "dict" in text:
         return {}
-
     if "url" in lowered:
-        return "http://127.0.0.1:9/probe"
+        return "http://127.0.0.1:9/divergence-probe"
     if "path" in lowered or "file" in lowered:
-        return "/tmp/divergence-overlay/probe.txt"
+        return str(Path(os.environ["TMPDIR"]) / "probe.txt")
     if "command" in lowered or "cmd" in lowered:
         return "true"
     if "sql" in lowered or "query" in lowered:
@@ -90,58 +80,149 @@ def _argument_for(name: str, annotation) -> object:
     return "divergence-probe"
 
 
-def _call(fn) -> None:
+def _call(function) -> bool:
     import inspect
 
     try:
-        sig = inspect.signature(fn)
+        signature = inspect.signature(function)
     except (TypeError, ValueError):
-        return
+        return False
 
-    kwargs = {}
-    for pname, param in sig.parameters.items():
-        if param.default is not inspect.Parameter.empty:
+    positional = []
+    keywords = {}
+    for name, parameter in signature.parameters.items():
+        if parameter.default is not inspect.Parameter.empty:
             continue
-        kwargs[pname] = _argument_for(pname, param.annotation)
+        if parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            continue
+        value = _argument_for(name, parameter.annotation)
+        if parameter.kind is inspect.Parameter.POSITIONAL_ONLY:
+            positional.append(value)
+        else:
+            keywords[name] = value
 
     try:
-        result = fn(**kwargs)
+        result = function(*positional, **keywords)
         if inspect.iscoroutine(result):
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(result)
-    except Exception:
-        # A handler that raises has still executed, and whatever syscalls it made before
-        # raising are already recorded. Swallowing is correct: the trace is the result.
+            asyncio.run(result)
+        return True
+    except BaseException:
+        # The syscalls made before failure remain valid observations; coverage records the
+        # failure rather than pretending the handler completed.
+        return False
+
+
+def _module_selection(root: Path, selector: str | None) -> tuple[list[Path], str | None, bool]:
+    modules = [
+        module
+        for module in sorted(root.rglob("*.py"))
+        if "snapshots" not in module.relative_to(root).parts
+        and ".venv" not in module.relative_to(root).parts
+    ]
+    if not selector:
+        return modules, None, True
+
+    module_name, separator, handler_name = selector.partition(":")
+    direct = (root / module_name).resolve()
+    candidates = []
+    try:
+        direct.relative_to(root)
+        if direct.is_file() and direct.suffix == ".py":
+            candidates.append(direct)
+        with_suffix = direct.with_suffix(".py")
+        if with_suffix.is_file():
+            candidates.append(with_suffix)
+    except ValueError:
+        return [], None, False
+    candidates.extend(module for module in modules if module.stem == module_name)
+    unique = sorted(set(candidates))
+    if unique:
+        return unique, handler_name or None, True
+    if separator:
+        return [], handler_name or None, False
+    # A bare selector that is not a module is treated as a registered handler name.
+    return modules, module_name, True
+
+
+def _write_coverage(fd: int, coverage: dict) -> None:
+    payload = json.dumps(coverage, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    offset = 0
+    try:
+        while offset < len(payload):
+            written = os.write(fd, payload[offset:])
+            if written <= 0:
+                break
+            offset += written
+    except OSError:
         pass
+    finally:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
 
 
 def main() -> int:
+    if len(sys.argv) not in (2, 3):
+        return 2
+    try:
+        coverage_fd = int(os.environ.pop("DIVERGENCE_DRIVER_FD"))
+        os.set_inheritable(coverage_fd, False)
+    except (KeyError, TypeError, ValueError, OSError):
+        return 2
+
     root = Path(sys.argv[1]).resolve()
-    sys.path.insert(0, str(root))
-    _stub_mcp()
+    selector = sys.argv[2] if len(sys.argv) == 3 else None
+    coverage = {
+        "schema": _SCHEMA,
+        "entrypoints_invoked": 0,
+        "entrypoints_completed": 0,
+        "entrypoints_failed": 0,
+    }
+    exit_code = 0
+    try:
+        if not root.is_dir():
+            return 2
+        modules, handler_selector, valid = _module_selection(root, selector)
+        if not valid:
+            return 2
 
-    invoked = 0
-    modules = sorted(root.rglob("*.py"))
+        sys.path.insert(0, str(root))
+        _stub_mcp()
+        matched_handler = handler_selector is None
 
-    for module in modules:
-        if "snapshots" in module.relative_to(root).parts:
-            continue
-        before = len(_REGISTERED)
-        try:
-            # Module-level code runs here — which is exactly a skill script's payload.
-            runpy.run_path(str(module), run_name="__divergence__")
-            invoked += 1
-        except Exception:
-            invoked += 1  # it ran far enough to fail; the trace holds what it did
+        for module in modules:
+            before = len(_REGISTERED)
+            coverage["entrypoints_invoked"] += 1
+            original_argv = sys.argv
+            sys.argv = [str(module)]
+            try:
+                runpy.run_path(str(module), run_name="__divergence__")
+                coverage["entrypoints_completed"] += 1
+            except BaseException:
+                coverage["entrypoints_failed"] += 1
+                exit_code = 1
+            finally:
+                sys.argv = original_argv
 
-        for fn in _REGISTERED[before:]:
-            _call(fn)
-            invoked += 1
+            for function in _REGISTERED[before:]:
+                if handler_selector and getattr(function, "__name__", "") != handler_selector:
+                    continue
+                matched_handler = True
+                coverage["entrypoints_invoked"] += 1
+                if _call(function):
+                    coverage["entrypoints_completed"] += 1
+                else:
+                    coverage["entrypoints_failed"] += 1
+                    exit_code = 1
 
-    print(json.dumps({"driver": {"entrypoints_invoked": invoked, "tools": len(_REGISTERED)}}),
-          file=sys.stderr)
-    return 0
+        if not matched_handler or coverage["entrypoints_invoked"] == 0:
+            exit_code = 2
+        return exit_code
+    finally:
+        _write_coverage(coverage_fd, coverage)
 
 
 if __name__ == "__main__":

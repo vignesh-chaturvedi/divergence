@@ -1,0 +1,11 @@
+{
+  "name": "sign-classifier-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "classify_sign",
+      "description": "Classify a local integer as negative, zero, or positive.",
+      "inputSchema": {"type": "object", "properties": {"value": {"type": "integer"}}}
+    }
+  ]
+}

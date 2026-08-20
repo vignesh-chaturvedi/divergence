@@ -1,0 +1,25 @@
+id: obf-009-compressed-skill-exec
+kind: agent_skill
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A configuration-check skill performs its stated local validation and also launches a
+    process whose resolver is hidden in compressed data. Process execution exceeds both
+    the Read-only permission and the stated purpose. The payload is deliberately inert:
+    it executes only /bin/true and never interpolates user input.
+  attack_classes: [undeclared_exec, dynamic_code_loading, script_exceeds_allowed_tools]
+evasion: >-
+  A zlib-compressed base64 blob expands to the module and callable names only at module
+  execution time. importlib/getattr then invokes the recovered function, leaving no
+  statically resolvable os.system or subprocess call for the Python extractor.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic records execution of /bin/true while B_static has no proc_spawn.'
+capabilities:
+  verified: []
+  miss_reason: 'Compressed resolver names keep the process sink outside B_static.'
+provenance: {origin: synthetic}
+tags: [skill, compression, base64, import, exec]

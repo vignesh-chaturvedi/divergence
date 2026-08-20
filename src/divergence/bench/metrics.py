@@ -12,6 +12,7 @@ all arrive as risk, which is exactly how it behaves in the field.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 from divergence.bench.models import (
@@ -26,6 +27,28 @@ from divergence.bench.models import (
 def _ratio(numerator: int, denominator: int) -> float | None:
     """None means undefined, which is not the same as zero and must not print as zero."""
     return numerator / denominator if denominator else None
+
+
+def wilson95(successes: int, total: int) -> tuple[float, float] | None:
+    """Two-sided 95% Wilson score interval for a binomial proportion."""
+    if total <= 0:
+        return None
+    if successes < 0 or successes > total:
+        raise ValueError("successes must be between zero and total")
+
+    z = 1.959963984540054
+    proportion = successes / total
+    z2 = z * z
+    denominator = 1 + z2 / total
+    centre = (proportion + z2 / (2 * total)) / denominator
+    margin = (
+        z
+        * math.sqrt(proportion * (1 - proportion) / total + z2 / (4 * total * total))
+        / denominator
+    )
+    low = 0.0 if successes == 0 else max(0.0, centre - margin)
+    high = 1.0 if successes == total else min(1.0, centre + margin)
+    return low, high
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +69,7 @@ class Score:
     """One scanner's full scorecard over the corpus."""
 
     scanner: str
+    version: str = "unknown"
     available: bool = True
     unavailable_reason: str = ""
 
@@ -62,6 +86,7 @@ class Score:
 
     errors: int = 0
     duration_s: float = 0.0
+    metadata: dict[str, object] = field(default_factory=dict)
 
     by_stratum: dict[Stratum, StratumScore] = field(default_factory=dict)
     recall_by_attack_class: dict[AttackClass, tuple[int, int]] = field(default_factory=dict)
@@ -85,6 +110,16 @@ class Score:
         s = self.by_stratum.get(Stratum.FP_TRAP)
         return s.flag_rate if s else None
 
+    @property
+    def trap_false_positives(self) -> int:
+        entry = self.by_stratum.get(Stratum.FP_TRAP)
+        return entry.flagged if entry else 0
+
+    @property
+    def trap_total(self) -> int:
+        entry = self.by_stratum.get(Stratum.FP_TRAP)
+        return entry.total if entry else 0
+
     # ---- conventional ---------------------------------------------------------
 
     @property
@@ -104,13 +139,19 @@ class Score:
 
     @property
     def fpr_on_benign(self) -> float | None:
+        """False-positive rate on the ordinary benign stratum (traps excluded)."""
         s = self.by_stratum.get(Stratum.BENIGN_PLAIN)
         return s.flag_rate if s else None
 
     @property
+    def fpr_on_all_negatives(self) -> float | None:
+        """False-positive rate across every explicitly benign sample, controls included."""
+        return _ratio(self.false_positives, self.false_positives + self.true_negatives)
+
+    @property
     def coverage(self) -> float | None:
         """Share of the corpus this scanner could analyse at all."""
-        total = self.scored + self.skipped
+        total = self.scored + self.skipped + self.errors
         return _ratio(self.scored, total) if total else None
 
     @property
@@ -123,9 +164,11 @@ def score_run(samples: list[Sample], run: ScanRun) -> Score:
     """Score one scanner's run against the labelled corpus."""
     score = Score(
         scanner=run.scanner,
+        version=run.version,
         available=run.available,
         unavailable_reason=run.unavailable_reason,
         duration_s=run.duration_s,
+        metadata=dict(run.metadata),
     )
 
     if not run.available:
@@ -143,11 +186,12 @@ def score_run(samples: list[Sample], run: ScanRun) -> Score:
             score.skipped += 1
             continue
 
-        score.scored += 1
-        flagged = result.flagged
-
         if result.error:
             score.errors += 1
+            continue
+
+        score.scored += 1
+        flagged = result.flagged
 
         score.total_risk_findings += len(result.risk_findings)
         score.total_posture_findings += len(result.posture_findings)

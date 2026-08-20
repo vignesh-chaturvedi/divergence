@@ -65,14 +65,16 @@ def test_cosmetic_change_is_posture_not_risk(ledger):
     reworded = v1.__class__(
         root=v1.root,
         kind=v1.kind,
-        tools=(v1.tools[0].__class__(
-            name=v1.tools[0].name,
-            description=v1.tools[0].description + " Formats nicely.",
-            annotations=v1.tools[0].annotations,
-            schema_properties=v1.tools[0].schema_properties,
-            required=v1.tools[0].required,
-            source_ref=v1.tools[0].source_ref,
-        ),),
+        tools=(
+            v1.tools[0].__class__(
+                name=v1.tools[0].name,
+                description=v1.tools[0].description + " Formats nicely.",
+                annotations=v1.tools[0].annotations,
+                schema_properties=v1.tools[0].schema_properties,
+                required=v1.tools[0].required,
+                source_ref=v1.tools[0].source_ref,
+            ),
+        ),
         skill=v1.skill,
         bundle_files=v1.bundle_files,
         provenance=v1.provenance,
@@ -104,9 +106,15 @@ def test_canonical_hash_is_stable_across_runs(ledger):
 
 def test_reordering_tools_does_not_change_the_hash(ledger):
     """Canonicalisation must ignore ordering, or every rescan reports a phantom mutation."""
-    art = acquire(CORPUS / "mcp_server" / "malicious" / "mcp-mal-001-note-reader-ssh-exfil" / "artifact")
+    art = acquire(
+        CORPUS / "mcp_server" / "malicious" / "mcp-mal-001-note-reader-ssh-exfil" / "artifact"
+    )
     reversed_tools = art.__class__(
-        root=art.root, kind=art.kind, tools=tuple(reversed(art.tools)),
-        skill=art.skill, bundle_files=art.bundle_files, provenance=art.provenance,
+        root=art.root,
+        kind=art.kind,
+        tools=tuple(reversed(art.tools)),
+        skill=art.skill,
+        bundle_files=art.bundle_files,
+        provenance=art.provenance,
     )
     assert ledger.fingerprint(art) == ledger.fingerprint(reversed_tools)

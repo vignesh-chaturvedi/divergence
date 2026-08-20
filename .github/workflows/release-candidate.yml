@@ -1,0 +1,197 @@
+name: release-candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: "0.12.0"
+
+      - name: Install locked development environment
+        run: uv sync --frozen --extra dev
+
+      - name: Quality gates
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run pyright
+          uv run pytest --cov --cov-branch --cov-report=term-missing
+
+      - name: Audit frozen Python runtime dependencies
+        run: |
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt \
+            --output-file "$RUNNER_TEMP/divergence-runtime-requirements.txt"
+          uvx pip-audit@2.10.1 -r "$RUNNER_TEMP/divergence-runtime-requirements.txt" \
+            --disable-pip
+
+      - name: Benchmark integrity
+        run: |
+          uv run divergence-bench validate --check-p0-target
+          uv run divergence-bench bench --detail --json out/bench.json --markdown out/bench.md
+
+      - name: Build distributions
+        run: uv build --clear --no-sources
+
+      - name: Verify reproducible Python artifacts
+        run: |
+          mkdir -p "$RUNNER_TEMP/divergence-first-build"
+          cp dist/*.whl dist/*.tar.gz "$RUNNER_TEMP/divergence-first-build/"
+          uv build --clear --no-sources
+          cmp "$RUNNER_TEMP/divergence-first-build/divergence_mcp-1.1.0-py3-none-any.whl" \
+            dist/divergence_mcp-1.1.0-py3-none-any.whl
+          cmp "$RUNNER_TEMP/divergence-first-build/divergence_mcp-1.1.0.tar.gz" \
+            dist/divergence_mcp-1.1.0.tar.gz
+
+      - name: Validate distribution metadata
+        run: uvx twine@7.0.0 check dist/*
+
+      - name: Validate source-distribution contents
+        run: |
+          uv run python -c 'import glob,tarfile; p=glob.glob("dist/divergence_mcp-*.tar.gz"); assert len(p)==1, p; n=tarfile.open(p[0]).getnames(); bad=("/.coverage","/.scratch/","/.superstack/","/build-plan/reports/","/.bench-cache/","/sandbox/target/"); assert not [x for x in n if any(y in x for y in bad)]; assert any(x.endswith("/benchmarks/v1.1/static-external.json") for x in n); assert any(x.endswith("/benchmarks/v1.1/static-dynamic-linux-aarch64.json") for x in n)'
+
+      - name: Validate wheel dependency metadata
+        run: |
+          uv run python -c 'import glob,zipfile; p=glob.glob("dist/divergence_mcp-*.whl"); assert len(p)==1, p; z=zipfile.ZipFile(p[0]); n=next(x for x in z.namelist() if x.endswith(".dist-info/METADATA")); m=z.read(n).decode(); required=("Name: divergence-mcp","Version: 1.1.0","Requires-Dist: pyyaml==6.0.3","Requires-Dist: tree-sitter==0.26.0","Requires-Dist: tree-sitter-bash==0.25.1","Requires-Dist: tree-sitter-python==0.25.0","Requires-Dist: tree-sitter-typescript==0.23.2"); assert all(x in m for x in required), m'
+
+      - name: Hash Python release artifacts
+        run: |
+          (cd dist && sha256sum *.whl *.tar.gz > SHA256SUMS)
+          (cd dist && sha256sum --check SHA256SUMS)
+          printf '%s\n' "$GITHUB_SHA" > out/source-commit.txt
+
+      - name: Smoke-test installed wheel outside checkout
+        run: |
+          WHEEL=$(find dist -name 'divergence_mcp-*.whl' -print -quit)
+          test -n "$WHEEL"
+          cd "$RUNNER_TEMP"
+          uvx --from "$GITHUB_WORKSPACE/$WHEEL" divergence --help
+          uvx --from "$GITHUB_WORKSPACE/$WHEEL" divergence-bench validate --check-p0-target
+
+      - name: Upload candidate only (does not publish)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: divergence-mcp-1.1.0-candidate
+          path: |
+            dist/
+            out/bench.json
+            out/bench.md
+            out/source-commit.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  sandbox-linux-x86_64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: "0.12.0"
+
+      - name: Install locked Python environment
+        run: uv sync --frozen --extra dev
+
+      - name: Rust formatting
+        working-directory: sandbox
+        run: cargo fmt --check
+
+      - name: Rust lint
+        working-directory: sandbox
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Rust tests
+        working-directory: sandbox
+        run: cargo test --locked --all-targets --all-features
+
+      - name: Audit frozen Rust dependencies
+        working-directory: sandbox
+        run: |
+          cargo install cargo-audit --version 0.22.2 --locked
+          cargo audit --file Cargo.lock
+
+      - name: Build runner
+        working-directory: sandbox
+        run: cargo build --locked --release
+
+      - name: Probe and containment gate
+        env:
+          DIVERGENCE_SANDBOX_BIN: sandbox/target/release/divergence-sandbox
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          "$DIVERGENCE_SANDBOX_BIN" --probe | tee out/sandbox-probe.json
+          uv run python -c 'import json; d=json.load(open("out/sandbox-probe.json")); assert d["available"] and d["arch"] == "x86_64" and d["landlock_abi"] >= 4 and d["seccomp_available"] and d["unprivileged_identity"], d'
+          uv run divergence-bench sandbox-gate --require-available | tee out/sandbox-gate.txt
+
+      - name: Generate static-versus-dynamic benchmark evidence
+        env:
+          DIVERGENCE_ALLOW_DYNAMIC: "1"
+          DIVERGENCE_SANDBOX_BIN: sandbox/target/release/divergence-sandbox
+        run: |
+          uv run divergence-bench bench --scanner divergence --scanner divergence+dynamic \
+            --detail --json out/bench-dynamic.json --markdown out/bench-dynamic.md
+          uv run python -c 'import json; d=json.load(open("out/bench-dynamic.json")); r=next(x for x in d["scanners"] if x["name"] == "divergence+dynamic"); assert (r["true_positives"], r["false_positives"], r["false_negatives"]) == (49, 0, 1), r'
+
+      - name: Package and hash runner
+        run: |
+          set -euo pipefail
+          install -Dm755 sandbox/target/release/divergence-sandbox \
+            out/divergence-sandbox-linux-x86_64/divergence-sandbox
+          install -m644 LICENSE out/divergence-sandbox-linux-x86_64/LICENSE
+          install -m644 sandbox/README.md out/divergence-sandbox-linux-x86_64/README.md
+          SOURCE_DATE_EPOCH=$(git show -s --format=%ct "$GITHUB_SHA")
+          export SOURCE_DATE_EPOCH
+          tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" --owner=0 --group=0 \
+            --numeric-owner -C out/divergence-sandbox-linux-x86_64 -cf - \
+            LICENSE README.md divergence-sandbox | \
+            gzip -n > out/divergence-sandbox-1.1.0-linux-x86_64.tar.gz
+          tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" --owner=0 --group=0 \
+            --numeric-owner -C out/divergence-sandbox-linux-x86_64 -cf - \
+            LICENSE README.md divergence-sandbox | \
+            gzip -n > "$RUNNER_TEMP/divergence-sandbox-repro.tar.gz"
+          cmp out/divergence-sandbox-1.1.0-linux-x86_64.tar.gz \
+            "$RUNNER_TEMP/divergence-sandbox-repro.tar.gz"
+          (cd out && sha256sum divergence-sandbox-1.1.0-linux-x86_64.tar.gz > \
+            divergence-sandbox-1.1.0-linux-x86_64.tar.gz.sha256)
+          (cd out/divergence-sandbox-linux-x86_64 && sha256sum divergence-sandbox > \
+            ../divergence-sandbox-1.1.0-linux-x86_64.binary.sha256)
+          (cd out && sha256sum --check \
+            divergence-sandbox-1.1.0-linux-x86_64.tar.gz.sha256)
+          (cd out/divergence-sandbox-linux-x86_64 && sha256sum --check \
+            ../divergence-sandbox-1.1.0-linux-x86_64.binary.sha256)
+          printf '%s\n' "$GITHUB_SHA" > out/source-commit.txt
+
+      - name: Upload Linux runner candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: divergence-sandbox-1.1.0-linux-x86_64
+          path: |
+            out/divergence-sandbox-1.1.0-linux-x86_64.tar.gz
+            out/divergence-sandbox-1.1.0-linux-x86_64.tar.gz.sha256
+            out/divergence-sandbox-1.1.0-linux-x86_64.binary.sha256
+            out/sandbox-probe.json
+            out/sandbox-gate.txt
+            out/bench-dynamic.json
+            out/bench-dynamic.md
+            out/source-commit.txt
+          if-no-files-found: error
+          retention-days: 14

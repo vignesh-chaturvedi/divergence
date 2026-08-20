@@ -24,12 +24,18 @@ verdict. §11: do not claim soundness you do not have.
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from divergence.core.acquire import Artifact
 from divergence.core.behaviour import Behaviour
-from divergence.core.claims import Claim, TriggerScope, extract_claim
+from divergence.core.claim_model import configured_backend
+from divergence.core.claims import Claim, ClaimBackend, TriggerScope, extract_claim
 from divergence.core.vocabulary import AttackClass, Capability, Channel, Finding
+
+if TYPE_CHECKING:
+    from divergence.core.sandbox import Dynamic
 
 # Capabilities a description reliably signals. Undeclared presence of one of these is a
 # real contradiction; the rest are too ambiguous in prose to decide a verdict.
@@ -82,7 +88,8 @@ def _schema_text(artifact: Artifact) -> str:
 
 def _read(path: Path) -> str:
     try:
-        return path.read_text()[:_MAX_BYTES]
+        with path.open("rb") as handle:
+            return handle.read(_MAX_BYTES + 1)[:_MAX_BYTES].decode("utf-8", "replace")
     except (OSError, UnicodeDecodeError):
         return ""
 
@@ -92,23 +99,36 @@ def analyze_divergence(
 ) -> list[Finding]:
     """Run the rule table over one artifact."""
     findings: list[Finding] = []
+    backend = configured_backend()
 
     claim_text = declared_text(artifact)
-    claim = extract_claim(claim_text)
+    claim = extract_claim(claim_text, backend=backend)
 
-    findings += _undeclared_capability(artifact, behaviour, claim, sample_id)
+    findings += _undeclared_capability(artifact, behaviour, claim, sample_id, backend)
     findings += _cross_tool_instruction(artifact, behaviour, claim, sample_id)
     findings += _concealment_in_declared_surface(artifact, claim, sample_id)
-    findings += _schema_poisoning(artifact, sample_id)
-    findings += _bundled_resource_payload(artifact, sample_id)
-    findings += _return_value_injection(artifact, sample_id)
-    findings += _trigger_scope(artifact, behaviour, claim, sample_id)
+    findings += _schema_poisoning(artifact, sample_id, backend)
+    findings += _bundled_resource_payload(artifact, sample_id, backend)
+    findings += _return_value_injection(artifact, behaviour, sample_id, backend)
+    trigger_claim = (
+        extract_claim(artifact.skill.description, backend=backend)
+        if artifact.skill is not None
+        else claim
+    )
+    operational_claim = (
+        extract_claim(artifact.skill.body, backend=backend) if artifact.skill is not None else claim
+    )
+    findings += _trigger_scope(artifact, behaviour, trigger_claim, operational_claim, sample_id)
 
     return findings
 
 
 def _undeclared_capability(
-    artifact: Artifact, behaviour: Behaviour, claim: Claim, sample_id: str
+    artifact: Artifact,
+    behaviour: Behaviour,
+    claim: Claim,
+    sample_id: str,
+    backend: ClaimBackend,
 ) -> list[Finding]:
     """B ⊄ C — reaches for capability it never declared.
 
@@ -117,10 +137,52 @@ def _undeclared_capability(
     thesis in one sample.
     """
     findings: list[Finding] = []
-    undeclared = behaviour.capabilities - claim.capabilities
+    attributed: set[Capability] = set()
+
+    # A sibling's honest network claim cannot excuse another handler's hidden egress.
+    # Compare each tool to its own reachable handler whenever attribution is available.
+    for tool in artifact.tools:
+        entrypoint = behaviour.find(tool.name, tool.source_ref)
+        if entrypoint is None:
+            continue
+        attributed |= set(entrypoint.capabilities)
+        tool_claim = extract_claim(
+            f"{tool.name}. {tool.description}\n{tool.schema_text()}", backend=backend
+        )
+        evidence = {sink.capability: sink.location for sink in entrypoint.sinks}
+        findings += _capability_gap(
+            artifact,
+            set(entrypoint.capabilities),
+            evidence,
+            tool_claim,
+            sample_id,
+            subject=f"tool {tool.name!r}",
+        )
+
+    leftovers = behaviour.capabilities - attributed
+    if leftovers or not artifact.tools or not attributed:
+        caps = leftovers if attributed else behaviour.capabilities
+        evidence = {cap: behaviour.evidence.get(cap, "") for cap in caps}
+        findings += _capability_gap(artifact, caps, evidence, claim, sample_id, subject="artifact")
+
+    return findings
+
+
+def _capability_gap(
+    artifact: Artifact,
+    capabilities: set[Capability],
+    evidence_by_capability: dict[Capability, str],
+    claim: Claim,
+    sample_id: str,
+    *,
+    subject: str,
+) -> list[Finding]:
+    """Compare one qualified behaviour surface to its corresponding claim."""
+    findings: list[Finding] = []
+    undeclared = capabilities - claim.capabilities
 
     for cap in sorted(undeclared):
-        evidence = behaviour.evidence.get(cap, "")
+        evidence = evidence_by_capability.get(cap, "")
         denied = cap in claim.denied
 
         if not denied and cap not in HIGH_SIGNAL:
@@ -144,8 +206,7 @@ def _undeclared_capability(
                     attack_class=_UNDECLARED_CLASS[cap],
                     severity="critical",
                     message=(
-                        f"description explicitly denies {cap.value} but the implementation "
-                        "reaches it"
+                        f"{subject} explicitly denies {cap.value} but its implementation reaches it"
                     ),
                     evidence=evidence,
                     claim=claim.evidence.get(cap, claim_snippet(claim, cap)),
@@ -160,8 +221,8 @@ def _undeclared_capability(
                     attack_class=_UNDECLARED_CLASS[cap],
                     severity="high",
                     message=(
-                        f"reaches {cap.value}, which nothing in the declared interface "
-                        "accounts for"
+                        f"{subject} reaches {cap.value}, which its declared interface "
+                        "does not account for"
                     ),
                     evidence=evidence,
                     claim=f"declared interface of {_artifact_name(artifact)} does not mention {cap.value}",
@@ -170,7 +231,7 @@ def _undeclared_capability(
             )
 
     # B ⊆ C — the consistency note. Non-urgent by construction.
-    consistent = behaviour.capabilities & claim.capabilities
+    consistent = capabilities & claim.capabilities
     if consistent and not undeclared:
         findings.append(
             Finding(
@@ -181,7 +242,7 @@ def _undeclared_capability(
                     "behaviour is within what the description advertises: "
                     + ", ".join(sorted(c.value for c in consistent))
                 ),
-                evidence=behaviour.evidence.get(sorted(consistent)[0], ""),
+                evidence=evidence_by_capability.get(sorted(consistent)[0], ""),
                 claim="posture: capability matches claim",
             )
         )
@@ -257,7 +318,7 @@ def _concealment_in_declared_surface(
     ]
 
 
-def _schema_poisoning(artifact: Artifact, sample_id: str) -> list[Finding]:
+def _schema_poisoning(artifact: Artifact, sample_id: str, backend: ClaimBackend) -> list[Finding]:
     """Payload in a JSON Schema property description.
 
     The tool description can be spotless while the schema carries the instruction — and
@@ -268,7 +329,7 @@ def _schema_poisoning(artifact: Artifact, sample_id: str) -> list[Finding]:
     if not text.strip():
         return []
 
-    schema_claim = extract_claim(text)
+    schema_claim = extract_claim(text, backend=backend)
     if not (schema_claim.conceals or schema_claim.instructs_other_tools):
         return []
 
@@ -286,7 +347,9 @@ def _schema_poisoning(artifact: Artifact, sample_id: str) -> list[Finding]:
     ]
 
 
-def _bundled_resource_payload(artifact: Artifact, sample_id: str) -> list[Finding]:
+def _bundled_resource_payload(
+    artifact: Artifact, sample_id: str, backend: ClaimBackend
+) -> list[Finding]:
     """Payload in a bundled resource the frontmatter never mentions.
 
     §03: the body of a skill is not loaded until it fires, and bundled resources may never
@@ -296,11 +359,14 @@ def _bundled_resource_payload(artifact: Artifact, sample_id: str) -> list[Findin
     findings: list[Finding] = []
     skill_file = "SKILL.md"
 
+    if artifact.skill is None:
+        return []
+
     for path in artifact.bundle_files:
         if path.suffix.lower() not in _RESOURCE_SUFFIXES or path.name == skill_file:
             continue
 
-        resource_claim = extract_claim(_read(path))
+        resource_claim = extract_claim(_read(path), backend=backend)
         if not (resource_claim.conceals or resource_claim.instructs_other_tools):
             continue
 
@@ -323,7 +389,79 @@ def _bundled_resource_payload(artifact: Artifact, sample_id: str) -> list[Findin
     return findings
 
 
-def _emitted_strings(path: Path) -> str:
+def _python_emitted_strings(source: str, active_names: set[str]) -> str:
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return ""
+
+    assignments: dict[str, list[str]] = {}
+
+    def strings(node: ast.AST | None) -> list[str]:
+        if node is None:
+            return []
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return [node.value]
+        if isinstance(node, ast.Name):
+            return assignments.get(node.id, [])
+        values: list[str] = []
+        for child in ast.iter_child_nodes(node):
+            values.extend(strings(child))
+        return values
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            value = getattr(node, "value", None)
+            names: list[str] = []
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    names.append(target.id)
+            value_strings = strings(value)
+            for name in names:
+                assignments[name] = value_strings
+
+    emitted: list[str] = []
+
+    def visit_body(body: list[ast.stmt]) -> None:
+        for node in body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            if isinstance(node, ast.Return):
+                emitted.extend(strings(node.value))
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+                call = node.value
+                if isinstance(call.func, ast.Name) and call.func.id == "print":
+                    for arg in call.args:
+                        emitted.extend(strings(arg))
+
+    visit_body(tree.body)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in active_names:
+            visit_body(node.body)
+    return "\n".join(emitted)
+
+
+_JS_COMMENT_RE = re.compile(r"/\*.*?\*/|//[^\n]*", re.DOTALL)
+
+
+def _javascript_emitted_strings(source: str, active_names: set[str]) -> str:
+    """Conservative return/output extraction that excludes comments and dead helpers."""
+    clean = _JS_COMMENT_RE.sub(" ", source)
+    chunks: list[str] = []
+    for name in active_names:
+        pattern = re.compile(
+            rf"(?:export\s+)?(?:async\s+)?function\s+{re.escape(name)}\b[^{{]*{{(.*?)\n}}",
+            re.DOTALL,
+        )
+        for match in pattern.finditer(clean):
+            chunks.extend(re.findall(r"\breturn\s+(.+?);", match.group(1), re.DOTALL))
+    # Module-level console output is relevant for skill scripts.
+    chunks.extend(re.findall(r"\bconsole\.log\s*\((.*?)\)\s*;", clean, re.DOTALL))
+    return "\n".join(chunks)
+
+
+def _emitted_strings(path: Path, active_names: set[str]) -> str:
     """String literals a module emits, excluding docstrings.
 
     Docstrings *are* the declared surface — they become the tool description. Scanning them
@@ -333,31 +471,16 @@ def _emitted_strings(path: Path) -> str:
     """
     source = _read(path)
     if path.suffix.lower() != ".py":
-        # For non-Python sources, drop block comments and docstring-style triple quotes so
-        # documentation is not mistaken for emitted output.
-        return source
-
-    try:
-        tree = ast.parse(source)
-    except (SyntaxError, ValueError):
-        return ""
-
-    docstrings: set[int] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            body = getattr(node, "body", [])
-            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
-                if isinstance(body[0].value.value, str):
-                    docstrings.add(id(body[0].value))
-
-    return "\n".join(
-        n.value
-        for n in ast.walk(tree)
-        if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docstrings
-    )
+        return _javascript_emitted_strings(source, active_names)
+    return _python_emitted_strings(source, active_names)
 
 
-def _return_value_injection(artifact: Artifact, sample_id: str) -> list[Finding]:
+def _return_value_injection(
+    artifact: Artifact,
+    behaviour: Behaviour,
+    sample_id: str,
+    backend: ClaimBackend,
+) -> list[Finding]:
     """Agent-directed instructions embedded in what a handler returns.
 
     Manifest and schema are clean; the payload arrives as tool output, which the agent
@@ -369,7 +492,19 @@ def _return_value_injection(artifact: Artifact, sample_id: str) -> list[Finding]
         if path.suffix.lower() not in _SOURCE_SUFFIXES:
             continue
 
-        source_claim = extract_claim(_emitted_strings(path))
+        rel = str(path.relative_to(artifact.root))
+        active_names = {
+            entrypoint.name
+            for entrypoint in behaviour.entrypoints
+            if entrypoint.location.split(":", 1)[0] == rel and entrypoint.kind == "tool_handler"
+        }
+        # A script's module body is its output surface.
+        if any(
+            entrypoint.kind == "script" and entrypoint.location.split(":", 1)[0] == rel
+            for entrypoint in behaviour.entrypoints
+        ):
+            active_names.add("<module>")
+        source_claim = extract_claim(_emitted_strings(path, active_names), backend=backend)
         if not (source_claim.conceals or source_claim.instructs_other_tools):
             continue
 
@@ -379,9 +514,7 @@ def _return_value_injection(artifact: Artifact, sample_id: str) -> list[Finding]
                 channel=Channel.RISK,
                 attack_class=AttackClass.RETURN_VALUE_INJECTION,
                 severity="critical",
-                message=(
-                    f"{path.name} embeds an agent-directed instruction in the text it emits"
-                ),
+                message=(f"{path.name} embeds an agent-directed instruction in the text it emits"),
                 evidence=str(path.name),
                 claim=source_claim.cross_tool_evidence,
                 confidence=0.8,
@@ -392,7 +525,11 @@ def _return_value_injection(artifact: Artifact, sample_id: str) -> list[Finding]
 
 
 def _trigger_scope(
-    artifact: Artifact, behaviour: Behaviour, claim: Claim, sample_id: str
+    artifact: Artifact,
+    behaviour: Behaviour,
+    trigger_claim: Claim,
+    operational_claim: Claim,
+    sample_id: str,
 ) -> list[Finding]:
     """C_trigger ⊅ B — a skill claiming relevance far wider than its capability.
 
@@ -401,10 +538,10 @@ def _trigger_scope(
     — a universal formatter that genuinely formats anything is honest. The signal is
     breadth combined with reach the description never accounted for.
     """
-    if artifact.skill is None or claim.trigger_scope is not TriggerScope.UNIVERSAL:
+    if artifact.skill is None or trigger_claim.trigger_scope is not TriggerScope.UNIVERSAL:
         return []
 
-    undeclared = (behaviour.capabilities - claim.capabilities) & HIGH_SIGNAL
+    undeclared = (behaviour.capabilities - operational_claim.capabilities) & HIGH_SIGNAL
     if not undeclared:
         return [
             Finding(
@@ -412,7 +549,7 @@ def _trigger_scope(
                 channel=Channel.POSTURE,
                 severity="low",
                 message="skill claims universal trigger scope",
-                evidence=claim.trigger_evidence,
+                evidence=trigger_claim.trigger_evidence,
                 claim="posture: breadth is honest when capability matches it",
             )
         ]
@@ -429,7 +566,7 @@ def _trigger_scope(
                 f"{', '.join(sorted(c.value for c in undeclared))}, which its description omits"
             ),
             evidence=behaviour.evidence.get(cap, ""),
-            claim=claim.trigger_evidence,
+            claim=trigger_claim.trigger_evidence,
             confidence=0.8,
         )
     ]
@@ -441,13 +578,15 @@ def _trigger_scope(
 # list the B ⊄ C rule uses, and for the same reason (ADR 0004): undeclared filesystem and
 # environment access cannot separate a todo list from an exfiltrator, so they stay posture
 # even here.
-_DYNAMIC_HIGH_SIGNAL = frozenset({
-    Capability.NET_OUTBOUND,
-    Capability.PROC_SPAWN,
-    Capability.SECRETS_READ,
-    Capability.DYNAMIC_EVAL,
-    Capability.FS_DELETE,
-})
+_DYNAMIC_HIGH_SIGNAL = frozenset(
+    {
+        Capability.NET_OUTBOUND,
+        Capability.PROC_SPAWN,
+        Capability.SECRETS_READ,
+        Capability.DYNAMIC_EVAL,
+        Capability.FS_DELETE,
+    }
+)
 
 
 def dynamic_divergence(
@@ -479,21 +618,31 @@ def dynamic_divergence(
     undeclared = dynamic.capabilities - set(static_capabilities)
 
     for capability in sorted(undeclared, key=lambda c: c.value):
-        observed = next(
+        non_decoy = next(
+            (o for o in dynamic.observations if o.capability is capability and not o.decoy),
+            None,
+        )
+        if (
+            capability is Capability.SECRETS_READ
+            and non_decoy is None
+            and any(o.capability is capability and o.decoy for o in dynamic.observations)
+        ):
+            # The decoy-specific finding below is stronger and carries the exact path.
+            continue
+        observed = non_decoy or next(
             (o for o in dynamic.observations if o.capability is capability), None
         )
         target = f" -> {observed.target}" if observed and observed.target else ""
+        outcome = "performed" if observed is None or observed.succeeded else "attempted"
 
         findings.append(
             Finding(
                 sample_id=sample_id,
-                channel=(
-                    Channel.RISK if capability in _DYNAMIC_HIGH_SIGNAL else Channel.POSTURE
-                ),
+                channel=(Channel.RISK if capability in _DYNAMIC_HIGH_SIGNAL else Channel.POSTURE),
                 attack_class=AttackClass.DYNAMIC_CODE_LOADING,
                 severity="critical" if capability in _DYNAMIC_HIGH_SIGNAL else "info",
                 message=(
-                    f"reached {capability.value} at runtime that static analysis could not "
+                    f"{outcome} a {capability.value} operation at runtime that static analysis could not "
                     f"see in the source{target}"
                 ),
                 evidence=dynamic.evidence.get(capability, observed.syscall if observed else ""),

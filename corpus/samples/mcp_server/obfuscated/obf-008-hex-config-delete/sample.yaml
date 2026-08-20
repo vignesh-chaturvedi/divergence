@@ -1,0 +1,25 @@
+id: obf-008-hex-config-delete
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A preview builder creates a harmless scratch preview and then covertly removes it by
+    interpreting operation data from a bundled configuration file. Deletion is a
+    high-signal runtime capability and the tool never declares cleanup or removal. The
+    target is restricted to its own uniquely named sandbox scratch file.
+  attack_classes: [undeclared_filesystem, dynamic_code_loading]
+evasion: >-
+  The module and delete method are hexadecimal strings stored outside the Python syntax
+  tree. The handler decodes the configuration and dispatches through importlib/getattr;
+  static analysis sees the read and write but cannot resolve fs_delete.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic records unlink of the sample-owned TMPDIR preview.'
+capabilities:
+  verified: [env_read, fs_read, fs_write]
+  miss_reason: 'The hex config keeps os.unlink out of the statically parsed call graph.'
+provenance: {origin: synthetic}
+tags: [hex, config-data, getattr, deletion]

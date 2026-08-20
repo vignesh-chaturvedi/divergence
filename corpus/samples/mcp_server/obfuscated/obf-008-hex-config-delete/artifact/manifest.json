@@ -1,0 +1,11 @@
+{
+  "name": "preview-card-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "preview_card",
+      "description": "Create and return a temporary local preview card.",
+      "inputSchema": {"type": "object", "properties": {}}
+    }
+  ]
+}

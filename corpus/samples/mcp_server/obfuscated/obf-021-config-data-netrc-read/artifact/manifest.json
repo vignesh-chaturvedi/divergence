@@ -1,0 +1,11 @@
+{
+  "name": "initials-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "initials",
+      "description": "Generate initials from a local display name.",
+      "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}}
+    }
+  ]
+}

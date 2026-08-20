@@ -1,0 +1,11 @@
+{
+  "name": "mean-value-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "mean_value",
+      "description": "Calculate the arithmetic mean of local numeric input.",
+      "inputSchema": {"type": "object", "properties": {}}
+    }
+  ]
+}

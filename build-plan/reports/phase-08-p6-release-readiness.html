@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Divergence — Progress 08 · P6 Release Readiness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E4E5DF; --panel:#DBDCD3; --panel-2:#D1D3C7;
+  --ink:#22241D; --slate:#6B6F62; --rule:#C2C4B6;
+  --moss:#55692F; --moss-dim:#7C8C5C;
+  --amber:#96731A; --amber-lite:#C9A93F; --rust:#8A4B2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+  font-size:17px;line-height:1.62;padding:0 0 6rem}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);
+  padding:.12em .38em;border-radius:3px;border:1px solid var(--rule)}
+header.mast{border-bottom:2px solid var(--ink);padding:3.2rem 0 1.4rem;margin-bottom:2.4rem}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--slate);display:flex;gap:.9rem;flex-wrap:wrap;
+  align-items:center;margin-bottom:1.4rem}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--amber-lite)}
+h1{font-size:clamp(2.4rem,6.2vw,3.8rem);font-weight:800;letter-spacing:-.028em}
+h1 .sub{display:block;font-weight:400;font-size:clamp(1rem,2.4vw,1.32rem);
+  color:var(--slate);letter-spacing:-.01em;margin-top:.5rem}
+.standfirst{margin:1.5rem 0 0;max-width:66ch;font-size:1.08rem;color:#3A3D33}
+.banner{display:flex;gap:1rem;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-left:4px solid var(--amber);
+  padding:1.1rem 1.3rem;border-radius:4px;margin:2.2rem 0}
+.banner .mark{font-family:var(--display);font-weight:800;color:var(--amber);
+  font-size:1.3rem;line-height:1.2;flex:none}
+.banner p{margin:0;font-size:.97rem}.banner p+p{margin-top:.6rem}
+section{margin:3.4rem 0 0}
+.sec-head{display:flex;align-items:baseline;gap:.9rem;border-bottom:1px solid var(--rule);
+  padding-bottom:.6rem;margin-bottom:1.6rem;flex-wrap:wrap}
+.sec-num{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--moss);
+  text-transform:uppercase;flex:none}
+.sec-head h2{font-size:clamp(1.4rem,3.2vw,1.9rem);font-weight:600;letter-spacing:-.02em}
+.headline{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.6rem 1.5rem;margin:1.6rem 0;display:grid;gap:1.4rem;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.metric .lbl{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--slate);margin-bottom:.3rem}
+.metric .num{font-family:var(--display);font-weight:800;font-size:2.4rem;
+  letter-spacing:-.035em;line-height:1}
+.metric .num.good{color:var(--moss)}.metric .num.hold{color:var(--amber)}
+.metric .cap{font-size:.85rem;color:var(--slate);margin-top:.35rem;line-height:1.45}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem}
+.card .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--slate);margin-bottom:.42rem}
+.card .v{font-family:var(--display);font-weight:600;font-size:1.02rem;letter-spacing:-.012em}
+.card .n{font-size:.85rem;color:var(--slate);margin-top:.3rem;line-height:1.45}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:.92rem}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--slate);border-bottom:1.5px solid var(--ink);white-space:nowrap}
+td.mono{font-family:var(--mono);font-size:.84rem;white-space:nowrap}
+.pill{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2em .55em;border-radius:3px;border:1px solid;white-space:nowrap}
+.pill.done{color:var(--moss);border-color:var(--moss-dim);background:rgba(85,105,47,.09)}
+.pill.hold{color:var(--amber);border-color:var(--amber-lite);background:rgba(150,115,26,.1)}
+.pill.gate{color:var(--rust);border-color:var(--rust);background:rgba(138,75,42,.09)}
+ul.check{list-style:none;padding:0;margin:1rem 0}
+ul.check li{position:relative;padding-left:1.9rem;margin-bottom:.62rem}
+ul.check li::before{content:"✓";position:absolute;left:0;top:-.05em;color:var(--moss);
+  font-family:var(--display);font-weight:800}
+.note{border-left:3px solid var(--moss-dim);padding:.15rem 0 .15rem 1.1rem;
+  margin:1.4rem 0;color:#3A3D33;font-size:.96rem}
+.note.warn{border-left-color:var(--rust)}
+footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+@media(max-width:560px){body{font-size:16px}.metric .num{font-size:2rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">
+    <span>Divergence</span><span class="dot"></span>
+    <span>Progress report 08</span><span class="dot"></span>
+    <span>Phase P6 — publish v1.1</span><span class="dot"></span>
+    <span>20 Aug 2026</span>
+  </div>
+  <h1>Local P6 readiness complete<span class="sub">The candidate is installable and auditable; formal release gates remain external</span></h1>
+  <p class="standfirst">Local release engineering is complete: the expanded corpus,
+  generated all-strata benchmark, hardened Linux arm64 sandbox evidence, quality gates,
+  package identity, Action, and candidate workflows are in place. Independent review,
+  the non-author exit gate, and protected publication remain open.</p>
+</header>
+
+<div class="banner">
+  <span class="mark">◇</span>
+  <div>
+    <p><strong>No formal P6 completion claim.</strong> Generated candidate evidence is tracked
+    in <code>benchmarks/v1.1/</code>, but no tag, PyPI upload, or GitHub release exists. The
+    locked exit gate still requires someone other than the author to install the candidate,
+    run it, and file an issue.</p>
+    <p>Independent human label/rationale review and protected publication also remain open.
+    Local success cannot self-certify either social gate.</p>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>Local candidate evidence</h2></div>
+  <div class="headline">
+    <div class="metric"><div class="lbl">Python tests</div><div class="num good">384</div>
+      <div class="cap">candidate suite, all passing</div></div>
+    <div class="metric"><div class="lbl">Branch coverage</div><div class="num good">83.67%</div>
+      <div class="cap">passes the retained 80% gate</div></div>
+    <div class="metric"><div class="lbl">Candidate corpus</div><div class="num good">110</div>
+      <div class="cap">50 positive · 60 benign/control</div></div>
+    <div class="metric"><div class="lbl">Published artifacts</div><div class="num good">0</div>
+      <div class="cap">candidate workflow has no publish permission</div></div>
+  </div>
+
+  <ul class="check">
+    <li><code>uv lock --check</code> and frozen development sync passed.</li>
+    <li>Pyright passed with zero errors; Ruff check and format passed; 83.67% branch coverage clears the unchanged 80% gate.</li>
+    <li>The wheel reports <code>divergence-mcp 1.1.0</code>; the command remains <code>divergence</code>.</li>
+    <li>A clean-directory wheel smoke found the bundled dataset and validated all 110 manifests.</li>
+    <li>Python dependency and RustSec audits reported no known advisories.</li>
+  </ul>
+
+  <p class="note">These are local candidate checks, not publication. The protected release
+  must build from the reviewed release commit and reproduce the Linux x86-64 runner in the
+  manual candidate workflow.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Benchmark truth and provenance</h2></div>
+  <p>Truth comes from each manifest's explicit boolean label. The final candidate corpus has
+  50 positives and 60 controls; the 30-sample obfuscated stratum has 25 positives and five
+  matched controls. Machine output
+  records project/scanner versions, analyzer-source digest, exact runtime dependencies,
+  Python and platform, corpus digest and synthetic origin, exact external package/rules
+  pins, duration, raw counts, scanner errors, and Wilson 95% intervals.</p>
+
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Candidate row</th><th>Trap FPR</th><th>Precision</th><th>Recall</th><th>Attribution / coverage</th></tr></thead>
+    <tbody>
+      <tr><td><code>divergence</code></td><td>0/35 · 0.0% · CI 0.0–9.9%</td><td>100%</td><td>27/50 · 54.0% · CI 40.4–67.0%</td><td>77.8%</td></tr>
+      <tr><td><code>divergence+fleet</code></td><td>0/35 · 0.0% · CI 0.0–9.9%</td><td>100%</td><td>27/50 · 54.0% · CI 40.4–67.0%</td><td>85.2%</td></tr>
+      <tr><td><code>divergence+dynamic</code></td><td>0/35 · 0.0% · CI 0.0–9.9%</td><td>100%</td><td>49/50 · 98.0% · CI 89.5–99.6%</td><td>87.8% · entrypoints 83/110</td></tr>
+      <tr><td>Semgrep 1.173.0</td><td>5/35 · 14.3% · CI 6.3–29.4%</td><td>81.1%</td><td>30/50 · 60.0% · CI 46.2–72.4%</td><td>0% · 7 total FP</td></tr>
+      <tr><td>mcp-shield 1.0.4</td><td>4/21 · 19.0%</td><td>20.0%</td><td>1/33 · 3.0%</td><td>66.4% corpus coverage</td></tr>
+      <tr><td>keyword</td><td>20/35 · 57.1%</td><td>52.9%</td><td>27/50 · 54.0%</td><td>77.8%</td></tr>
+      <tr><td>snyk-agent-scan</td><td>—</td><td>—</td><td>—</td><td>unavailable: token + hosted API</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="note">The JSON files in <code>benchmarks/v1.1/</code> are authoritative and include
+  per-sample dynamic coverage. Both are bound to analyzer-source SHA-256
+  <code>71aa8d411a8eba580c0ea7b40db7cec4d7550e47c7c78f4195ee5bb16628d15b</code>;
+  every available row has zero scanner errors. Semgrep used rules SHA-256
+  <code>f8b8461199c4d0ac23c0faf60f8b00a50139854d742e5b7374ccde09f81c9afd</code>.
+  If independent review changes any label or fixture, regenerate this evidence.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Release surface now implemented</h2></div>
+  <div class="grid">
+    <div class="card"><div class="k">Identity</div><div class="v">One 1.1.0 source</div>
+      <div class="n">Wheel metadata, CLI, adapters, and SARIF import <code>divergence.__version__</code>.</div></div>
+    <div class="card"><div class="k">Action</div><div class="v">Shell-safe and fail-closed</div>
+      <div class="n">Inputs travel through environment variables; global flags precede the verb; partial scans fail unless explicitly allowed.</div></div>
+    <div class="card"><div class="k">Candidate CI</div><div class="v">Python + Linux artifacts</div>
+      <div class="n">Pinned Actions are configured to build wheel/sdist and a Linux x86_64 sandbox archive with binary and archive SHA-256 files.</div></div>
+    <div class="card"><div class="k">P5 boundary</div><div class="v">Fail-closed on Linux arm64</div>
+      <div class="n">Root refusal, unprivileged identity, private environment and HOME, exact decoys, Landlock ABI v4, seccomp, ptrace, limits, and process cleanup were verified.</div></div>
+    <div class="card"><div class="k">A9</div><div class="v">Evidence-only command backend</div>
+      <div class="n"><code>DIVERGENCE_ADJUDICATOR_COMMAND</code> receives normalized JSON only; it is off by default and capped at floor(5%).</div></div>
+    <div class="card"><div class="k">Corpus</div><div class="v">110 synthetic fixtures</div>
+      <div class="n">50 positives, 60 controls, and dataset-level provenance. Future derived samples require upstream, revision, version, license, retrieval, and change metadata.</div></div>
+    <div class="card"><div class="k">Publication</div><div class="v">Protected by omission</div>
+      <div class="n">The candidate workflow is manual, read-only, and upload-artifact only. Trusted Publishing is an external human gate.</div></div>
+  </div>
+
+  <p class="note">Docker returned <code>EPERM</code> for network-namespace creation. The
+  verified arm64 run therefore used independent Landlock ABI v4 and seccomp egress denial,
+  while ptrace recorded attempted operations. ADR 0011 records this explicit deviation;
+  the runner fails unavailable if the denial boundary cannot be established.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>Local review-and-iterate verdict</h2></div>
+  <p>This review grades only the evidence present in the workspace. It is not an independent
+  security certification and does not substitute for the locked P6 human gate. In this
+  rubric, A means independently reproduced with every release gate closed; B means strong
+  local evidence with a bounded limitation; C means implemented but still dependent on
+  material external evidence.</p>
+
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Dimension</th><th>Grade</th><th>Evidence</th><th>Why it is not higher</th></tr></thead>
+    <tbody>
+      <tr><td>Code quality</td><td><span class="pill done">B+</span></td><td>384 tests; 83.67% branch coverage over an 80% gate; Ruff, formatting, and Pyright clean</td><td>Results are local and the coverage margin is 3.67 points, not independent reproduction</td></tr>
+      <tr><td>Sandbox security</td><td><span class="pill done">B</span></td><td>Fail-closed identity, environment, filesystem, TCP, seccomp, ptrace, resource, and cleanup checks passed on Linux arm64</td><td>Docker denied a network namespace, and the Linux x86-64 release artifact has not been reproduced</td></tr>
+      <tr><td>Benchmark validity</td><td><span class="pill hold">B−</span></td><td>110 labelled fixtures; generated JSON; digests, pins, raw counts, intervals, coverage, and applicability retained</td><td>The corpus is synthetic, scanner and labels share an author, and independent label/rationale review is open</td></tr>
+      <tr><td>Release readiness</td><td><span class="pill gate">C+</span></td><td>Identity, wheel smoke, Action, candidate workflow, release guide, and tracked evidence are implemented</td><td>No x86-64 candidate run, non-author issue, protected tag, PyPI upload, or GitHub release exists</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="note warn"><strong>Verdict: conditional go for external verification; no-go for
+  publication.</strong> Local engineering has no known blocker, but formal P6 remains open
+  until independent review, x86-64 reproduction, the non-author run-and-issue gate, and
+  protected publication all have durable evidence.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Exact work remaining</h2></div>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Gate</th><th>Required evidence</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Local corpus + evidence</td><td>110 fixtures, generated static/dynamic/external JSON and Markdown, exact provenance and coverage</td><td><span class="pill done">complete locally</span></td></tr>
+      <tr><td>Linux arm64 confinement</td><td>Kernel probes, Landlock, seccomp, environment, filesystem, timeout, resources, and process-tree boundaries verified</td><td><span class="pill done">passed</span></td></tr>
+      <tr><td>Independent label review</td><td>A human who did not author the fixtures reviews every truth label and rationale; regenerate evidence if anything changes</td><td><span class="pill gate">external human</span></td></tr>
+      <tr><td>Linux x86-64 artifact</td><td>Manual candidate workflow reproduces probes, gate, binary, archive, and SHA-256 files</td><td><span class="pill hold">workflow pending</span></td></tr>
+      <tr><td>Independent user</td><td>Clean install, real scan, filed issue, candidate wheel hash recorded</td><td><span class="pill gate">external human</span></td></tr>
+      <tr><td>Protected publication</td><td>Name recheck, Trusted Publisher, protected environment, signed tag, PyPI files, GitHub release</td><td><span class="pill gate">external human</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <p><code>https://pypi.org/pypi/divergence-mcp/json</code> returned HTTP 404 on
+  20 August 2026. That is evidence the name was unclaimed at that moment, not a reservation.
+  It must be rechecked immediately before publication.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>P6 completion checklist</h2></div>
+  <ul>
+    <li><strong>Done locally:</strong> expand and validate the 110-artifact corpus, run the
+      fail-closed Linux arm64 gate, rerun available pinned scanners, track generated evidence,
+      pass the 80% branch-coverage gate, and complete dependency audits.</li>
+    <li>Complete independent human review of every corpus label and rationale; regenerate
+      the candidate evidence if review changes the dataset.</li>
+    <li>Run the manual candidate workflow to reproduce the Linux x86-64 sandbox runner,
+      kernel probe, containment log, and checksums.</li>
+    <li>Rebuild the final wheel and sdist from the reviewed release commit, record all
+      hashes, and smoke-test outside checkout.</li>
+    <li>Have a non-author run the candidate and file the locked-gate issue.</li>
+    <li>Recheck the package name, approve the protected environment, tag, publish, and create the release.</li>
+  </ul>
+
+  <p class="note">Local release engineering is complete. Until every external item above
+  has evidence, the correct formal project status is <strong>P6 open</strong>.</p>
+</section>
+
+<footer>Divergence · progress report 08 · local readiness complete · formal P6 open</footer>
+</div>
+</body>
+</html>

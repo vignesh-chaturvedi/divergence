@@ -1,0 +1,31 @@
+name: Benchmark label dispute
+description: Challenge a corpus label, rationale, expected finding, or scanner attribution.
+title: "[corpus]: "
+labels: ["needs-triage"]
+body:
+  - type: input
+    id: sample
+    attributes:
+      label: Sample ID
+      placeholder: obf-006-benign-base64-decoder
+    validations:
+      required: true
+  - type: dropdown
+    id: dispute
+    attributes:
+      label: What is disputed?
+      options:
+        - Malicious / benign truth label
+        - Expected risk / posture channel
+        - Attack-class attribution
+        - Rationale or fixture realism
+        - Inertness or safety
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and proposed correction
+      description: Explain the disagreement and, if possible, cite a primary source or provide an inert fixture.
+    validations:
+      required: true

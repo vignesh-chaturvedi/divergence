@@ -1,0 +1,186 @@
+schema: divergence.obfuscated-design/1
+designed_at: 2026-08-20
+status: frozen-before-sandbox-measurement
+protocol:
+  purpose: >-
+    Freeze the evasion families, truth labels, and capability hypotheses before the
+    expanded stratum is measured. The twenty-four additions are a design holdout for the
+    first Linux run: detector rules must not be tuned against their results before that
+    run is archived and independently reviewed.
+  new_sample_range: obf-007 through obf-030
+  target_truth:
+    malicious: 25
+    benign_controls: 5
+  safety: >-
+    Network attempts use loopback only, deletion is limited to a uniquely named file in
+    the sandbox TMPDIR, process payloads execute /bin/true, and credential reads require
+    the sandbox overlay marker before opening one of the planted HOME decoys.
+  measurement_order:
+    - validate metadata, inert targets, and exact counts
+    - verify the relevant high-signal capability is absent from B_static
+    - run the unchanged Linux sandbox gate and archive raw per-sample coverage
+    - review labels and only then consider detector changes
+groups:
+  decode-and-resolve:
+    intent: Encoded names or data are decoded only at runtime and then resolved to a sink.
+    techniques: [base64, base85, hex, rot13, zlib, gzip, import, getattr]
+  structural-indirection:
+    intent: Benign-looking fragments or external configuration become an operation at runtime.
+    techniques: [reversal, fragments, config-data, numeric-bytes, lookup-tables]
+  scheduled-indirection:
+    intent: The hidden operation is reached through a deferred execution boundary.
+    techniques: [lambda, async, thread, process, posix-spawn]
+  benign-controls:
+    intent: The same decoding and scheduling shapes perform only local pure computation.
+    techniques: [compression, rot13, getattr, async, thread]
+samples:
+  obf-001-b64-attr-egress:
+    group: decode-and-resolve
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-002-fragment-assembled-exec:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [proc_spawn]
+    must_be_absent_from_static: [proc_spawn]
+  obf-003-hex-exec-credential-read:
+    group: decode-and-resolve
+    truth: malicious
+    intended_dynamic: [secrets_read]
+    must_be_absent_from_static: [secrets_read]
+  obf-004-skill-shell-indirection:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-005-reversed-import-egress:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-006-benign-base64-decoder:
+    group: benign-controls
+    truth: benign
+    intended_dynamic: []
+    must_be_absent_from_static: []
+  obf-007-rot13-async-socket:
+    group: scheduled-indirection
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-008-hex-config-delete:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [fs_delete]
+    must_be_absent_from_static: [fs_delete]
+  obf-009-compressed-skill-exec:
+    group: decode-and-resolve
+    truth: malicious
+    intended_dynamic: [proc_spawn]
+    must_be_absent_from_static: [proc_spawn]
+  obf-010-fragmented-decoy-read:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [secrets_read]
+    must_be_absent_from_static: [secrets_read]
+  obf-011-benign-compressed-preset:
+    group: benign-controls
+    truth: benign
+    intended_dynamic: []
+    must_be_absent_from_static: []
+  obf-012-config-lambda-egress:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-013-async-rot13-egress:
+    group: scheduled-indirection
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-014-threaded-base64-egress:
+    group: scheduled-indirection
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-015-gzip-process-egress:
+    group: scheduled-indirection
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-016-reversed-skill-delete:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [fs_delete]
+    must_be_absent_from_static: [fs_delete]
+  obf-017-benign-rot13-reflection:
+    group: benign-controls
+    truth: benign
+    intended_dynamic: []
+    must_be_absent_from_static: []
+  obf-018-hex-posix-spawn:
+    group: decode-and-resolve
+    truth: malicious
+    intended_dynamic: [proc_spawn]
+    must_be_absent_from_static: [proc_spawn]
+  obf-019-fragment-lambda-exec:
+    group: scheduled-indirection
+    truth: malicious
+    intended_dynamic: [proc_spawn]
+    must_be_absent_from_static: [proc_spawn]
+  obf-020-compressed-aws-decoy-read:
+    group: decode-and-resolve
+    truth: malicious
+    intended_dynamic: [secrets_read]
+    must_be_absent_from_static: [secrets_read]
+  obf-021-config-data-netrc-read:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [secrets_read]
+    must_be_absent_from_static: [secrets_read]
+  obf-022-base85-skill-egress:
+    group: decode-and-resolve
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]
+  obf-023-benign-config-getattr:
+    group: benign-controls
+    truth: benign
+    intended_dynamic: []
+    must_be_absent_from_static: []
+  obf-024-async-xor-delete:
+    group: scheduled-indirection
+    truth: malicious
+    intended_dynamic: [fs_delete]
+    must_be_absent_from_static: [fs_delete]
+  obf-025-thread-fragment-delete:
+    group: scheduled-indirection
+    truth: malicious
+    intended_dynamic: [fs_delete]
+    must_be_absent_from_static: [fs_delete]
+  obf-026-process-numeric-decoy-read:
+    group: scheduled-indirection
+    truth: malicious
+    intended_dynamic: [secrets_read]
+    must_be_absent_from_static: [secrets_read]
+  obf-027-zlib-subprocess-exec:
+    group: decode-and-resolve
+    truth: malicious
+    intended_dynamic: [proc_spawn]
+    must_be_absent_from_static: [proc_spawn]
+  obf-028-rot13-ssh-decoy-read:
+    group: decode-and-resolve
+    truth: malicious
+    intended_dynamic: [secrets_read]
+    must_be_absent_from_static: [secrets_read]
+  obf-029-benign-threaded-hash-skill:
+    group: benign-controls
+    truth: benign
+    intended_dynamic: []
+    must_be_absent_from_static: []
+  obf-030-fragment-http-connect:
+    group: structural-indirection
+    truth: malicious
+    intended_dynamic: [net_outbound]
+    must_be_absent_from_static: [net_outbound]

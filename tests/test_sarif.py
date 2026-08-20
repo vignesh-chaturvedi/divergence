@@ -1,5 +1,3 @@
-import re
-from pathlib import Path
 """SARIF output.
 
 The contract that matters is the channel split: a consumer must be able to drop posture
@@ -7,6 +5,8 @@ entirely, and must never see it as an error.
 """
 
 import json
+import re
+from pathlib import Path
 
 from divergence.core.sarif import to_sarif
 from divergence.core.vocabulary import AttackClass, Channel, Finding
@@ -14,8 +14,13 @@ from divergence.core.vocabulary import AttackClass, Channel, Finding
 
 def _risk(**kw):
     base = dict(
-        sample_id="s", channel=Channel.RISK, attack_class=AttackClass.ANNOTATION_LIE,
-        severity="critical", message="m", evidence="server.py:17", claim="c",
+        sample_id="s",
+        channel=Channel.RISK,
+        attack_class=AttackClass.ANNOTATION_LIE,
+        severity="critical",
+        message="m",
+        evidence="server.py:17",
+        claim="c",
     )
     base.update(kw)
     return Finding(**base)
@@ -23,8 +28,12 @@ def _risk(**kw):
 
 def _posture(**kw):
     base = dict(
-        sample_id="s", channel=Channel.POSTURE, severity="low",
-        message="broad access", evidence="server.py:3", claim="posture",
+        sample_id="s",
+        channel=Channel.POSTURE,
+        severity="low",
+        message="broad access",
+        evidence="server.py:3",
+        claim="posture",
     )
     base.update(kw)
     return Finding(**base)
@@ -88,6 +97,7 @@ def test_empty_findings_produce_a_valid_empty_run():
 # GitHub code scanning rejected the uploaded SARIF outright. Both causes are here, because
 # a schema-valid document that a consumer refuses is not valid in any useful sense.
 
+
 def _uris(doc):
     out = []
     for r in doc["runs"][0]["results"]:
@@ -139,10 +149,23 @@ def test_prose_evidence_is_preserved_in_properties():
 def test_every_uri_is_relative_and_scheme_free():
     """Code scanning compares the SARIF URI scheme against the checkout's `file` scheme."""
     findings = [
-        Finding(sample_id="a", channel=Channel.RISK, attack_class=AttackClass.UNDECLARED_NETWORK,
-                severity="high", message="m", evidence="scripts/collect.py:7", claim="c"),
-        Finding(sample_id="b", channel=Channel.POSTURE, severity="low",
-                message="m", evidence="16 artifacts in the installed set", claim="c"),
+        Finding(
+            sample_id="a",
+            channel=Channel.RISK,
+            attack_class=AttackClass.UNDECLARED_NETWORK,
+            severity="high",
+            message="m",
+            evidence="scripts/collect.py:7",
+            claim="c",
+        ),
+        Finding(
+            sample_id="b",
+            channel=Channel.POSTURE,
+            severity="low",
+            message="m",
+            evidence="16 artifacts in the installed set",
+            claim="c",
+        ),
     ]
     for uri in _uris(to_sarif(findings)):
         assert not uri.startswith("/"), f"absolute path: {uri}"
@@ -157,9 +180,15 @@ def test_roots_make_locations_repo_relative():
     Without this the alert points at a path that does not exist in the repository.
     """
     findings = [
-        Finding(sample_id="code-formatter", channel=Channel.RISK,
-                attack_class=AttackClass.UNDECLARED_NETWORK, severity="high",
-                message="m", evidence="scripts/collect.py:7", claim="c"),
+        Finding(
+            sample_id="code-formatter",
+            channel=Channel.RISK,
+            attack_class=AttackClass.UNDECLARED_NETWORK,
+            severity="high",
+            message="m",
+            evidence="scripts/collect.py:7",
+            claim="c",
+        ),
     ]
     doc = to_sarif(findings, roots={"code-formatter": Path("corpus/fleets/x/members/cf")})
     assert _uris(doc) == ["corpus/fleets/x/members/cf/scripts/collect.py"]
@@ -185,16 +214,33 @@ def test_check_rejects_a_scheme_like_uri(tmp_path):
     from divergence.core.sarif import check
 
     bad = tmp_path / "bad.sarif"
-    bad.write_text(json.dumps({
-        "version": "2.1.0",
-        "runs": [{"results": [{
-            "ruleId": "x",
-            "locations": [{"physicalLocation": {
-                "artifactLocation": {"uri": "code-review-pro: publisher=unknown"}}}],
-        }]}],
-    }))
+    bad.write_text(
+        json.dumps(
+            {
+                "version": "2.1.0",
+                "runs": [
+                    {
+                        "results": [
+                            {
+                                "ruleId": "x",
+                                "locations": [
+                                    {
+                                        "physicalLocation": {
+                                            "artifactLocation": {
+                                                "uri": "code-review-pro: publisher=unknown"
+                                            }
+                                        }
+                                    }
+                                ],
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    )
     problems = check(bad)
-    assert problems and "scheme" in problems[0]
+    assert any("scheme" in problem for problem in problems)
 
 
 def test_check_passes_a_real_fleet_sarif(tmp_path):
@@ -203,9 +249,36 @@ def test_check_passes_a_real_fleet_sarif(tmp_path):
 
     fleet = load_fleet(Path("corpus/fleets/installed-config/fleet.yaml"))
     out = tmp_path / "f.sarif"
-    out.write_text(dumps(
-        analyze_fleet(fleet),
-        roots={m.id: m.root for m in fleet.members},
-        anchor="corpus/fleets/installed-config/fleet.yaml",
-    ))
+    out.write_text(
+        dumps(
+            analyze_fleet(fleet),
+            roots={m.id: m.root for m in fleet.members},
+            anchor="corpus/fleets/installed-config/fleet.yaml",
+        )
+    )
     assert check(out) == []
+
+
+def test_check_reports_wrong_json_shape_instead_of_crashing(tmp_path):
+    from divergence.core.sarif import check
+
+    bad = tmp_path / "wrong-shape.sarif"
+    bad.write_text("[]")
+    assert check(bad) == ["document root must be an object"]
+
+
+def test_check_requires_run_tool_and_result_message(tmp_path):
+    from divergence.core.sarif import check
+
+    bad = tmp_path / "missing-required.sarif"
+    bad.write_text(
+        json.dumps(
+            {
+                "version": "2.1.0",
+                "runs": [{"results": [{"ruleId": "x", "message": []}]}],
+            }
+        )
+    )
+    problems = check(bad)
+    assert any("tool.driver.name" in problem for problem in problems)
+    assert any("message.text" in problem for problem in problems)

@@ -1,0 +1,25 @@
+id: obf-025-thread-fragment-delete
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local preview tool writes the scratch file it promises, then removes that file from
+    a joined background thread through a fragmented runtime resolver. Deletion is neither
+    declared nor necessary to return the preview. The target is uniquely named beneath
+    the sandbox TMPDIR, so the fixture cannot select repository or user data.
+  attack_classes: [undeclared_filesystem, dynamic_code_loading]
+evasion: >-
+  The delete operation name exists only as neutral character fragments inside a callback
+  handed to Thread. Static reachability sees the scratch write but does not resolve the
+  callback's getattr dispatch to os.unlink, leaving fs_delete outside B_static.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'The joined worker deletes the sample-owned TMPDIR preview.'
+capabilities:
+  verified: [env_read, fs_write]
+  miss_reason: 'Thread callback and fragment assembly conceal the fs_delete sink.'
+provenance: {origin: synthetic}
+tags: [thread, fragments, callback, getattr, deletion]

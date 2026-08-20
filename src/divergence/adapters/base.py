@@ -7,6 +7,7 @@ worth publishing.
 
 from __future__ import annotations
 
+import platform
 import time
 from typing import Protocol, runtime_checkable
 
@@ -67,6 +68,20 @@ def available_adapters() -> list[Adapter]:
     return sorted(registry.values(), key=lambda a: (a.kind != "reference", a.name))
 
 
+def _metadata(adapter: Adapter) -> dict[str, object]:
+    metadata: dict[str, object] = {
+        "adapter_kind": adapter.kind,
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+    }
+    provider = getattr(adapter, "provenance", None)
+    if callable(provider):
+        supplied = provider()
+        if isinstance(supplied, dict):
+            metadata.update(supplied)
+    return metadata
+
+
 def run_adapter(adapter: Adapter, samples: list[Sample]) -> ScanRun:
     """Drive one adapter across the corpus, isolating its failures.
 
@@ -74,27 +89,43 @@ def run_adapter(adapter: Adapter, samples: list[Sample]) -> ScanRun:
     baseline is still a baseline, and the error count appears in the table.
     """
     started = time.perf_counter()
+    metadata = _metadata(adapter)
 
     try:
         version = adapter.probe()
     except ScannerUnavailable as exc:
         return ScanRun(
             scanner=adapter.name,
+            version=str(getattr(adapter, "version", "unknown")),
             available=False,
             unavailable_reason=str(exc),
             duration_s=time.perf_counter() - started,
+            metadata=metadata,
         )
 
-    run = ScanRun(scanner=adapter.name, version=version, available=True)
+    run = ScanRun(
+        scanner=adapter.name,
+        version=version,
+        available=True,
+        metadata=metadata,
+    )
 
     prepare = getattr(adapter, "prepare", None)
     if callable(prepare):
         try:
             prepare(samples)
-        except Exception as exc:  # noqa: BLE001 — a failed pre-pass must not lose the run
-            run.results["<prepare>"] = SampleResult(
-                sample_id="<prepare>", error=f"{type(exc).__name__}: {exc}"
-            )
+        except ScannerUnavailable as exc:
+            run.available = False
+            run.unavailable_reason = str(exc)
+            run.duration_s = time.perf_counter() - started
+            run.metadata.update(_metadata(adapter))
+            return run
+        except Exception as exc:  # noqa: BLE001 — fail visibly; prepared state is untrustworthy
+            run.available = False
+            run.unavailable_reason = f"prepare failed: {type(exc).__name__}: {exc}"
+            run.duration_s = time.perf_counter() - started
+            run.metadata.update(_metadata(adapter))
+            return run
 
     for sample in samples:
         sample_started = time.perf_counter()
@@ -102,6 +133,13 @@ def run_adapter(adapter: Adapter, samples: list[Sample]) -> ScanRun:
         try:
             findings = tuple(adapter.scan(sample))
             error = None
+        except ScannerUnavailable as exc:
+            run.available = False
+            run.unavailable_reason = str(exc)
+            run.results = {}
+            run.duration_s = time.perf_counter() - started
+            run.metadata.update(_metadata(adapter))
+            return run
         except Exception as exc:  # noqa: BLE001 — a baseline crashing is data, not a bug
             findings = ()
             # A scanner declining an artifact kind it cannot analyse is scope, not failure.
@@ -119,4 +157,5 @@ def run_adapter(adapter: Adapter, samples: list[Sample]) -> ScanRun:
         )
 
     run.duration_s = time.perf_counter() - started
+    run.metadata.update(_metadata(adapter))
     return run

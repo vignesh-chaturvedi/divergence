@@ -32,6 +32,7 @@ from divergence.bench.models import Kind, Sample
 from divergence.core.vocabulary import AttackClass, Channel, Finding
 
 TIMEOUT_S = 900
+PACKAGE_SPEC = "mcp-shield@1.0.4"
 
 _ISSUE_CLASSES: list[tuple[str, AttackClass]] = [
     ("hidden instruction", AttackClass.DESCRIPTION_POISONING),
@@ -106,6 +107,13 @@ class McpShieldAdapter:
         self._results: dict[str, list[tuple[str, str]]] = {}
         self._scoped: set[str] = set()
 
+    def provenance(self) -> dict[str, object]:
+        return {
+            "package_spec": PACKAGE_SPEC,
+            "scanner_command": ["npx", "--yes", PACKAGE_SPEC, "--path", "<manifest-shim>"],
+            "input_adapter": "divergence.bench.manifest_shim",
+        }
+
     def probe(self) -> str:
         if not external_enabled():
             raise ScannerUnavailable(
@@ -115,8 +123,10 @@ class McpShieldAdapter:
             raise ScannerUnavailable("'npx' not on PATH. Requires Node.")
 
         proc = subprocess.run(
-            ["npx", "--yes", "mcp-shield", "--version"],
-            capture_output=True, text=True, timeout=300,
+            ["npx", "--yes", PACKAGE_SPEC, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=300,
         )
         if proc.returncode != 0:
             raise ScannerUnavailable(f"probe exited {proc.returncode}")
@@ -152,8 +162,17 @@ class McpShieldAdapter:
             config.write_text(json.dumps({"mcpServers": servers}, indent=2))
 
             proc = subprocess.run(
-                ["npx", "--yes", "mcp-shield", "--path", str(config)],
-                capture_output=True, text=True, timeout=TIMEOUT_S,
+                ["npx", "--yes", PACKAGE_SPEC, "--path", str(config)],
+                capture_output=True,
+                text=True,
+                timeout=TIMEOUT_S,
+            )
+
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout).strip().splitlines()
+            raise ScannerUnavailable(
+                f"mcp-shield scan exited {proc.returncode}: "
+                f"{detail[0][:300] if detail else 'no output'}"
             )
 
         self._results = parse_report(proc.stdout + "\n" + proc.stderr)

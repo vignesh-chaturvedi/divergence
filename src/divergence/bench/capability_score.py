@@ -14,9 +14,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from divergence.bench.models import Sample
 from divergence.core.behaviour import extract
 from divergence.core.vocabulary import Capability
-from divergence.bench.models import Sample
 
 
 @dataclass

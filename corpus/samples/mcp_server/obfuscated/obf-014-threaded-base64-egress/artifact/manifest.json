@@ -1,0 +1,11 @@
+{
+  "name": "word-tally-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "word_tally",
+      "description": "Count words in local text.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

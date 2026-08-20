@@ -1,227 +1,257 @@
 # Measuring the wrong thing: a precision benchmark for MCP scanners
 
-*Draft — v1. Numbers are reproducible from this repository with `make bench`.*
+*v1.1 release-candidate evidence. The benchmark is tracked and reproducible; the release
+is not yet independently reviewed, tagged, or published.*
 
-## The failure that defines the problem
+## The failure mode
 
-In April 2026 an independent audit ran two open-source MCP scanners across 33 servers and
-433 tools. Of 27 flagged patterns, **only 6 were real** — roughly a 78% false positive
-rate. Eight detections fired on ordinary dependency instructions of the form *"You must
-call this function first."* Nine more fired on a browser-automation server for doing
-browser automation.
+A scanner can fail in two directions. It can miss a planted attack, or it can describe a
+legitimate capability as an attack so often that nobody trusts the output. Recall-only
+benchmarks measure the first failure and hide the second.
 
-That is the whole diagnosis, and it is not a tuning problem.
+This distinction is unusually important for MCP servers and agent skills. A shell server
+is supposed to spawn processes. A credential manager is supposed to read credential
+paths. A workflow may genuinely require one tool to run before another. The capability,
+path, or imperative phrase is not enough to decide whether the artifact is malicious.
 
-Pattern matchers cannot separate a legitimate instruction from an adversarial one, because
-at the level of text **they are the same string**. And they cannot separate a dangerous
-capability from a dangerous artifact, because a shell-execution server is *supposed* to
-execute shells.
+The useful question is relational:
 
-A scanner nobody trusts is a scanner nobody runs.
+> What does this artifact do that it did not tell the user it would do?
 
-## What everyone is measuring
+## Two surfaces, independent representations
 
-Existing benchmarks in this space measure **recall**: can a scanner find the planted
-attack? That is the easy half.
+Agent artifacts expose a **reasoning surface**—names, descriptions, schemas, annotations,
+and skill instructions—and a **code surface**—source, dependencies, bundled files, and
+runtime behavior.
 
-Nobody has built a corpus that measures **precision** against benign artifacts engineered
-to look malicious — which is exactly where every shipping scanner falls over. The template
-exists in application security: the OWASP Benchmark includes safe programs deliberately
-written to resemble vulnerable ones, formalised in recent work as *false-positive traps*.
-No such corpus existed for MCP servers or agent skills.
+Divergence builds separate representations:
+
+- **C**: capabilities claimed by names and descriptions;
+- **S**: capabilities permitted by schemas, annotations, and skill tool grants;
+- **B_static**: capabilities reachable in the implementation without executing it;
+- **B_dynamic**: capabilities observed only inside a verified sandbox boundary.
+
+The rule table is intentionally asymmetric:
+
+| Relation | Interpretation | Channel |
+|---|---|---|
+| B_static ⊆ C | Behavior matches the claim, however powerful | Posture |
+| High-signal B_static ⊄ C | Network, credentials, exec, eval, or delete was undeclared | Risk |
+| S ⊄ C | Inputs permit a hidden interface | Risk |
+| annotation contradicts B_static | The manifest's safety hint is false | Risk |
+| C asks another tool to act | Cross-tool directive, not a local capability | Risk |
+| B_dynamic ⊄ B_static | Execution revealed a statically hidden capability | Risk, coverage-qualified |
+
+Filesystem and environment posture do not automatically become risk because prose cannot
+reliably separate a todo list from an exfiltrator. Lexical extraction maps text to a claim,
+never directly to a verdict. A cross-tool finding requires a directive, not a reference.
+These constraints cost recall in exchange for the benchmark's central goal: precision.
 
 ## The corpus
 
-80 labelled artifacts, split across both artifact types:
+The v1.1 candidate corpus has 110 labelled artifacts across MCP servers and agent skills.
+The obfuscated stratum was expanded to the approximately 30 samples planned in §06, with
+five matched benign controls. Independent human label and rationale review remains a P6
+release gate; the machine-readable labels below are the current candidate truth.
 
-| Stratum | Count | What it is |
-|---|---:|---|
-| Malicious | 25 | Every class in the published taxonomy, plus five that only exist for skills |
-| **FP traps** | **35** | **Benign artifacts that look dangerous. This is the contribution.** |
-| Benign plain | 20 | Ordinary artifacts, for realistic base rates |
+| Stratum | Count | Risk-positive | Benign/control | Purpose |
+|---|---:|---:|---:|---|
+| Malicious | 25 | 25 | 0 | Documented and skill-specific attack classes |
+| False-positive traps | 35 | 0 | 35 | Benign artifacts engineered to look dangerous |
+| Benign plain | 20 | 0 | 20 | Ordinary base-rate controls |
+| Obfuscated | 30 | 25 | 5 | Diverse static-analysis evasions plus matched benign controls |
+| **Total** | **110** | **50** | **60** | |
 
-The trap stratum splits into five families, each isolating one reason a benign artifact
-looks dangerous:
+Ground truth comes from the explicit `label.malicious` boolean, not from the stratum.
+That correction matters: treating every obfuscated sample as positive turned the benign
+decoder control into a false negative and understated static recall.
 
-- **privileged by design** — shell executors, credential managers, browser automation
-- **imperative language** — genuine dependency instructions phrased as commands
-- **wildcard permissions** — skills declaring `"*"` with nothing to hide
-- **security-domain vocabulary** — tools that talk about exploits because they scan for them
-- **broad but honest triggers** — wide relevance matched by wide capability
+Every sample includes a written rationale, expected risk or posture findings, and inert
+artifact bytes. Positive fixtures may reference only loopback, reserved domains, or
+planted decoys. The validator enforces those invariants.
 
-Every sample carries a written rationale of why it is malicious, or specifically why it
-merely looks that way. The rationales are as much of the artifact as the samples, because
-they are what a reviewer checks when they disagree with a verdict.
+All 110 are synthetic fixtures authored for this project. Despite the original plan to
+sample benign artifacts from public registries, none of the current files is copied or
+derived from an upstream package. Embedded registry records are test data. This improves
+license clarity but means the benign stratum is not evidence of a real-world base rate.
+`corpus/dataset.yaml` and `corpus/README.md` record the dataset-level provenance and the
+required immutable revision/version/license fields for future derived samples.
 
-### Matched pairs are where the corpus earns its keep
+### Why traps are the contribution
 
-A note-reader that reads `~/.ssh/id_rsa` while claiming only to read notes is malicious.
-An SSH server that reads the same path is doing its job. A markdown renderer that promises
-to run "entirely offline" and opens a socket is malicious. An HTTP client that promises to
-fetch any URL is not.
+The trap stratum isolates five common false-positive causes:
 
-**The path, the API call, and the keyword are identical across each pair.** Only the
-relationship between claim and behaviour separates them.
+- privileged by design;
+- imperative language;
+- wildcard permissions;
+- security-domain vocabulary;
+- broad but honest triggers.
 
-## The idea
+Matched pairs hold the suspicious surface constant and change the claim. A note reader
+that quietly reads an SSH key diverges; an SSH credential manager reading the same path
+does not. A local renderer opening an undeclared socket diverges; an HTTP client fetching
+its requested URL does not.
 
-There are two surfaces in an agent system. The **code surface** — source, dependencies,
-binaries — is what traditional tooling reads. The **reasoning surface** — descriptions,
-schemas, capability advertisements — is where these attacks live.
+This follows the false-positive-trap pattern used by the
+[OWASP Benchmark](https://owasp.org/www-project-benchmark/): safe and vulnerable cases
+must both be present or a scanner can win by alarming on everything.
 
-Read only the code and you miss a poisoned description entirely; the code is clean. Read
-only the description and you drown in false positives; scary text is usually just honest
-text.
+## Measurement and provenance
 
-The signal is in neither surface. It is in the **disagreement between them**.
+`divergence-bench` scores every adapter through the same normalized finding model.
+Posture never counts toward a verdict. Unsupported artifact kinds are reported as
+not-applicable and removed from that scanner's denominator instead of being manufactured
+into misses.
 
-For every artifact, build independent capability sets and compare:
+The JSON result records:
 
-- **C** — what the name and description *claim*
-- **S** — what the input schema and annotations *permit*
-- **B** — what the implementation actually *reaches for*
+- project, scanner, command/package, Python, and platform versions;
+- corpus dataset identifier and content SHA-256;
+- external package pins and the SHA-256 of Semgrep's required local rules snapshot;
+- per-run duration and not-applicable coverage;
+- raw confusion-matrix counts;
+- raw numerators/denominators and Wilson 95% intervals for trap FPR and recall;
+- per-class attribution and per-trap-family false positives;
+- per-sample execution coverage for the opt-in dynamic adapter.
 
-| Relation | Reading | Output |
-|---|---|---|
-| B ⊆ C | Does what it advertises, however alarming | **Posture**, not a finding |
-| B ⊄ C | Reaches for capability it never declared | High-confidence **risk** |
-| S ⊄ C | Accepts parameters the description omits | Hidden-interface risk |
-| annot ≠ B | `readOnlyHint: true` on something that writes | Critical — the manifest lies |
-| C ⊄ S ∪ B | Instructs behaviour it cannot perform | Injection aimed at *other* tools |
+Percentages without denominators overstate certainty. For example, even a clean result of
+0 false positives in 35 traps has a Wilson 95% interval of **0.0%–9.9%**. A result should
+therefore be written as `0/35 (0.0%; Wilson 95% CI 0.0%–9.9%)`, not simply “zero FPR.”
 
-### Two channels that never mix
+## Candidate results
 
-**Posture** describes what an artifact *can* do. Useful, non-urgent, fires on benign and
-malicious artifacts alike. **Risk** describes divergence — a claim the artifact
-contradicts.
-
-Only risk counts toward a verdict. Splitting these eliminates most of the 78% before a
-single model runs.
-
-## Results
-
-Six scanners, one corpus, one command. Generated by `make bench-external`, not
-transcribed — a published number that drifts from the JSON it came from is worse than no
-number.
-
-| Scanner | FPR-on-traps | Precision | Recall | F1 | FPR-benign | Attribution |
-|---|---:|---:|---:|---:|---:|---:|
-| `divergence` | **0.0%** | 100.0% | 96.0% | 98.0% | 0.0% | 79.2% |
-| `divergence+fleet` | **0.0%** | 100.0% | 96.0% | 98.0% | 0.0% | 87.5% |
-| `null` | **0.0%** | — | 0.0% | — | 0.0% | — |
-| `semgrep` | **5.7%** | 87.5% | 56.0% | 68.3% | 0.0% | 0.0% |
-| `mcp-shield` | **19.0%** | 20.0% | 8.3% | 11.8% | 0.0% | 100.0% |
-| `keyword` | **57.1%** | 45.0% | 72.0% | 55.4% | 10.0% | 72.2% |
-
-The headline: **0.0% false-positive rate on the trap stratum, at 96% recall.**
-
-Worth stating plainly: `null` — a scanner that flags nothing — also scores 0.0%
-FPR-on-traps. Precision without recall is the null scanner. The number only means
-something alongside the recall figure, and there is a test asserting exactly that so a
-regression toward silence cannot pass as precision.
-
-### The most interesting row is semgrep's
-
-`semgrep` is not an MCP scanner. It is a mature, well-engineered general-purpose static
-analyser, and on this corpus it is by far the strongest independent competitor: 5.7%
-FPR-on-traps at 87.5% precision. Any claim that existing tooling is simply bad does not
-survive contact with it.
-
-Its recall breakdown is the argument of this entire project, made by someone else's tool:
-
-| Attack classes | semgrep recall |
-|---|---:|
-| **Code surface** — undeclared exec, network, secrets, dynamic loading | **78%** (14/18) |
-| **Reasoning surface** — poisoning, shadowing, annotation lies, injection | **48%** (11/23) |
-
-§02 predicted exactly this: *"Read only the code and you miss a poisoned description
-entirely; the code is clean."* A tool that reads the implementation finds what the
-implementation does. It scores 6/6 on undeclared network egress and 3/3 on undeclared
-exec — as good as this project does — and 0/1 on annotation lies, 0/2 on return-value
-injection, 0/1 on progressive-disclosure payloads.
-
-**And its attribution is 0%.** Not one of its 14 true positives named the actual attack.
-Semgrep reports `subprocess with shell=True`; it never reports *this server never said it
-would spawn processes*, because it has no representation of what the server claimed. Its
-detections on the malicious stratum are largely incidental to the attack — right answer,
-wrong reason. That is not a criticism of semgrep, which is doing precisely the job it was
-built for. It is the measurement that says the reasoning surface needs its own analysis.
-
-`mcp-shield` — an actual MCP scanner — scores 19.0% FPR-on-traps at 20% precision, and
-completed on only 60% of the corpus. It is included at its real numbers rather than
-omitted.
-
-### The scanner that could not be benchmarked
-
-`mcp-scan`, the most-cited open-source scanner in this space, is now `snyk-agent-scan` — a
-Snyk product. It is absent from the table above for a reason worth stating as a result
-rather than an omission:
-
-- It **transmits tool descriptions to a hosted Snyk analysis API.** There is no offline
-  mode.
-- It **requires a `SNYK_TOKEN` from a Snyk account**, and exits before scanning without one.
-
-**A benchmark that cannot be reproduced without a vendor account is not reproducible.**
-This project's own cost model requires benchmark runs to be fully reproducible offline
-after the first pass; a hosted analyser behind account registration fails that twice over.
-Its adapter reports itself unavailable with that reason rather than silently scoring zero,
-because an absent competitor must never read as a beaten one.
-
-The observation cuts further than one missing row. For the artefact under examination —
-an agent's installed configuration, which is itself sensitive — a scanner that ships that
-configuration's metadata to a vendor is making a trade the user should get to see. It also
-explains why `semgrep` is the more useful competitor here: it runs offline, needs no
-account, and can therefore appear in a table anyone can re-run.
-
-### Where it loses
-
-- **One attack class is missed entirely.** `bundled_binary_no_source` — the corpus sample
-  is a documented text stand-in rather than a real compiled binary.
-- **Attribution is 87.5%, not 100%.** Shadowing and preference manipulation are detected
-  but named `cross_tool_instruction` when only one artifact is visible.
-- **8.1% of capabilities are missed** by static extraction, every one of them a capability
-  reached through a spawned process (`ssh`, `pip install`, `git push`) that no parser can
-  follow.
-- **Prose instructions outside a fenced code block are missed.** Separating "run this" from
-  "people used to run this" is semantic, not syntactic.
-
-## The honest part
-
-**The corpus was written by the same person who wrote the scanner, and the scanner was
-tuned until the corpus came back clean.** A benchmark whose author's tool wins every
-category gets dismissed on sight, and it should be.
-
-Three mitigations, none sufficient on its own:
-
-1. **A holdout set written after tuning.** 26 artifacts in shapes deliberately unlike the
-   corpus. It found three real bugs the 80-sample benchmark structurally could not,
-   including one where only decorator-registered handlers were treated as entrypoints — so
-   any server whose manifest declared plain functions scanned clean.
-2. **Independent competitors in the table.** `semgrep` and `mcp-shield`, at their real
-   numbers. Semgrep beats this project on nothing but loses on nothing it was built for
-   either — and the one place it is decisively behind, the reasoning surface, is the only
-   claim this project actually makes.
-3. **Every limitation above is measured and published**, not estimated.
-
-The corpus is published under a permissive licence with a versioned tag. The strongest
-thing anyone can do with this work is disagree with a label and open an issue.
-
-## Appendix: reproducing
+The prior 80-sample static checkpoint and the unsafe ptrace-only dynamic run are historical
+results on different evidence. The current records were generated on the 110-artifact
+candidate corpus and are tracked under `benchmarks/v1.1/`. JSON is authoritative; Markdown
+is generated from the same run rather than maintained as a second source of truth:
 
 ```bash
-make install     # uv sync, pinned to Python 3.12
-make validate    # every sample well-formed, rationalised, inert
-make test        # unit tests, including all five phase gates
-make bench       # the comparison table
-make capabilities  # capability extraction vs hand-verified ground truth
+uv run divergence-bench bench --detail \
+  --json out/bench.json --markdown out/bench.md
 ```
 
-Third-party scanners are gated behind an explicit opt-in, because running them downloads
-and executes code from other people:
+The current generated summary is:
+
+| Scanner | Trap FPR | Precision | Recall | Attribution |
+|---|---:|---:|---:|---:|
+| `divergence` | 0/35 · 0.0% · CI 0.0–9.9% | 100% | 27/50 · 54.0% · CI 40.4–67.0% | 77.8% |
+| `divergence+fleet` | 0/35 · 0.0% · CI 0.0–9.9% | 100% | 27/50 · 54.0% · CI 40.4–67.0% | 85.2% |
+| `divergence+dynamic` | 0/35 · 0.0% · CI 0.0–9.9% | 100% | 49/50 · 98.0% · CI 89.5–99.6% | 87.8% |
+| Semgrep 1.173.0 | 5/35 · 14.3% · CI 6.3–29.4% | 81.1% | 30/50 · 60.0% · CI 46.2–72.4% | 0% |
+| mcp-shield 1.0.4 | 4/21 · 19.0% | 20.0% | 1/33 · 3.0% | 100% |
+| keyword | 20/35 · 57.1% | 52.9% | 27/50 · 54.0% | 77.8% |
+
+The static result is the precision-first trade: no false alarms in 35 deliberately
+difficult traps, but only 27/50 positives found. Fleet context improves attribution from
+77.8% to 85.2% without changing that confusion matrix. The hardened dynamic tier recovers
+22 additional positives, reaching 49/50 recall while keeping the same 0/35 trap result and
+100% precision.
+
+### What changed after hardening
+
+The P5 recovery gate exercises all 25 obfuscated positive fixtures. Static analysis flags
+three of them; the verified dynamic gate observes **24/25 (96%; Wilson 95% CI
+80.5%–99.3%)**; and their union in the registered combined row flags all 25. Dynamic
+evidence therefore eliminates all 22 static misses in the stratum while all five matched
+obfuscated controls remain clean. Across the whole corpus, confirmed runtime entrypoints
+were reached for 83/110 fixtures. Per-sample
+entrypoint, syscall, duration, and availability metadata travels in the JSON; the combined
+row does not pretend every path executed.
+
+This evidence came from an unprivileged Linux arm64 run. The runner refuses root, clears
+the ambient environment into a private `HOME`, uses exact planted decoys, applies Landlock
+ABI v4 and seccomp denials, observes results with ptrace, enforces resource limits, and
+cleans up the full process group. Docker returned `EPERM` for network-namespace creation;
+Landlock and seccomp independently enforced and verified egress denial instead. ADR 0011
+records both the accepted fail-closed boundary and this platform limitation. The candidate
+workflow must still reproduce the release runner and checks on Linux x86-64.
+
+## Optional adjudication is not the detector
+
+A9 does not send artifacts to a built-in model. It is an off-by-default command contract
+for normalized evidence on genuinely contested risk findings. The selector is
+`floor(total_findings × 0.05)`, never rounded up, and considers only mid-confidence risk
+findings. A scan with fewer than 20 findings sends nothing.
+
+The command configured in `DIVERGENCE_ADJUDICATOR_COMMAND` receives one JSON object on
+stdin and returns `confirm`, `dismiss`, or `uncertain` plus a reason. Adjudication is a
+supplemental record; it never mutates the deterministic finding. ADR 0009 defines the exact
+contract. The command runs only when a caller also passes `divergence scan --adjudicate`
+or sets `ScanOptions(adjudicate=True)` in the pipeline API.
+
+## Third-party baselines
+
+External execution is opt-in and package versions are pinned where the registry permits.
+Semgrep runs the exact `semgrep@1.173.0` package and refuses mutable registry aliases:
+`DIVERGENCE_SEMGREP_RULESET` must identify a reviewed local rules file or directory, and
+the adapter records its content SHA-256.
+
+The candidate Semgrep run used rules SHA-256
+`f8b8461199c4d0ac23c0faf60f8b00a50139854d742e5b7374ccde09f81c9afd`. It found 30/50
+positives and produced seven false positives across all controls, five of them in the 35
+trap fixtures. Its 14.3% trap FPR remains materially above Divergence's 0/35, while its
+60% recall is slightly above static Divergence and far below the hardened dynamic row.
+
+mcp-shield supports only 66.4% of this mixed MCP-server/agent-skill corpus. Its honest
+denominators are therefore 4/21 trap false positives and 1/33 positives found, with 20%
+precision. The keyword control alarms on 20/35 traps and finds 27/50 positives. Coverage
+and applicability are part of the result rather than silently counting unsupported inputs.
+
+`snyk-agent-scan` 0.6.0 requires a Snyk account token and sends tool descriptions to a
+hosted API. The adapter reports it unavailable without that token rather than scoring it
+as zero. Vendor credentials do not belong in public reproducibility CI. ADR 0006 records
+the observed constraint and input-shim tradeoffs.
+
+These external rows are included in the tracked candidate evidence, not carried forward
+from the old corpus. `snyk-agent-scan` remains explicitly unavailable.
+
+## Limitations
+
+- The corpus and scanner share an author. The holdout suite helps, but does not create
+  independent ground truth.
+- Every fixture is synthetic, so performance may not transfer to the distribution of
+  artifacts in public registries.
+- The obfuscated positive set has 25 samples. Its 24/25 dynamic-gate estimate still has a wide
+  80.5%–99.3% Wilson interval.
+- Static extraction cannot follow arbitrary spawned programs, native binaries, or every
+  dynamically assembled call.
+- Dynamic evidence is path-dependent. “Not observed” is not “impossible,” so entrypoint and
+  syscall coverage travels with each result.
+- mcp-shield covers only 66.4% of the corpus, so its smaller denominators are not directly
+  comparable without the coverage qualifier.
+- A9 output is provider-dependent and is excluded from the deterministic benchmark.
+
+The locked P6 gate addresses the most important social limitation: someone other than the
+author must install the candidate, run it, and file an issue before release completion.
+Independent human review of the synthetic labels and rationales is also still open. These
+checks, Linux x86-64 candidate-workflow reproduction, and protected tag/PyPI/GitHub
+publication are why tracked candidate evidence is not described here as a completed
+release.
+
+## Reproducing the candidate
 
 ```bash
-DIVERGENCE_ALLOW_EXTERNAL=1 make bench
+uv sync --frozen --extra dev
+uv run ruff check .
+uv run ruff format --check .
+uv run pyright
+uv run pytest --cov --cov-branch --cov-report=term-missing
+uv run divergence-bench validate --check-p0-target
+uv run divergence-bench bench --detail \
+  --json out/bench.json --markdown out/bench.md
+uv build --clear --no-sources
 ```
 
-Everything else is offline, deterministic and byte-reproducible. There is no model in the
-detection pipeline.
+The local candidate run passed 384 tests and 83.67% branch coverage against the retained
+80% threshold; Ruff and Pyright were clean. Python dependency and RustSec audits also
+reported no known advisories. On a verified Linux host, run `make sandbox-gate` and then
+`make bench-dynamic`. Third-party tools require
+`DIVERGENCE_ALLOW_EXTERNAL=1 make bench-external`.
+
+The tracked static/external and Linux dynamic JSON share analyzer-source SHA-256
+`71aa8d411a8eba580c0ea7b40db7cec4d7550e47c7c78f4195ee5bb16628d15b` and record
+the exact runtime parser versions. Available scanner rows contain zero errors; errored
+samples are excluded from outcome denominators and make the benchmark command fail.
+
+See [`docs/RELEASING.md`](RELEASING.md) for the external-user, PyPI, tag, and GitHub
+release steps that remain.

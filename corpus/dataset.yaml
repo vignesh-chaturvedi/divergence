@@ -1,0 +1,21 @@
+id: divergence-corpus-v1.1
+version: 1.1.0-rc
+status: release-candidate
+license: Apache-2.0
+authors:
+  - Vignesh Chaturvedi
+provenance:
+  origin: synthetic
+  derived_samples: 0
+  statement: >-
+    All 110 fixtures were authored for this project. Embedded package and registry metadata
+    is synthetic test data, not evidence that the artifact was acquired from that source.
+truth:
+  total: 110
+  malicious: 50
+  benign_or_control: 60
+strata:
+  malicious: 25
+  fp_trap: 35
+  benign_plain: 20
+  obfuscated: 30

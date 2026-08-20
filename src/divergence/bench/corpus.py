@@ -97,13 +97,16 @@ def load_sample(sample_dir: Path) -> Sample:
 
     sample_id = str(_require(data, "id", sample_dir))
     kind = _coerce_enum(Kind, _require(data, "kind", sample_dir), sample_dir, "kind")
-    stratum = _coerce_enum(
-        Stratum, _require(data, "stratum", sample_dir), sample_dir, "stratum"
-    )
+    stratum = _coerce_enum(Stratum, _require(data, "stratum", sample_dir), sample_dir, "stratum")
 
     label = data.get("label") or {}
     if not isinstance(label, dict):
         raise CorpusError(f"{manifest}: 'label' must be a mapping")
+    if "malicious" not in label:
+        raise CorpusError(f"{manifest}: missing required key 'label.malicious'")
+    malicious = label["malicious"]
+    if not isinstance(malicious, bool):
+        raise CorpusError(f"{manifest}: 'label.malicious' must be true or false")
 
     attack_classes = tuple(
         _coerce_enum(AttackClass, a, sample_dir, "label.attack_classes")
@@ -119,9 +122,7 @@ def load_sample(sample_dir: Path) -> Sample:
             attack_class=_coerce_enum(
                 AttackClass, e["attack_class"], sample_dir, "expected.attack_class"
             ),
-            channel=_coerce_enum(
-                Channel, e.get("channel", "risk"), sample_dir, "expected.channel"
-            ),
+            channel=_coerce_enum(Channel, e.get("channel", "risk"), sample_dir, "expected.channel"),
             evidence_hint=str(e.get("evidence_hint", "")),
         )
         for e in (data.get("expected") or [])
@@ -145,6 +146,7 @@ def load_sample(sample_dir: Path) -> Sample:
         rationale=str(label.get("rationale", "")).strip(),
         path=sample_dir,
         artifact_path=sample_dir / ARTIFACT_DIR,
+        malicious=malicious,
         attack_classes=attack_classes,
         trap_families=trap_families,
         expected=expected,
@@ -161,9 +163,7 @@ def load_corpus(root: Path) -> list[Sample]:
     if not root.is_dir():
         raise CorpusError(f"{root}: corpus root does not exist")
 
-    samples = [
-        load_sample(manifest.parent) for manifest in sorted(root.rglob(SAMPLE_FILE))
-    ]
+    samples = [load_sample(manifest.parent) for manifest in sorted(root.rglob(SAMPLE_FILE))]
 
     seen: dict[str, Path] = {}
     for s in samples:
@@ -227,14 +227,28 @@ def validate(samples: list[Sample]) -> list[Violation]:
                 f"rationale is {len(s.rationale)} chars, need >= {MIN_RATIONALE_CHARS}",
             )
 
-        if s.stratum.is_positive and not s.attack_classes:
-            fail(s, "attack-class-required", "positive sample declares no attack class")
+        if s.stratum is Stratum.MALICIOUS and not s.is_positive:
+            fail(s, "malicious-stratum-label", "malicious stratum has label.malicious=false")
 
-        if not s.stratum.is_positive and s.attack_classes:
+        if s.stratum in (Stratum.FP_TRAP, Stratum.BENIGN_PLAIN) and s.is_positive:
             fail(
                 s,
-                "no-attack-class-on-negative",
-                f"non-positive sample declares attack classes {[a.value for a in s.attack_classes]}",
+                "benign-stratum-label",
+                f"{s.stratum.value} stratum has label.malicious=true",
+            )
+
+        if s.is_positive and not s.attack_classes:
+            fail(s, "attack-class-required", "positive sample declares no attack class")
+
+        if (
+            not s.is_positive
+            and s.attack_classes
+            and (not s.expected or any(e.channel is Channel.RISK for e in s.expected))
+        ):
+            fail(
+                s,
+                "benign-classes-are-posture-only",
+                "benign samples may declare attack classes only for expected posture findings",
             )
 
         if s.stratum is Stratum.FP_TRAP and not s.trap_families:
@@ -244,11 +258,20 @@ def validate(samples: list[Sample]) -> list[Violation]:
                 "trap declares no family — why does it look dangerous?",
             )
 
+        if s.stratum is Stratum.FP_TRAP and s.is_positive:
+            fail(s, "trap-must-be-benign", "false-positive trap has label.malicious=true")
+
         if s.stratum is not Stratum.FP_TRAP and s.trap_families:
             fail(s, "trap-family-only-on-traps", "non-trap declares a trap family")
 
-        if s.stratum.is_positive and not s.expected:
+        if s.is_positive and not s.expected:
             fail(s, "expected-required", "positive sample declares no expected findings")
+
+        if s.is_positive and s.expected and not any(e.channel is Channel.RISK for e in s.expected):
+            fail(s, "risk-expected-required", "positive sample declares no expected risk finding")
+
+        if not s.is_positive and any(e.channel is Channel.RISK for e in s.expected):
+            fail(s, "no-risk-on-benign", "benign sample declares an expected risk finding")
 
         # An obfuscated sample must say how it hides from static analysis — that claim is
         # the sample's contribution, and the sandbox result is scored against it.
@@ -267,7 +290,7 @@ def validate(samples: list[Sample]) -> list[Violation]:
         # strangers, so payloads must not reach anything real. Negative samples are the
         # opposite case: a benign weather server referencing a real API host is exactly
         # the realism the benchmark needs, and nothing in a sample is ever executed.
-        if not s.stratum.is_positive:
+        if not s.is_positive:
             continue
 
         for host in _URL_RE.findall(_artifact_text(s)):
@@ -282,7 +305,4 @@ def validate(samples: list[Sample]) -> list[Violation]:
 
 
 def counts_by_stratum(samples: list[Sample]) -> dict[Stratum, int]:
-    return {
-        st: sum(1 for s in samples if s.stratum is st)
-        for st in Stratum
-    }
+    return {st: sum(1 for s in samples if s.stratum is st) for st in Stratum}

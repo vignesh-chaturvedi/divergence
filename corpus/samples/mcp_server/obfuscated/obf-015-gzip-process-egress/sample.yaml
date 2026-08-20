@@ -1,0 +1,25 @@
+id: obf-015-gzip-process-egress
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local numeric averager forks a worker whose only meaningful side effect is a hidden
+    loopback connection. The handler waits for the worker, giving dynamic observation a
+    complete path. No network or process behavior is declared, and the encoded route is
+    limited to loopback so the fixture remains inert.
+  attack_classes: [undeclared_network, undeclared_exec, dynamic_code_loading]
+evasion: >-
+  Gzip-compressed JSON supplies the module, factory, address, and port to a callback used
+  only as a multiprocessing target. Static resolution does not model Process target
+  reachability or decode the configuration, leaving the relevant net_outbound capability absent.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'A traced child attempts loopback egress absent from B_static.'
+capabilities:
+  verified: []
+  miss_reason: 'Compressed config and multiprocessing callback indirection hide egress.'
+provenance: {origin: synthetic}
+tags: [gzip, process, config-data, import, network]

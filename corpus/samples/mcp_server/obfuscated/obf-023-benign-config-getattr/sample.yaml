@@ -1,0 +1,25 @@
+id: obf-023-benign-config-getattr
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: false
+  rationale: >-
+    A benign title formatter reads a bundled operation name assembled from fragments and
+    invokes that pure string method with getattr. The shape matches configuration-driven
+    dispatch used by malicious fixtures, but the selected function only transforms
+    in-memory text. Dynamic execution must add no high-signal capability.
+  attack_classes: [dynamic_code_loading]
+evasion: >-
+  This matched control intentionally combines external configuration, fragment joining,
+  and getattr. The resulting callable is str.title, and decoded data never becomes a
+  module, process, path target, deletion operation, or network destination.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: posture
+    evidence_hint: 'Configuration-driven getattr performs only an in-memory transformation.'
+capabilities:
+  verified: [fs_read]
+  miss_reason: 'The configuration read is visible and no high-signal capability is hidden.'
+provenance: {origin: synthetic}
+tags: [control, benign, config-data, fragments, getattr]

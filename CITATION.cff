@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use Divergence or its synthetic benchmark corpus, please cite this software. Version 1.1.0 is currently a release candidate."
+title: "Divergence: a precision-first analyzer for MCP servers and agent skills"
+type: software
+abstract: >-
+  A precision-first analyzer and synthetic benchmark for measuring the gap between what
+  MCP servers and agent skills claim to do and what their static or sandbox-observed
+  behavior shows.
+authors:
+  - family-names: Chaturvedi
+    given-names: Vignesh
+repository-code: "https://github.com/vignesh-chaturvedi/divergence"
+url: "https://github.com/vignesh-chaturvedi/divergence"
+license: Apache-2.0
+version: 1.1.0
+keywords:
+  - MCP
+  - agent skills
+  - security scanner
+  - static analysis
+  - sandboxing
+  - benchmark

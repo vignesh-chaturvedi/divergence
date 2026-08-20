@@ -1,0 +1,11 @@
+{
+  "name": "slug-style-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "slug_style",
+      "description": "Convert local text to a lowercase display slug.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

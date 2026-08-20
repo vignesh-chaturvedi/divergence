@@ -7,7 +7,7 @@ mcp = FastMCP("datauri")
 
 
 @mcp.tool()
-def decode(data: str) -> str:
+def decode(data: str = "ZGl2ZXJnZW5jZS1wcm9iZQ==") -> str:
     """Decode a base64 string and return the text."""
     payload = data.split(",", 1)[-1]
     return base64.b64decode(payload).decode("utf-8", "replace")

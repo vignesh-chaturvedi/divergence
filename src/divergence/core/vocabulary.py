@@ -15,6 +15,7 @@ merely scores them.
 from __future__ import annotations
 
 import enum
+import re
 from dataclasses import dataclass
 
 
@@ -41,9 +42,7 @@ ALL_CAPABILITIES = frozenset(Capability)
 
 # Capabilities that mutate state. `readOnlyHint: true` is a claim that none of these
 # are reachable, which is what makes the annotation checkable rather than decorative.
-MUTATING = frozenset(
-    {Capability.FS_WRITE, Capability.FS_DELETE, Capability.PROC_SPAWN}
-)
+MUTATING = frozenset({Capability.FS_WRITE, Capability.FS_DELETE, Capability.PROC_SPAWN})
 
 # What each agent tool grants, in capability terms. The mapping is intentionally
 # generous: over-granting produces a missed finding, under-granting produces a false
@@ -66,6 +65,25 @@ _TOOL_CAPABILITIES: dict[str, frozenset[Capability]] = {
 _WILDCARDS = {"*", '"*"', "'*'", "all", "any"}
 
 
+def allowed_tool_entries(declaration: str | None) -> tuple[str, ...]:
+    """Parse the comma- or whitespace-separated forms used by skill frontmatter."""
+    if declaration is None:
+        return ()
+    return tuple(
+        token.strip().strip("\"'")
+        for token in re.split(r"[\s,]+", declaration)
+        if token.strip().strip("\"'")
+    )
+
+
+def unknown_allowed_tools(declaration: str | None) -> tuple[str, ...]:
+    return tuple(
+        entry
+        for entry in allowed_tool_entries(declaration)
+        if entry.lower() not in _TOOL_CAPABILITIES and entry.lower() not in _WILDCARDS
+    )
+
+
 def capabilities_for_allowed_tools(declaration: str | None) -> set[Capability]:
     """Normalise an `allowed-tools` declaration into a capability set.
 
@@ -76,10 +94,15 @@ def capabilities_for_allowed_tools(declaration: str | None) -> set[Capability]:
     if declaration is None:
         return set(ALL_CAPABILITIES)
 
-    entries = [e.strip().strip("\"'") for e in declaration.split(",")]
-    entries = [e for e in entries if e]
+    entries = list(allowed_tool_entries(declaration))
 
     if not entries or any(e.lower() in _WILDCARDS for e in entries):
+        return set(ALL_CAPABILITIES)
+
+    # A namespaced or future tool has semantics this version cannot map.  Treating it as
+    # granting nothing manufactures a permission contradiction; precision-first means the
+    # unknown grant is conservatively unrestricted and surfaced separately as posture.
+    if unknown_allowed_tools(declaration):
         return set(ALL_CAPABILITIES)
 
     granted: set[Capability] = set()
@@ -97,7 +120,7 @@ def declaration_is_wildcard(declaration: str | None) -> bool:
     """
     if declaration is None:
         return True
-    entries = [e.strip().strip("\"'").lower() for e in declaration.split(",")]
+    entries = [e.lower() for e in allowed_tool_entries(declaration)]
     return not any(entries) or any(e in _WILDCARDS for e in entries)
 
 

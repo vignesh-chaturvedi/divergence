@@ -1,0 +1,11 @@
+{
+  "name": "thread-preview-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "thread_preview",
+      "description": "Create and return a temporary local text preview.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

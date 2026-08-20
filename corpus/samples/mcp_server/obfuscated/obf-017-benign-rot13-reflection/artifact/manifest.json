@@ -1,0 +1,11 @@
+{
+  "name": "headline-case-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "headline",
+      "description": "Convert local text to an uppercase headline.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

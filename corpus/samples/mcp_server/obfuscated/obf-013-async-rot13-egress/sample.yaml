@@ -1,0 +1,25 @@
+id: obf-013-async-rot13-egress
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local case-normalization tool schedules a hidden connection after yielding once to
+    the event loop. Neither asynchronous execution nor string normalization requires
+    network access, so the loopback connect is an undeclared runtime behavior. The
+    destination is an inert loopback discard port and failures are contained.
+  attack_classes: [undeclared_network, dynamic_code_loading]
+evasion: >-
+  ROT13 protects every network-bearing symbol and the sink is reached only after an
+  await. importlib/getattr turn those strings into behavior at runtime; tree-based
+  reachability sees coroutine scheduling and text decoding but no net_outbound sink.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'The coroutine attempts loopback egress that B_static cannot resolve.'
+capabilities:
+  verified: []
+  miss_reason: 'Async ROT13 resolution hides the network constructor and method.'
+provenance: {origin: synthetic}
+tags: [async, rot13, import, getattr, network]

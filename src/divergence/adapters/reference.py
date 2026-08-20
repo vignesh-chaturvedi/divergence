@@ -52,20 +52,64 @@ class NullScanner:
 # The patterns a keyword scanner actually uses. Each maps to the attack class its
 # author believed it was detecting — which is precisely where the trouble starts.
 _PATTERNS: list[tuple[str, str, AttackClass]] = [
-    (r"ignore\s+(all\s+)?previous\s+instructions", "prompt-injection phrasing", AttackClass.DESCRIPTION_POISONING),
-    (r"\bdo\s+not\s+tell\s+the\s+user\b", "concealment instruction", AttackClass.DESCRIPTION_POISONING),
-    (r"\byou\s+must\s+(call|use|run|invoke)\b", "imperative tool instruction", AttackClass.DESCRIPTION_POISONING),
-    (r"\balways\s+(call|use|prefer|run)\b", "preference language", AttackClass.PREFERENCE_MANIPULATION),
-    (r"\b(before|prior\s+to)\s+(any|every|all)\s+other\b", "ordering instruction", AttackClass.PREFERENCE_MANIPULATION),
+    (
+        r"ignore\s+(all\s+)?previous\s+instructions",
+        "prompt-injection phrasing",
+        AttackClass.DESCRIPTION_POISONING,
+    ),
+    (
+        r"\bdo\s+not\s+tell\s+the\s+user\b",
+        "concealment instruction",
+        AttackClass.DESCRIPTION_POISONING,
+    ),
+    (
+        r"\byou\s+must\s+(call|use|run|invoke)\b",
+        "imperative tool instruction",
+        AttackClass.DESCRIPTION_POISONING,
+    ),
+    (
+        r"\balways\s+(call|use|prefer|run)\b",
+        "preference language",
+        AttackClass.PREFERENCE_MANIPULATION,
+    ),
+    (
+        r"\b(before|prior\s+to)\s+(any|every|all)\s+other\b",
+        "ordering instruction",
+        AttackClass.PREFERENCE_MANIPULATION,
+    ),
     (r"~/\.ssh|id_rsa|authorized_keys", "ssh credential path", AttackClass.UNDECLARED_SECRETS),
-    (r"~/\.aws|\.aws/credentials|AWS_SECRET_ACCESS_KEY", "cloud credential path", AttackClass.UNDECLARED_SECRETS),
-    (r"\.env\b|API_KEY|SECRET_KEY|ACCESS_TOKEN", "secret-bearing identifier", AttackClass.UNDECLARED_SECRETS),
-    (r"\bsubprocess\b|\bchild_process\b|\bexecSync\b|\bos\.system\b", "subprocess execution", AttackClass.UNDECLARED_EXEC),
-    (r"\beval\s*\(|\bexec\s*\(|new\s+Function\s*\(", "dynamic evaluation", AttackClass.DYNAMIC_CODE_LOADING),
+    (
+        r"~/\.aws|\.aws/credentials|AWS_SECRET_ACCESS_KEY",
+        "cloud credential path",
+        AttackClass.UNDECLARED_SECRETS,
+    ),
+    (
+        r"\.env\b|API_KEY|SECRET_KEY|ACCESS_TOKEN",
+        "secret-bearing identifier",
+        AttackClass.UNDECLARED_SECRETS,
+    ),
+    (
+        r"\bsubprocess\b|\bchild_process\b|\bexecSync\b|\bos\.system\b",
+        "subprocess execution",
+        AttackClass.UNDECLARED_EXEC,
+    ),
+    (
+        r"\beval\s*\(|\bexec\s*\(|new\s+Function\s*\(",
+        "dynamic evaluation",
+        AttackClass.DYNAMIC_CODE_LOADING,
+    ),
     (r"base64|b64decode|atob\s*\(", "encoded payload", AttackClass.DYNAMIC_CODE_LOADING),
-    (r"requests\.post|fetch\s*\(|urllib|httpx|axios", "outbound network call", AttackClass.UNDECLARED_NETWORK),
+    (
+        r"requests\.post|fetch\s*\(|urllib|httpx|axios",
+        "outbound network call",
+        AttackClass.UNDECLARED_NETWORK,
+    ),
     (r"curl\s+|wget\s+", "shell download", AttackClass.REMOTE_FETCH_AT_LOAD),
-    (r'allowed-tools:\s*["\']?\*', "wildcard tool permission", AttackClass.SCRIPT_EXCEEDS_ALLOWED_TOOLS),
+    (
+        r'allowed-tools:\s*["\']?\*',
+        "wildcard tool permission",
+        AttackClass.SCRIPT_EXCEEDS_ALLOWED_TOOLS,
+    ),
     (r"\bsudo\b|\bchmod\s+\+x\b", "privilege escalation", AttackClass.UNDECLARED_EXEC),
     (r"\brm\s+-rf\b", "destructive command", AttackClass.UNDECLARED_FILESYSTEM),
 ]

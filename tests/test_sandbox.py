@@ -8,19 +8,41 @@ optional instead of becoming an untested corner.
 
 import json
 
-from divergence.core.sandbox import Dynamic, Observation, parse_report, unavailable
+from divergence.core.sandbox import _validate_probe, parse_report, unavailable
 from divergence.core.vocabulary import Capability
 
 SAMPLE = {
     "schema": "divergence.sandbox/1",
+    "runner_version": "1.1.0",
     "capabilities": ["net_outbound", "secrets_read"],
     "observations": [
-        {"capability": "net_outbound", "syscall": "connect", "target": "127.0.0.1:9", "decoy": False},
-        {"capability": "secrets_read", "syscall": "openat", "target": "/root/.ssh/id_rsa", "decoy": True},
+        {
+            "capability": "net_outbound",
+            "syscall": "connect",
+            "target": "127.0.0.1:9",
+            "decoy": False,
+            "succeeded": False,
+            "result": -1,
+        },
+        {
+            "capability": "secrets_read",
+            "syscall": "openat",
+            "target": "/tmp/divergence-overlay-1/home/.ssh/id_rsa",
+            "decoy": True,
+            "succeeded": True,
+            "result": 3,
+        },
     ],
     "coverage": {
-        "syscalls_observed": 812, "entrypoints_invoked": 1,
-        "exited_cleanly": True, "exit_code": 0, "timed_out": False,
+        "syscalls_observed": 812,
+        "observations_dropped": 0,
+        "entrypoints_invoked": 1,
+        "entrypoints_completed": 1,
+        "entrypoints_failed": 0,
+        "confinement_enforced": True,
+        "exited_cleanly": True,
+        "exit_code": 0,
+        "timed_out": False,
     },
     "evidence": {"net_outbound": "connect(127.0.0.1:9)"},
     "limitations": ["env_read is not observable via syscalls"],
@@ -39,15 +61,30 @@ def test_decoy_reads_are_isolated():
     """A decoy read is unambiguous — nothing legitimate opens a planted fake key."""
     d = parse_report(json.dumps(SAMPLE))
     assert len(d.decoy_reads) == 1
-    assert d.decoy_reads[0].target == "/root/.ssh/id_rsa"
+    assert d.decoy_reads[0].target.endswith("/home/.ssh/id_rsa")
 
 
 def test_unknown_capability_is_skipped_not_fatal():
     """A newer runner must degrade this build, not crash it."""
     doc = dict(SAMPLE)
+    doc["capabilities"] = ["quantum_entanglement", "net_outbound"]
     doc["observations"] = [
-        {"capability": "quantum_entanglement", "syscall": "x", "target": "y"},
-        {"capability": "net_outbound", "syscall": "connect", "target": "z"},
+        {
+            "capability": "quantum_entanglement",
+            "syscall": "x",
+            "target": "y",
+            "decoy": False,
+            "succeeded": False,
+            "result": -1,
+        },
+        {
+            "capability": "net_outbound",
+            "syscall": "connect",
+            "target": "z",
+            "decoy": False,
+            "succeeded": False,
+            "result": -1,
+        },
     ]
     d = parse_report(json.dumps(doc))
     assert d.capabilities == {Capability.NET_OUTBOUND}
@@ -63,8 +100,22 @@ def test_empty_set_with_no_syscalls_is_unknown_not_clean():
     An empty capability set means "does nothing" only if something ran. Otherwise it means
     "nothing ran", and those are opposite conclusions.
     """
-    doc = dict(SAMPLE, observations=[], coverage={"syscalls_observed": 0, "entrypoints_invoked": 0,
-                                                  "exited_cleanly": False, "exit_code": -1, "timed_out": False})
+    doc = dict(
+        SAMPLE,
+        capabilities=[],
+        observations=[],
+        coverage={
+            "syscalls_observed": 0,
+            "observations_dropped": 0,
+            "entrypoints_invoked": 0,
+            "entrypoints_completed": 0,
+            "entrypoints_failed": 0,
+            "confinement_enforced": True,
+            "exited_cleanly": False,
+            "exit_code": -1,
+            "timed_out": False,
+        },
+    )
     d = parse_report(json.dumps(doc))
     assert d.available
     assert not d.ran
@@ -76,7 +127,75 @@ def test_unavailable_carries_its_reason():
     assert not d.available and "Darwin" in d.coverage_note
 
 
+def test_probe_requires_an_unprivileged_launcher_identity():
+    probe = {
+        "schema": "divergence.sandbox.probe/1",
+        "runner_version": "1.1.0",
+        "platform": "linux",
+        "available": True,
+        "landlock_abi": 4,
+        "required_landlock_abi": 4,
+        "seccomp_available": True,
+        "unprivileged_identity": True,
+        "identity_reason": None,
+    }
+    assert _validate_probe(json.dumps(probe)) == ""
+
+    probe["unprivileged_identity"] = False
+    probe["identity_reason"] = "uid 0 is not accepted"
+    assert "uid 0" in _validate_probe(json.dumps(probe))
+
+
+def test_failed_credential_attempt_is_high_signal_but_not_a_decoy_read():
+    doc = dict(SAMPLE)
+    doc["capabilities"] = ["secrets_read"]
+    doc["observations"] = [
+        {
+            "capability": "secrets_read",
+            "syscall": "openat",
+            "target": "/root/.ssh/id_rsa",
+            "decoy": False,
+            "succeeded": False,
+            "result": -13,
+        }
+    ]
+    parsed = parse_report(json.dumps(doc))
+    assert parsed.capabilities == {Capability.SECRETS_READ}
+    assert parsed.decoy_reads == ()
+    assert not parsed.observations[0].succeeded
+
+
+def test_failed_attempt_cannot_be_labeled_a_decoy_read():
+    doc = dict(SAMPLE)
+    doc["observations"] = [dict(SAMPLE["observations"][1], succeeded=False, result=-13)]
+    assert not parse_report(json.dumps(doc)).available
+
+
+def test_report_requires_schema_shapes_and_confinement():
+    wrong_schema = dict(SAMPLE, schema="divergence.sandbox/99")
+    assert not parse_report(json.dumps(wrong_schema)).available
+
+    wrong_coverage = dict(SAMPLE, coverage={"syscalls_observed": "many"})
+    assert not parse_report(json.dumps(wrong_coverage)).available
+
+    unconstrained = dict(SAMPLE, coverage=dict(SAMPLE["coverage"], confinement_enforced=False))
+    parsed = parse_report(json.dumps(unconstrained))
+    assert not parsed.available
+    assert "Landlock" in parsed.unavailable_reason
+
+
+def test_non_json_artifact_output_cannot_be_mistaken_for_a_report():
+    parsed = parse_report("artifact says hello\n" + json.dumps(SAMPLE))
+    assert not parsed.available
+
+
+def test_coverage_note_distinguishes_attempted_from_succeeded():
+    note = parse_report(json.dumps(SAMPLE)).coverage_note
+    assert "1/2 recorded operations succeeded" in note
+
+
 # --- rule table row six: B_dynamic ⊄ B_static ----------------------------------------
+
 
 def _static(*caps):
     return set(caps)
@@ -138,3 +257,44 @@ def test_every_dynamic_finding_carries_its_coverage():
     dynamic = parse_report(json.dumps(SAMPLE))
     for f in dynamic_divergence(_static(), dynamic, sample_id="x"):
         assert "syscalls observed" in f.claim or "syscalls observed" in f.evidence
+
+
+def test_gate_models_controls_from_truth_labels_not_a_magic_id():
+    from divergence.bench.sandbox_gate import GateReport, SampleDelta
+
+    report = GateReport(
+        deltas=[
+            SampleDelta(sample_id="payload", malicious=True, risk_findings=1),
+            SampleDelta(sample_id="any-control-id", malicious=False, risk_findings=0),
+        ]
+    )
+    assert [delta.sample_id for delta in report.payloads] == ["payload"]
+    assert report.caught == 1
+    assert report.control_clean
+
+
+def test_gate_counts_path_bound_decoy_evidence_as_a_catch():
+    from divergence.bench.sandbox_gate import GateReport, SampleDelta
+
+    report = GateReport(
+        deltas=[
+            SampleDelta(
+                sample_id="numeric-decoy",
+                malicious=True,
+                risk_findings=1,
+                high_signal_revealed=set(),
+            ),
+            SampleDelta(sample_id="static-visible", malicious=True, risk_findings=0),
+            SampleDelta(sample_id="control", malicious=False, risk_findings=0),
+        ]
+    )
+
+    assert report.caught == 1
+    assert report.catch_rate == 0.5
+
+
+def test_gate_cannot_pass_vacuously_without_a_control():
+    from divergence.bench.sandbox_gate import GateReport, SampleDelta
+
+    report = GateReport(deltas=[SampleDelta(sample_id="payload", malicious=True)])
+    assert not report.control_clean

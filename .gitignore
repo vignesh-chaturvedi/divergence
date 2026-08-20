@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 .venv/
 .bench-cache/
+.coverage
+.ruff_cache/
+.superstack/
 out/
 .pytest_cache/
 sandbox/target/

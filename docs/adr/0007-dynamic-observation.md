@@ -1,6 +1,11 @@
 # ADR 0007 — What B_dynamic proves, and what it cannot
 
-**Status:** accepted · **Phase:** P5 · **Date:** 2026-08-20
+**Status:** superseded in part by ADR 0008; current closure in ADR 0011 · **Phase:** P5
+historical · **Date:** 2026-08-20
+
+> ADR 0008 supersedes this ADR's ptrace-only acceptance and “Containment held” conclusion.
+> The diagnostic results below predate verified environment and network isolation and are
+> not v1.1 release evidence. The instrumentation and interpretation lessons remain valid.
 
 ## Context
 
@@ -8,12 +13,13 @@ Static analysis loses to obfuscation. A base64-assembled socket call, a hex-deco
 a command built from fragments — each defeats reachability analysis, and none of them
 defeats execution under observation.
 
-## Decision: ptrace supervision, not seccomp-kill
+## Historical decision: ptrace supervision, not seccomp-kill
 
 §05 specifies seccomp-bpf in **trace** mode: record everything, block nothing except the
-genuinely destructive. `SECCOMP_RET_TRACE` requires a ptrace supervisor regardless, so the
-supervisor is the substance and a seccomp filter is an optimisation over it. The supervisor
-is implemented; the filter is not yet, and the crate says so.
+genuinely destructive. `SECCOMP_RET_TRACE` requires a ptrace supervisor regardless. This
+ADR originally treated the supervisor as the substance and a seccomp filter as an
+optimisation. That conclusion is superseded: the current runner installs a seccomp denial
+layer as part of the fail-closed boundary recorded in ADR 0011.
 
 ## Decision: a driver, because importing is not running
 
@@ -52,7 +58,7 @@ risk when credential access was not already visible in B_static, and posture whe
 The decoy still earns its place — it makes the read observable and supplies a concrete path
 as evidence.
 
-## Results — the P5 gate
+## Historical diagnostic results — not the current P5 gate
 
 `divergence-bench sandbox-gate`, on the obfuscated stratum:
 
@@ -81,10 +87,14 @@ branch that does not run — which is precisely why coverage travels with every 
   coverage note is attached to every finding.
 - **An artifact re-executing the same interpreter is not counted** as a process spawn, a
   side effect of suppressing the driver's own exec.
-- **The seccomp filter is not yet installed**; ptrace alone carries the observation.
+- **At the time of this diagnostic, no seccomp filter was installed.** Ptrace alone carried
+  the observation, which is one reason the run is historical rather than release evidence.
 
-## Containment held
+## Superseded containment conclusion
 
 The crate is consumed over JSON and never linked. On macOS `availability()` returns a
 reason and the pipeline continues static-only — verified by tests that run on both
 platforms. §05's insulation requirement is met: the sandbox cannot take the rest down.
+
+This conclusion did not test ambient environment inheritance or real network egress and is
+superseded by ADR 0008. Ptrace observation alone is not containment.

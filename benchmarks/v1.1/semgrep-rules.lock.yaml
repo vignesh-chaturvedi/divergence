@@ -1,0 +1,16 @@
+schema: divergence-semgrep-rules-lock/v1
+scanner: semgrep@1.173.0
+source:
+  repository: https://github.com/semgrep/semgrep-rules.git
+  revision: 40b8c63f75dc7c22c8a77482d73bfb864b146f7e
+  license: Semgrep Rules License 1.0
+included_paths:
+  - ai
+  - bash
+  - python
+  - typescript
+snapshot_sha256: f8b8461199c4d0ac23c0faf60f8b00a50139854d742e5b7374ccde09f81c9afd
+validation:
+  semgrep_config_valid: true
+  mutable_registry_alias_used: false
+  recorded: 2026-08-20

@@ -30,14 +30,16 @@ from __future__ import annotations
 import math
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
 
 from divergence.core.acquire import Artifact
 from divergence.core.behaviour import Behaviour
+from divergence.core.claim_model import configured_backend
 from divergence.core.claims import Claim, extract_claim
-from divergence.core.engine import declared_text
+from divergence.core.engine import HIGH_SIGNAL, declared_text
 from divergence.core.pipeline import load
 from divergence.core.vocabulary import AttackClass, Capability, Channel, Finding
 
@@ -63,6 +65,8 @@ class FleetMember:
     artifact: Artifact
     behaviour: Behaviour
     claim: Claim
+    trigger_claim: Claim
+    operational_claim: Claim
 
     @property
     def display_name(self) -> str:
@@ -91,6 +95,7 @@ class Fleet:
 
 
 # --- similarity -----------------------------------------------------------------------
+
 
 def _ngrams(text: str, n: int = _NGRAM) -> Counter:
     cleaned = " ".join(text.lower().split())
@@ -122,6 +127,7 @@ def _surface(member: FleetMember) -> str:
 
 # --- provenance -----------------------------------------------------------------------
 
+
 def _provenance_strength(member: FleetMember) -> int:
     """A crude establishment score. Higher means more likely to be the original.
 
@@ -150,7 +156,7 @@ def _provenance_strength(member: FleetMember) -> int:
         # Anything published in the current year is new; older is established.
         year = p.first_published[:4]
         if year.isdigit():
-            score += 2 if int(year) <= 2025 else -1
+            score += 2 if int(year) < datetime.now(UTC).year else -1
 
     if p.typosquat_distance:
         score -= 3
@@ -162,6 +168,7 @@ def _provenance_strength(member: FleetMember) -> int:
 
 
 # --- the analyzers --------------------------------------------------------------------
+
 
 def _shadowing(fleet: Fleet) -> list[Finding]:
     """Near-duplicates from different publishers.
@@ -195,9 +202,7 @@ def _shadowing(fleet: Fleet) -> list[Finding]:
                 asserts_a = a.claim.instructs_other_tools
                 asserts_b = b.claim.instructs_other_tools
                 if asserts_a != asserts_b:
-                    strength_a, strength_b = (
-                        (-1, 0) if asserts_a else (0, -1)
-                    )
+                    strength_a, strength_b = (-1, 0) if asserts_a else (0, -1)
 
             if strength_a == strength_b:
                 findings.append(
@@ -258,7 +263,16 @@ def _preference_manipulation(fleet: Fleet) -> list[Finding]:
         if not member.claim.instructs_other_tools:
             continue
 
-        siblings = [m for m in fleet.members if m.id != member.id]
+        siblings = [
+            m
+            for m in fleet.members
+            if m.id != member.id
+            and (
+                member.claim.capabilities & m.claim.capabilities
+                or cosine(member.display_name, m.display_name) >= 0.35
+                or cosine(_surface(member), _surface(m)) >= 0.30
+            )
+        ]
         if not siblings:
             continue
 
@@ -295,10 +309,12 @@ def _trigger_scope(fleet: Fleet) -> list[Finding]:
     for member in fleet.members:
         if member.artifact.skill is None:
             continue
-        if member.claim.trigger_scope is not TriggerScope.UNIVERSAL:
+        if member.trigger_claim.trigger_scope is not TriggerScope.UNIVERSAL:
             continue
 
-        undeclared = member.behaviour.capabilities - member.claim.capabilities
+        undeclared = (
+            member.behaviour.capabilities - member.operational_claim.capabilities
+        ) & HIGH_SIGNAL
         if not undeclared:
             continue
 
@@ -315,7 +331,7 @@ def _trigger_scope(fleet: Fleet) -> list[Finding]:
                     f"{', '.join(sorted(c.value for c in undeclared))}"
                 ),
                 evidence=member.behaviour.evidence.get(cap, ""),
-                claim=member.claim.trigger_evidence,
+                claim=member.trigger_claim.trigger_evidence,
                 confidence=0.8,
             )
         )
@@ -381,8 +397,15 @@ def analyze_fleet(fleet: Fleet) -> list[Finding]:
 
 # --- loading --------------------------------------------------------------------------
 
-def build_fleet(entries: list[tuple[str, Path]], *, name: str = "fleet", expected: dict | None = None) -> Fleet:
+
+def build_fleet(
+    entries: list[tuple[str, Path]], *, name: str = "fleet", expected: dict | None = None
+) -> Fleet:
     """Assemble a Fleet from (id, artifact root) pairs."""
+    ids = [member_id for member_id, _ in entries]
+    if len(ids) != len(set(ids)):
+        raise FleetError("fleet member ids must be unique")
+    backend = configured_backend()
     members = []
     for member_id, root in entries:
         artifact, behaviour = load(root)
@@ -392,7 +415,14 @@ def build_fleet(entries: list[tuple[str, Path]], *, name: str = "fleet", expecte
                 root=Path(root),
                 artifact=artifact,
                 behaviour=behaviour,
-                claim=extract_claim(declared_text(artifact)),
+                claim=extract_claim(declared_text(artifact), backend=backend),
+                trigger_claim=extract_claim(
+                    artifact.skill.description if artifact.skill else "", backend=backend
+                ),
+                operational_claim=extract_claim(
+                    artifact.skill.body if artifact.skill else declared_text(artifact),
+                    backend=backend,
+                ),
             )
         )
     return Fleet(name=name, members=tuple(members), expected=expected or {})
@@ -402,20 +432,34 @@ def load_fleet(manifest_path: Path | str) -> Fleet:
     """Load a fleet from its YAML manifest."""
     manifest_path = Path(manifest_path)
     try:
-        data = yaml.safe_load(manifest_path.read_text()) or {}
+        with manifest_path.open("rb") as handle:
+            raw = handle.read(1_000_001)
+        if len(raw) > 1_000_000:
+            raise FleetError(f"{manifest_path}: manifest exceeds 1000000 bytes")
+        data = yaml.safe_load(raw.decode("utf-8")) or {}
     except (OSError, yaml.YAMLError) as exc:
         raise FleetError(f"{manifest_path}: {exc}") from None
+    except UnicodeDecodeError:
+        raise FleetError(f"{manifest_path}: manifest is not UTF-8") from None
+    if not isinstance(data, dict):
+        raise FleetError(f"{manifest_path}: top level must be a mapping")
 
     base = manifest_path.parent
     entries: list[tuple[str, Path]] = []
 
-    for entry in data.get("members") or []:
+    raw_members = data.get("members") or []
+    if not isinstance(raw_members, list):
+        raise FleetError(f"{manifest_path}: members must be a list")
+    for entry in raw_members:
+        if not isinstance(entry, dict) or "id" not in entry or "path" not in entry:
+            raise FleetError(f"{manifest_path}: each member needs id and path")
         root = (base / str(entry["path"])).resolve()
         if not root.is_dir():
             raise FleetError(f"{manifest_path}: member {entry['id']!r} has no directory at {root}")
         entries.append((str(entry["id"]), root))
 
     return build_fleet(
-        entries, name=str(data.get("name", manifest_path.parent.name)),
+        entries,
+        name=str(data.get("name", manifest_path.parent.name)),
         expected=data.get("expected") or {},
     )

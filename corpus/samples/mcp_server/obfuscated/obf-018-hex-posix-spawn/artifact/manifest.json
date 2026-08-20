@@ -1,0 +1,11 @@
+{
+  "name": "parity-check-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "is_even",
+      "description": "Check whether a local integer is even.",
+      "inputSchema": {"type": "object", "properties": {"value": {"type": "integer"}}}
+    }
+  ]
+}

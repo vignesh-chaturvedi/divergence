@@ -28,6 +28,7 @@ from pathlib import Path
 
 from divergence.core.acquire import Artifact
 from divergence.core.behaviour import extract
+from divergence.core.claims import Claim, extract_claim
 from divergence.core.vocabulary import (
     AttackClass,
     Capability,
@@ -58,6 +59,28 @@ class Change:
     kind: ChangeKind
     detail: str
     evidence: str = ""
+
+
+_HASH_LIMIT = 16 * 1024 * 1024
+
+
+def _file_fingerprint(path: Path) -> str:
+    """Bounded-memory, bounded-work fingerprint for an untrusted bundle member."""
+    digest = hashlib.sha256()
+    consumed = 0
+    try:
+        size = path.stat().st_size
+        with path.open("rb") as handle:
+            while consumed < _HASH_LIMIT:
+                chunk = handle.read(min(128 * 1024, _HASH_LIMIT - consumed))
+                if not chunk:
+                    break
+                digest.update(chunk)
+                consumed += len(chunk)
+    except OSError as exc:
+        return f"unreadable:{type(exc).__name__}"
+    digest.update(f":size={size}".encode())
+    return digest.hexdigest()[:16]
 
 
 def _canonical(artifact: Artifact, capabilities: set[Capability]) -> dict:
@@ -92,7 +115,7 @@ def _canonical(artifact: Artifact, capabilities: set[Capability]) -> dict:
             else None
         ),
         "bundle": sorted(
-            f"{p.name}:{hashlib.sha256(p.read_bytes()).hexdigest()[:16]}"
+            f"{p.relative_to(artifact.root).as_posix()}:{_file_fingerprint(p)}"
             for p in artifact.bundle_files
             if p.is_file()
         ),
@@ -119,6 +142,15 @@ def _classify(before: dict, after: dict) -> list[Change]:
     old_tools = {t["name"]: t for t in before.get("tools") or []}
     new_tools = {t["name"]: t for t in after.get("tools") or []}
 
+    for name in sorted(set(old_tools) - set(new_tools)):
+        changes.append(
+            Change(
+                ChangeKind.SEMANTICS_INVERTING,
+                f"removed approved tool {name!r}",
+                evidence=name,
+            )
+        )
+
     for name, new in new_tools.items():
         old = old_tools.get(name)
         if old is None:
@@ -137,8 +169,30 @@ def _classify(before: dict, after: dict) -> list[Change]:
                 )
             )
 
+        removed_params = set(old["properties"]) - set(new["properties"])
+        if removed_params:
+            changes.append(
+                Change(
+                    ChangeKind.SEMANTICS_INVERTING,
+                    f"tool {name!r} removed parameter(s): {', '.join(sorted(removed_params))}",
+                    evidence=f"{name}.inputSchema",
+                )
+            )
+
+        if old.get("required") != new.get("required"):
+            changes.append(
+                Change(
+                    ChangeKind.SEMANTICS_INVERTING,
+                    f"tool {name!r} changed required parameters",
+                    evidence=f"{name}.inputSchema.required",
+                )
+            )
+
         for hint, (restrictive, permissive) in _PERMISSIVE_FLIP.items():
-            if old["annotations"].get(hint) == restrictive and new["annotations"].get(hint) == permissive:
+            if (
+                old["annotations"].get(hint) == restrictive
+                and new["annotations"].get(hint) == permissive
+            ):
                 changes.append(
                     Change(
                         ChangeKind.SEMANTICS_INVERTING,
@@ -148,16 +202,31 @@ def _classify(before: dict, after: dict) -> list[Change]:
                 )
 
         if old["description"] != new["description"]:
+            old_claim = extract_claim(old["description"])
+            new_claim = extract_claim(new["description"])
+            semantics_changed = _claim_semantics(old_claim) != _claim_semantics(new_claim)
             changes.append(
                 Change(
-                    ChangeKind.COSMETIC,
-                    f"tool {name!r} description reworded",
+                    (ChangeKind.SEMANTICS_INVERTING if semantics_changed else ChangeKind.COSMETIC),
+                    (
+                        f"tool {name!r} description changed meaning"
+                        if semantics_changed
+                        else f"tool {name!r} description reworded"
+                    ),
                     evidence=f"{name}.description",
                 )
             )
 
     old_skill, new_skill = before.get("skill"), after.get("skill")
-    if old_skill and new_skill:
+    if bool(old_skill) != bool(new_skill):
+        changes.append(
+            Change(
+                ChangeKind.SEMANTICS_INVERTING,
+                "skill declaration added or removed",
+                evidence="SKILL.md",
+            )
+        )
+    elif old_skill and new_skill:
         if old_skill["allowed_tools"] != new_skill["allowed_tools"]:
             changes.append(
                 Change(
@@ -168,8 +237,15 @@ def _classify(before: dict, after: dict) -> list[Change]:
                 )
             )
         if old_skill["body"] != new_skill["body"]:
+            semantics_changed = _claim_semantics(
+                extract_claim(old_skill["body"])
+            ) != _claim_semantics(extract_claim(new_skill["body"]))
             changes.append(
-                Change(ChangeKind.COSMETIC, "skill body reworded", evidence="SKILL.md")
+                Change(
+                    ChangeKind.SEMANTICS_INVERTING if semantics_changed else ChangeKind.COSMETIC,
+                    "skill body changed meaning" if semantics_changed else "skill body reworded",
+                    evidence="SKILL.md",
+                )
             )
 
     old_bundle = {b.split(":", 1)[0]: b for b in before.get("bundle") or []}
@@ -191,7 +267,35 @@ def _classify(before: dict, after: dict) -> list[Change]:
                 Change(ChangeKind.COSMETIC, f"bundled file {name!r} changed", evidence=name)
             )
 
+    for name in sorted(set(old_bundle) - set(new_bundle)):
+        changes.append(
+            Change(
+                ChangeKind.SEMANTICS_INVERTING,
+                f"removed approved bundled file {name!r}",
+                evidence=name,
+            )
+        )
+
+    if before != after and not changes:
+        changes.append(
+            Change(
+                ChangeKind.COSMETIC,
+                "canonical artifact record changed",
+                evidence="artifact manifest",
+            )
+        )
+
     return changes
+
+
+def _claim_semantics(claim: Claim) -> tuple:
+    """Ignore hashes/evidence and compare only what a description promises."""
+    return (
+        claim.denied,
+        claim.instructs_other_tools,
+        claim.conceals,
+        claim.trigger_scope,
+    )
 
 
 class Ledger:
@@ -221,7 +325,14 @@ class Ledger:
     # --- hashing -------------------------------------------------------------------
 
     def canonical(self, artifact: Artifact, capabilities: set[Capability] | None = None) -> dict:
-        caps = extract(artifact.root).capabilities if capabilities is None else capabilities
+        caps = (
+            extract(
+                artifact.root,
+                entrypoint_names=frozenset(tool.name for tool in artifact.tools),
+            ).capabilities
+            if capabilities is None
+            else capabilities
+        )
         return _canonical(artifact, caps)
 
     def fingerprint(self, artifact: Artifact, capabilities: set[Capability] | None = None) -> str:
@@ -229,6 +340,16 @@ class Ledger:
         return hashlib.sha256(blob.encode()).hexdigest()
 
     # --- the two operations --------------------------------------------------------
+
+    def has_record(self, artifact_id: str) -> bool:
+        """Distinguish a missing baseline from an unchanged comparison."""
+        with self._connect() as con:
+            return (
+                con.execute(
+                    "SELECT 1 FROM approvals WHERE artifact_id = ?", (artifact_id,)
+                ).fetchone()
+                is not None
+            )
 
     def record(
         self,

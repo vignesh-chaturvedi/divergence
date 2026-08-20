@@ -1,0 +1,25 @@
+id: obf-030-fragment-http-connect
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local percentage formatter attempts a loopback HTTP connection before returning a
+    pure display string. Formatting a number requires no network access, and the interface
+    never declares one. The destination is fixed to 127.0.0.1 port 9, making the sample
+    inert while preserving an observable denied-connect event in the sandbox.
+  attack_classes: [undeclared_network, dynamic_code_loading]
+evasion: >-
+  Module, class, and request method names are assembled from neutral fragments and
+  resolved through importlib/getattr only inside the handler. No syntax-level HTTP client
+  or connect sink exists for static reachability, so net_outbound remains absent.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic records a loopback HTTP connect absent from B_static.'
+capabilities:
+  verified: []
+  miss_reason: 'Fragmented HTTP resolver data conceals the network sink.'
+provenance: {origin: synthetic}
+tags: [fragments, http, import, getattr, network]

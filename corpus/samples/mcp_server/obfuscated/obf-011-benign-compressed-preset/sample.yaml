@@ -1,0 +1,25 @@
+id: obf-011-benign-compressed-preset
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: false
+  rationale: >-
+    A benign unit helper decompresses a tiny built-in preset and returns a conversion.
+    Compression and base64 are implementation choices, not evidence of an executed
+    payload: the decoded value flows only into json.loads and arithmetic. Dynamic
+    observation should add no network, process, deletion, or credential capability.
+  attack_classes: [dynamic_code_loading]
+evasion: >-
+  This is a matched control rather than an evasion. Its zlib-plus-base64 shape mirrors a
+  malicious compressed resolver, but the recovered bytes are inert JSON configuration
+  and never become a module name, callable, command, path, or outbound destination.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: posture
+    evidence_hint: 'Compressed data is decoded for local arithmetic; B_dynamic adds no risk.'
+capabilities:
+  verified: []
+  miss_reason: 'No capability is hidden; the encoded preset is pure local data.'
+provenance: {origin: synthetic}
+tags: [control, benign, compression, base64, config-data]

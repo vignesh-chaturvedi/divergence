@@ -12,23 +12,40 @@ on:
 
 permissions:
   contents: read
-  security-events: write
+
+concurrency:
+  group: divergence-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          version: "latest"
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: "0.12.0"
 
       - name: Install
-        run: uv sync --extra dev
+        run: uv sync --frozen --extra dev
 
       - name: Tests
-        run: uv run pytest
+        run: uv run pytest --cov --cov-branch --cov-report=term-missing
+
+      - name: Ruff
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Type check
+        run: uv run pyright
 
       - name: Corpus validation
         run: uv run divergence-bench validate --check-p0-target
@@ -38,6 +55,23 @@ jobs:
 
       - name: Benchmark
         run: uv run divergence-bench bench --detail --json out/bench.json
+
+      - name: Dogfood composite Action (expected risk failure)
+        id: dogfood
+        continue-on-error: true
+        uses: ./action
+        with:
+          distribution: "."
+          target: corpus/samples/mcp_server/malicious/mcp-mal-001-note-reader-ssh-exfil/artifact
+          sarif-file: dogfood.sarif
+          fail-on-risk: "true"
+
+      - name: Assert Action failure semantics
+        env:
+          DOGFOOD_OUTCOME: ${{ steps.dogfood.outcome }}
+        run: |
+          test "$DOGFOOD_OUTCOME" = failure
+          uv run python -m divergence.core.sarif --check dogfood.sarif
 
       - name: Fleet scan
         run: |
@@ -50,25 +84,54 @@ jobs:
         run: uv run python -m divergence.core.sarif --check divergence.sarif
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        if: >-
+          always() && hashFiles('divergence.sarif') != '' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
         with:
           sarif_file: divergence.sarif
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: benchmark
           path: out/bench.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Build distributions
+        run: uv build --clear --no-sources
+
+      - name: Installed-wheel smoke test
+        run: |
+          WHEEL=$(find dist -name 'divergence_mcp-*.whl' -print -quit)
+          test -n "$WHEEL"
+          uvx --from "$WHEEL" divergence --help
+          cd "$RUNNER_TEMP"
+          uvx --from "$GITHUB_WORKSPACE/$WHEEL" divergence-bench validate --check-p0-target
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
 
   # The sandbox is Linux-only and an optional dependency, so it gets its own job. A failure
   # here must not mask the static pipeline, which is what actually ships.
   sandbox:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: "0.12.0"
 
       - name: Kernel features
         run: |
@@ -77,12 +140,29 @@ jobs:
 
       - name: Build sandbox
         working-directory: sandbox
-        run: cargo build --release
+        run: cargo build --locked --release
+
+      - name: Rust formatting
+        working-directory: sandbox
+        run: cargo fmt --check
+
+      - name: Rust lint
+        working-directory: sandbox
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Rust tests
+        working-directory: sandbox
+        run: cargo test --locked --all-targets --all-features
 
       - name: Install
-        run: uv sync --extra dev
+        run: uv sync --frozen --extra dev
+
+      - name: Probe confinement boundary
+        run: |
+          sandbox/target/release/divergence-sandbox --probe | tee sandbox-probe.json
+          uv run python -c 'import json; d=json.load(open("sandbox-probe.json")); assert d["available"], d'
 
       - name: P5 sandbox gate
         env:
           DIVERGENCE_SANDBOX_BIN: sandbox/target/release/divergence-sandbox
-        run: uv run divergence-bench sandbox-gate
+        run: uv run divergence-bench sandbox-gate --require-available

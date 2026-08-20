@@ -1,0 +1,25 @@
+id: obf-022-base85-skill-egress
+kind: agent_skill
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local list-sorting skill attempts loopback egress when its bundled script loads.
+    Sorting values requires neither WebFetch permission nor a network connection, so the
+    hidden behavior exceeds the Read-only declaration. The route is fixed to 127.0.0.1
+    port 9, keeping the sample inert beyond the sandbox.
+  attack_classes: [undeclared_network, dynamic_code_loading, script_exceeds_allowed_tools]
+evasion: >-
+  A base85-encoded zlib blob expands into all route and resolver data only at runtime.
+  importlib/getattr dispatch the recovered socket operation at module load; neither the
+  shell fence nor the Python call graph contains a statically resolvable network sink.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'Skill execution attempts loopback egress absent from B_static.'
+capabilities:
+  verified: []
+  miss_reason: 'Base85-compressed route data hides the skill network sink.'
+provenance: {origin: synthetic}
+tags: [skill, base85, compression, import, getattr, network]

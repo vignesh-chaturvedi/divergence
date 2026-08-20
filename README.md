@@ -1,108 +1,209 @@
 # Divergence
 
-A precision-first analyzer for MCP servers and agent skills.
-
-It does not look for dangerous-sounding text. It looks for the gap between what an
-artifact **claims** to do and what it **actually** does — measured statically, then
-confirmed in a sandbox.
+Divergence is a precision-first analyzer for MCP servers and agent skills. It measures
+the gap between what an artifact **claims** to do and what its implementation can do.
 
 > A finding is the gap, not the capability.
 
-A shell-execution server that executes shells is doing its job. A shell-execution
-server that quietly opens a socket is not.
+A shell-execution server that executes shells is doing its job. One that also opens an
+undeclared network connection is not. Divergence reports capability as non-verdict
+**posture** and only contradictions as **risk**.
 
-## Status
+## Release status
 
-**Phase P5 complete — v1 shipped, sandbox landed.** All nine components are built: the
-deterministic core, static behaviour extraction, the divergence engine, fleet analyzers,
-and a Rust sandbox that observes what an artifact actually does under Landlock.
+Version 1.1.0 is a release candidate, not a published release. The deterministic static
+core and fleet analyzers are implemented. Local release engineering and the tracked
+candidate benchmark are complete. Two explicitly opt-in tiers also exist:
 
-Six scanners, one corpus, one command (`make bench-external`):
+- **A8 dynamic observation** executes fixtures only through the fail-closed Linux sandbox.
+  P5 passed locally on unprivileged Linux arm64; unsupported platforms report static-only,
+  and the release workflow still has to reproduce the Linux x86-64 runner.
+- **A9 adjudication** is a provider-neutral command backend for normalized evidence only.
+  It is off by default, never changes deterministic findings, and has a hard five-percent
+  selector cap.
 
-| Scanner | FPR-on-traps | Precision | Recall | Attribution |
+Formal P6 completion still requires independent corpus label/rationale review, Linux
+x86-64 candidate-workflow reproduction, a non-author clean install plus real scan and filed
+GitHub issue, and protected tag/PyPI/GitHub publication. No release has been tagged or
+published. The remaining gates are tracked in the
+[release guide](https://github.com/vignesh-chaturvedi/divergence/blob/main/docs/RELEASING.md).
+
+## Run from a checkout
+
+Python 3.12 and [uv](https://docs.astral.sh/uv/) are required.
+
+```bash
+uv sync --frozen --extra dev
+uv run divergence inspect <path>
+uv run divergence scan <path>
+uv run divergence fleet <client-config-or-fleet.yaml>
+```
+
+The eventual PyPI distribution is named `divergence-mcp` because `divergence` is
+already an unrelated project. The installed command remains `divergence`:
+
+```bash
+# Works after 1.1.0 is actually published:
+uvx --from divergence-mcp==1.1.0 divergence --help
+```
+
+Targets may be a local directory, skill bundle, MCP client configuration, or fleet
+manifest. Network acquisition is denied by default; `--allow-network` is an explicit
+download-only opt-in for supported npm, PyPI, or GitHub targets.
+
+## Benchmark
+
+The bundled v1.1 candidate dataset contains 110 synthetic artifacts:
+
+| Stratum | Count | Risk-positive | Benign/control |
+|---|---:|---:|---:|
+| Malicious | 25 | 25 | 0 |
+| False-positive traps | 35 | 0 | 35 |
+| Benign plain | 20 | 0 | 20 |
+| Obfuscated | 30 | 25 | 5 |
+| **Total** | **110** | **50** | **60** |
+
+`label.malicious` is authoritative. Stratum describes how a fixture tests the scanner;
+it does not determine the verdict. This matters because the obfuscated stratum deliberately
+contains five matched benign controls, including a base64-heavy decoder.
+
+All 110 artifacts are synthetic fixtures authored for this project, not packages pulled
+from public registries. That makes the labels auditable but means the benign set does not
+measure a real-world registry base rate. [The corpus provenance policy](https://github.com/vignesh-chaturvedi/divergence/blob/main/corpus/README.md)
+defines the immutable source/version/license fields required for any future derived sample.
+
+```bash
+uv run divergence-bench validate --check-p0-target
+uv run divergence-bench bench --detail \
+  --json out/bench.json --markdown out/bench.md
+```
+
+The wheel bundles the corpus, so `divergence-bench` works outside a repository checkout.
+JSON results include the corpus SHA-256, project and scanner versions, exact external-tool
+pins and local ruleset hashes, Python/platform provenance, durations, raw numerators and
+denominators, and Wilson 95% intervals for trap FPR and recall.
+
+The generated v1.1 candidate evidence is tracked in
+[`benchmarks/v1.1/`](https://github.com/vignesh-chaturvedi/divergence/tree/main/benchmarks/v1.1).
+The JSON files are authoritative; the table below is a readable summary.
+
+| Scanner | Trap false positives | Precision | Recall | Attribution |
 |---|---:|---:|---:|---:|
-| **divergence+fleet** | **0.0%** | **100%** | 87.1% | 85.2% |
-| semgrep | 5.7% | 87.5% | 56.0% | 0.0% |
-| mcp-shield | 19.0% | 20.0% | 8.3% | 100% |
-| keyword strawman | 57.1% | 45.0% | 72.0% | 72.2% |
+| `divergence` | 0/35 (0.0%; CI 0.0–9.9%) | 100% | 27/50 (54%; CI 40.4–67.0%) | 77.8% |
+| `divergence+fleet` | 0/35 (0.0%; CI 0.0–9.9%) | 100% | 27/50 (54%; CI 40.4–67.0%) | 85.2% |
+| `divergence+dynamic` | 0/35 (0.0%; CI 0.0–9.9%) | 100% | 49/50 (98%; CI 89.5–99.6%) | 87.8% |
+| Semgrep 1.173.0 | 5/35 (14.3%; CI 6.3–29.4%) | 81.1% | 30/50 (60%; CI 46.2–72.4%) | 0% |
+| mcp-shield 1.0.4 | 4/21 (19.0%) | 20% | 1/33 (3.0%) | 100% |
+| keyword baseline | 20/35 (57.1%) | 52.9% | 27/50 (54%) | 77.8% |
 
-Zero false positives across all 55 benign and trap artifacts, fully offline and
-deterministic with no model in the pipeline.
+Semgrep used a reviewed rules snapshot with SHA-256
+`f8b8461199c4d0ac23c0faf60f8b00a50139854d742e5b7374ccde09f81c9afd`; it produced
+seven false positives across all controls, five of them in the trap stratum. mcp-shield
+supports only 66.4% of the corpus, so its 21-trap and 33-positive denominators must travel
+with its percentages. `snyk-agent-scan` is unavailable without a vendor token and hosted
+API and is not scored as zero.
 
-**The most useful row is semgrep's.** It is a mature general-purpose analyser and a
-genuinely strong competitor — but it scores **78% on code-surface attack classes and 48%
-on reasoning-surface** ones, with 0% attribution. That is this project's thesis, measured
-by somebody else's tool: read only the code and the poisoned description is invisible.
-
-**Recall is 87.1%, down from 96%, and that is deliberate.** P5 added an obfuscated stratum
-built specifically to defeat static analysis. Leaving it out would have kept a prettier
-number by declining to measure the thing the sandbox exists for. `make sandbox-gate`
-recovers 4 of the 5 payloads that static analysis cannot see.
-
-**Read all of it with the caveat it deserves:** the corpus was written by the same author
-and then tuned against. `tests/test_holdout.py` is an out-of-sample check written after
-tuning — 26 artifacts in shapes deliberately unlike the corpus — and it has caught a real
-generalisation failure every time it has grown.
-
-See `build-plan/divergence-spec.html` for the full build specification, and
-`build-plan/reports/` for phase progress reports.
-
-## Using it
+Third-party scanners download or execute other projects and are opt-in:
 
 ```bash
-divergence inspect <path>    # print the declared surface — executes nothing
-divergence scan    <path>    # findings, split into risk and posture
-divergence fleet   <path>    # cross-artifact analysis over an installed set
-divergence approve <path>    # record a fingerprint for later diffing
-divergence diff    <path>    # detect post-approval mutation
+DIVERGENCE_ALLOW_EXTERNAL=1 make bench-external
 ```
 
-A target is a directory, a skill bundle, or a local MCP client config
-(`claude_desktop_config.json`, `mcp.json`) — pointing at a config scans every server
-in it. Remote specs raise rather than reaching the network: §10 makes offline-by-default
-a feature, because the configuration you are asking about is itself sensitive.
+Semgrep additionally requires `DIVERGENCE_SEMGREP_RULESET` to point to a reviewed local
+rules snapshot. The adapter executes `semgrep@1.173.0` via `uvx`; mutable registry aliases
+are rejected so both the scanner package and rules can be reproduced.
 
-## The benchmark
-
-Existing benchmarks in this space measure **recall** — can a scanner find the planted
-attack? That is the easy half. `divergence-bench` leads with **FPR-on-traps**: the
-false-positive rate against benign artifacts deliberately engineered to look malicious.
-
-An independent April 2026 audit of two open-source scanners across 33 servers and 433
-tools found that of 27 flagged patterns only 6 were real — a ~78% false positive rate.
-Eight fired on ordinary dependency instructions. Nine fired on a browser-automation
-server for doing browser automation. The trap stratum exists to measure exactly that.
-
-## Quickstart
+Dynamic benchmarking is a separate Linux-only opt-in because it executes fixtures:
 
 ```bash
-make install        # uv sync, pinned to Python 3.12
-make validate       # every corpus sample is well-formed and carries a rationale
-make test           # unit tests
-make bench          # the baseline comparison table
-make capabilities   # B_s extraction vs verified ground truth
+make sandbox-gate   # fails if confinement is unavailable
+make bench-dynamic  # registered divergence+dynamic row with coverage metadata
 ```
 
-## Corpus layout
+On the candidate corpus, the hardened recovery gate observed 24/25 obfuscated positives
+(96%; Wilson 95% CI 80.5–99.3%) and kept all five matched controls clean. Static analysis
+flagged three of those positives; the combined row flags all 25, eliminating all 22 static
+misses in that stratum.
+It confirmed runtime entrypoints for 83/110 fixtures; the authoritative JSON records
+coverage per sample. The verified Linux arm64 boundary refuses root, drops to an
+unprivileged identity, clears the environment into a private `HOME`, uses exact decoys,
+Landlock ABI v4, seccomp denial, and ptrace observation, and cleans up resources and the
+entire process group. Docker denied network-namespace creation, so independently verified
+Landlock and seccomp rules blocked egress instead; ADR 0011 records that limitation.
 
+The product CLI uses the same guarded path. A requested tier that is unavailable, times
+out, or fails an entrypoint makes the scan visibly partial and exits 2 unless the caller
+explicitly accepts partial coverage:
+
+```bash
+uv run divergence scan <path> --dynamic --sandbox-timeout 30
 ```
-corpus/samples/<kind>/<stratum>/<sample-id>/
-├── sample.yaml     # label, stratum, attack classes, written rationale
-└── artifact/       # the actual MCP server or skill bundle
+
+## Optional A9 adjudication
+
+A9 is available through both the pipeline API and an explicit CLI flag. Merely setting an
+environment variable never activates it:
+
+```bash
+DIVERGENCE_ADJUDICATOR_COMMAND='/reviewed/path/to/backend --model frontier' \
+  uv run divergence scan <path> --adjudicate
 ```
 
-Every sample carries a written label rationale — why it is malicious, or specifically
-why it merely looks that way. The rationales are as much of the artifact as the samples,
-because they are what a reviewer checks when they disagree with a verdict.
+The equivalent API is:
 
-## Safety
+```python
+from divergence.core.pipeline import ScanOptions, scan_detailed
 
-Samples in the `malicious` and `obfuscated` strata are **inert fixtures**. Their payloads
-target `localhost` sinkholes and decoy paths under the sample directory; none of them
-reach a live endpoint or touch real credentials. They exist to be read by a scanner, not
-to be run. `make validate` enforces this.
+report = scan_detailed(
+    "artifact",
+    options=ScanOptions(adjudicate=True),
+)
+```
 
-## Licence
+Set `DIVERGENCE_ADJUDICATOR_COMMAND` to an executable that accepts one normalized
+finding as JSON on stdin and returns:
 
-Apache-2.0. The corpus is intended for publication under a permissive licence with a
-versioned dataset tag.
+```json
+{"verdict": "confirm", "reasoning": "Concise evidence-based reason."}
+```
+
+Valid verdicts are `confirm`, `dismiss`, and `uncertain`. Raw source, artifact files,
+MCP configs, and credentials are never part of the built-in contract. See
+[ADR 0009](https://github.com/vignesh-chaturvedi/divergence/blob/main/docs/adr/0009-evidence-only-adjudication.md) for the exact selector and JSON
+fields.
+
+## GitHub Action
+
+The composite Action writes SARIF but intentionally does not upload it. Pin a released tag
+or audited commit, then use GitHub's upload action in a separate step:
+
+```yaml
+- uses: vignesh-chaturvedi/divergence/action@<audited-commit-sha>
+  with:
+    target: .
+    fail-on-risk: "true"
+    allow-partial: "false"
+    sarif-file: divergence.sarif
+
+- uses: github/codeql-action/upload-sarif@<audited-commit-sha>
+  if: always()
+  with:
+    sarif_file: divergence.sarif
+```
+
+## Corpus safety and limitations
+
+Corpus payloads are inert fixtures aimed at reserved domains, loopback sinks, and planted
+decoys. They are intended to be read, not executed outside the fail-closed sandbox.
+`divergence-bench validate` checks label structure and inert destinations.
+
+The corpus and scanner share an author, so the benchmark is not independent. The holdout
+suite reduces but does not remove that bias. Label disagreements are welcome through the
+benchmark issue template; do not post credentials or real MCP configurations.
+
+## License
+
+Code, corpus, and documentation are licensed under the
+[Apache License 2.0](https://github.com/vignesh-chaturvedi/divergence/blob/main/LICENSE).
+[Citation metadata](https://github.com/vignesh-chaturvedi/divergence/blob/main/CITATION.cff)
+is provided for the software and corpus.

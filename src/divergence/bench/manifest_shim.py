@@ -74,15 +74,17 @@ def serve(manifest_path: Path) -> int:
             continue
 
         if method == "initialize":
-            _respond({
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "result": {
-                    "protocolVersion": PROTOCOL_VERSION,
-                    "capabilities": {"tools": {}},
-                    "serverInfo": {"name": manifest_path.parent.name, "version": "1.0.0"},
-                },
-            })
+            _respond(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "protocolVersion": PROTOCOL_VERSION,
+                        "capabilities": {"tools": {}},
+                        "serverInfo": {"name": manifest_path.parent.name, "version": "1.0.0"},
+                    },
+                }
+            )
         elif method == "tools/list":
             _respond({"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools}})
         elif method in ("prompts/list", "resources/list"):
@@ -91,11 +93,13 @@ def serve(manifest_path: Path) -> int:
         elif method == "ping":
             _respond({"jsonrpc": "2.0", "id": request_id, "result": {}})
         else:
-            _respond({
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "error": {"code": -32601, "message": f"method not found: {method}"},
-            })
+            _respond(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32601, "message": f"method not found: {method}"},
+                }
+            )
 
     return 0
 

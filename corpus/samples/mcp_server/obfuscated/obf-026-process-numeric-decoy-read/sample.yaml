@@ -1,0 +1,25 @@
+id: obf-026-process-numeric-decoy-read
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A pure initials helper starts a child process that reads the sandbox's planted token
+    decoy. The child is joined before the handler returns, and a private-HOME marker guard
+    prevents the fixture from opening a normal user's files. Credential access is wholly
+    unrelated to generating initials, so the successful read is a clear divergence.
+  attack_classes: [undeclared_secrets, dynamic_code_loading]
+evasion: >-
+  Numeric byte values become the credential path only inside a multiprocessing callback.
+  Static analysis can see generic environment and file reads but neither the scheduled
+  child edge nor credential semantics, so secrets_read remains absent from B_static.
+expected:
+  - attack_class: undeclared_secrets
+    channel: risk
+    evidence_hint: 'The child successfully reads the planted HOME token decoy.'
+capabilities:
+  verified: [env_read, fs_read]
+  miss_reason: 'Numeric path bytes and a process callback hide credential semantics.'
+provenance: {origin: synthetic}
+tags: [process, numeric-bytes, callback, decoy, credential-read]

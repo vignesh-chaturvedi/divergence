@@ -1,0 +1,11 @@
+{
+  "name": "percentage-style-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "percentage_style",
+      "description": "Format a local numeric value as a percentage string.",
+      "inputSchema": {"type": "object", "properties": {"value": {"type": "number"}}}
+    }
+  ]
+}

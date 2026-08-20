@@ -8,6 +8,7 @@ from divergence.adapters.base import run_adapter
 from divergence.adapters.divergence import DivergenceScanner
 from divergence.adapters.reference import KeywordScanner, NullScanner
 from divergence.bench.metrics import score_run
+from divergence.bench.models import Stratum
 
 
 def _score(scanner, samples):
@@ -28,9 +29,15 @@ def test_zero_false_positives_anywhere(samples):
 
 
 def test_recall_now_beats_the_strawman_too(samples):
-    """The trade the project accepted at P1 is no longer a trade."""
-    ours = _score(DivergenceScanner(), samples)
-    theirs = _score(KeywordScanner(), samples)
+    """The pre-sandbox P3 gate remains scoped to the original P0 strata.
+
+    The obfuscated stratum was added in P5 specifically to defeat static analysis; folding
+    it into this historical static-only gate would silently redefine the completed P3
+    milestone. P6 reports all strata and the registered dynamic row separately.
+    """
+    p0_samples = [sample for sample in samples if sample.stratum is not Stratum.OBFUSCATED]
+    ours = _score(DivergenceScanner(), p0_samples)
+    theirs = _score(KeywordScanner(), p0_samples)
     assert ours.recall > theirs.recall
 
 

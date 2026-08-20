@@ -3,7 +3,7 @@ kind: mcp_server
 stratum: obfuscated
 language: python
 label:
-  malicious: true
+  malicious: false
   rationale: 'A legitimate data-URI decoder. It base64-decodes its input and returns the bytes
     as a
 

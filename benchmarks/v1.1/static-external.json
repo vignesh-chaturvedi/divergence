@@ -1,0 +1,1109 @@
+{
+  "schema": "divergence-benchmark/v1",
+  "project": {
+    "distribution": "divergence-mcp",
+    "version": "1.1.0",
+    "source_sha256": "71aa8d411a8eba580c0ea7b40db7cec4d7550e47c7c78f4195ee5bb16628d15b"
+  },
+  "runtime": {
+    "python": "3.12.13",
+    "implementation": "CPython",
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "dependencies": {
+      "PyYAML": "6.0.3",
+      "tree-sitter": "0.26.0",
+      "tree-sitter-bash": "0.25.1",
+      "tree-sitter-python": "0.25.0",
+      "tree-sitter-typescript": "0.23.2"
+    }
+  },
+  "corpus": {
+    "dataset": "divergence-corpus-v1.1",
+    "license": "Apache-2.0",
+    "origin": "synthetic",
+    "sha256": "1f7bf90619185d584137bd7b9b37203c13c46c32a098791ea0580f245a8e9dce",
+    "total": 110,
+    "malicious": 50,
+    "benign": 60,
+    "by_stratum": {
+      "malicious": 25,
+      "fp_trap": 35,
+      "benign_plain": 20,
+      "obfuscated": 30
+    }
+  },
+  "scanners": [
+    {
+      "name": "divergence",
+      "version": "1.1.0",
+      "available": true,
+      "unavailable_reason": "",
+      "fpr_on_traps": 0.0,
+      "fpr_on_benign": 0.0,
+      "fpr_on_all_negatives": 0.0,
+      "precision": 1.0,
+      "recall": 0.54,
+      "f1": 0.7012987012987013,
+      "attribution_rate": 0.7777777777777778,
+      "true_positives": 27,
+      "false_positives": 0,
+      "false_negatives": 23,
+      "true_negatives": 60,
+      "errors": 0,
+      "duration_s": 0.20375462499214336,
+      "provenance": {
+        "adapter_kind": "reference",
+        "python": "3.12.13",
+        "platform": "macOS-26.2-arm64-arm-64bit",
+        "distribution": "divergence-mcp",
+        "analysis_tier": "static",
+        "scanner_command": [
+          "divergence",
+          "scan",
+          "<artifact>"
+        ]
+      },
+      "scored": 110,
+      "skipped_not_applicable": 0,
+      "coverage": 1.0,
+      "risk_findings": 32,
+      "posture_findings": 154,
+      "estimates": {
+        "fpr_on_traps": {
+          "numerator": 0,
+          "denominator": 35,
+          "rate": 0.0,
+          "wilson95": {
+            "low": 0.0,
+            "high": 0.09890099232440402
+          }
+        },
+        "recall": {
+          "numerator": 27,
+          "denominator": 50,
+          "rate": 0.54,
+          "wilson95": {
+            "low": 0.40398871399157477,
+            "high": 0.6703034780777566
+          }
+        }
+      },
+      "by_stratum": {
+        "benign_plain": {
+          "total": 20,
+          "flagged": 0
+        },
+        "fp_trap": {
+          "total": 35,
+          "flagged": 0
+        },
+        "malicious": {
+          "total": 25,
+          "flagged": 24
+        },
+        "obfuscated": {
+          "total": 30,
+          "flagged": 3
+        }
+      },
+      "recall_by_attack_class": {
+        "annotation_lie": {
+          "hits": 1,
+          "total": 1
+        },
+        "bundled_binary_no_source": {
+          "hits": 0,
+          "total": 1
+        },
+        "cross_tool_instruction": {
+          "hits": 2,
+          "total": 2
+        },
+        "description_poisoning": {
+          "hits": 5,
+          "total": 5
+        },
+        "dynamic_code_loading": {
+          "hits": 6,
+          "total": 28
+        },
+        "post_approval_mutation": {
+          "hits": 2,
+          "total": 2
+        },
+        "preference_manipulation": {
+          "hits": 2,
+          "total": 2
+        },
+        "progressive_disclosure_payload": {
+          "hits": 1,
+          "total": 1
+        },
+        "remote_fetch_at_load": {
+          "hits": 1,
+          "total": 1
+        },
+        "return_value_injection": {
+          "hits": 2,
+          "total": 2
+        },
+        "schema_poisoning": {
+          "hits": 2,
+          "total": 2
+        },
+        "script_exceeds_allowed_tools": {
+          "hits": 1,
+          "total": 4
+        },
+        "shadowing": {
+          "hits": 2,
+          "total": 2
+        },
+        "trigger_scope_hijack": {
+          "hits": 1,
+          "total": 1
+        },
+        "typosquat": {
+          "hits": 2,
+          "total": 2
+        },
+        "undeclared_exec": {
+          "hits": 3,
+          "total": 9
+        },
+        "undeclared_filesystem": {
+          "hits": 1,
+          "total": 5
+        },
+        "undeclared_network": {
+          "hits": 8,
+          "total": 16
+        },
+        "undeclared_secrets": {
+          "hits": 4,
+          "total": 9
+        }
+      },
+      "fpr_by_trap_family": {
+        "broad_but_honest_trigger": {
+          "hits": 0,
+          "total": 9
+        },
+        "imperative_language": {
+          "hits": 0,
+          "total": 12
+        },
+        "privileged_by_design": {
+          "hits": 0,
+          "total": 13
+        },
+        "security_domain_vocabulary": {
+          "hits": 0,
+          "total": 10
+        },
+        "wildcard_permissions": {
+          "hits": 0,
+          "total": 7
+        }
+      }
+    },
+    {
+      "name": "divergence+fleet",
+      "version": "1.1.0",
+      "available": true,
+      "unavailable_reason": "",
+      "fpr_on_traps": 0.0,
+      "fpr_on_benign": 0.0,
+      "fpr_on_all_negatives": 0.0,
+      "precision": 1.0,
+      "recall": 0.54,
+      "f1": 0.7012987012987013,
+      "attribution_rate": 0.8518518518518519,
+      "true_positives": 27,
+      "false_positives": 0,
+      "false_negatives": 23,
+      "true_negatives": 60,
+      "errors": 0,
+      "duration_s": 0.6478269170038402,
+      "provenance": {
+        "adapter_kind": "reference",
+        "python": "3.12.13",
+        "platform": "macOS-26.2-arm64-arm-64bit",
+        "distribution": "divergence-mcp",
+        "analysis_tier": "static+fleet",
+        "scanner_command": [
+          "divergence",
+          "fleet",
+          "<artifact>"
+        ]
+      },
+      "scored": 110,
+      "skipped_not_applicable": 0,
+      "coverage": 1.0,
+      "risk_findings": 38,
+      "posture_findings": 159,
+      "estimates": {
+        "fpr_on_traps": {
+          "numerator": 0,
+          "denominator": 35,
+          "rate": 0.0,
+          "wilson95": {
+            "low": 0.0,
+            "high": 0.09890099232440402
+          }
+        },
+        "recall": {
+          "numerator": 27,
+          "denominator": 50,
+          "rate": 0.54,
+          "wilson95": {
+            "low": 0.40398871399157477,
+            "high": 0.6703034780777566
+          }
+        }
+      },
+      "by_stratum": {
+        "benign_plain": {
+          "total": 20,
+          "flagged": 0
+        },
+        "fp_trap": {
+          "total": 35,
+          "flagged": 0
+        },
+        "malicious": {
+          "total": 25,
+          "flagged": 24
+        },
+        "obfuscated": {
+          "total": 30,
+          "flagged": 3
+        }
+      },
+      "recall_by_attack_class": {
+        "annotation_lie": {
+          "hits": 1,
+          "total": 1
+        },
+        "bundled_binary_no_source": {
+          "hits": 0,
+          "total": 1
+        },
+        "cross_tool_instruction": {
+          "hits": 2,
+          "total": 2
+        },
+        "description_poisoning": {
+          "hits": 5,
+          "total": 5
+        },
+        "dynamic_code_loading": {
+          "hits": 6,
+          "total": 28
+        },
+        "post_approval_mutation": {
+          "hits": 2,
+          "total": 2
+        },
+        "preference_manipulation": {
+          "hits": 2,
+          "total": 2
+        },
+        "progressive_disclosure_payload": {
+          "hits": 1,
+          "total": 1
+        },
+        "remote_fetch_at_load": {
+          "hits": 1,
+          "total": 1
+        },
+        "return_value_injection": {
+          "hits": 2,
+          "total": 2
+        },
+        "schema_poisoning": {
+          "hits": 2,
+          "total": 2
+        },
+        "script_exceeds_allowed_tools": {
+          "hits": 1,
+          "total": 4
+        },
+        "shadowing": {
+          "hits": 2,
+          "total": 2
+        },
+        "trigger_scope_hijack": {
+          "hits": 1,
+          "total": 1
+        },
+        "typosquat": {
+          "hits": 2,
+          "total": 2
+        },
+        "undeclared_exec": {
+          "hits": 3,
+          "total": 9
+        },
+        "undeclared_filesystem": {
+          "hits": 1,
+          "total": 5
+        },
+        "undeclared_network": {
+          "hits": 8,
+          "total": 16
+        },
+        "undeclared_secrets": {
+          "hits": 4,
+          "total": 9
+        }
+      },
+      "fpr_by_trap_family": {
+        "broad_but_honest_trigger": {
+          "hits": 0,
+          "total": 9
+        },
+        "imperative_language": {
+          "hits": 0,
+          "total": 12
+        },
+        "privileged_by_design": {
+          "hits": 0,
+          "total": 13
+        },
+        "security_domain_vocabulary": {
+          "hits": 0,
+          "total": 10
+        },
+        "wildcard_permissions": {
+          "hits": 0,
+          "total": 7
+        }
+      }
+    },
+    {
+      "name": "null",
+      "version": "1.0",
+      "available": true,
+      "unavailable_reason": "",
+      "fpr_on_traps": 0.0,
+      "fpr_on_benign": 0.0,
+      "fpr_on_all_negatives": 0.0,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "attribution_rate": null,
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 50,
+      "true_negatives": 60,
+      "errors": 0,
+      "duration_s": 7.187505252659321e-05,
+      "provenance": {
+        "adapter_kind": "reference",
+        "python": "3.12.13",
+        "platform": "macOS-26.2-arm64-arm-64bit"
+      },
+      "scored": 110,
+      "skipped_not_applicable": 0,
+      "coverage": 1.0,
+      "risk_findings": 0,
+      "posture_findings": 0,
+      "estimates": {
+        "fpr_on_traps": {
+          "numerator": 0,
+          "denominator": 35,
+          "rate": 0.0,
+          "wilson95": {
+            "low": 0.0,
+            "high": 0.09890099232440402
+          }
+        },
+        "recall": {
+          "numerator": 0,
+          "denominator": 50,
+          "rate": 0.0,
+          "wilson95": {
+            "low": 0.0,
+            "high": 0.07134759913335872
+          }
+        }
+      },
+      "by_stratum": {
+        "benign_plain": {
+          "total": 20,
+          "flagged": 0
+        },
+        "fp_trap": {
+          "total": 35,
+          "flagged": 0
+        },
+        "malicious": {
+          "total": 25,
+          "flagged": 0
+        },
+        "obfuscated": {
+          "total": 30,
+          "flagged": 0
+        }
+      },
+      "recall_by_attack_class": {
+        "annotation_lie": {
+          "hits": 0,
+          "total": 1
+        },
+        "bundled_binary_no_source": {
+          "hits": 0,
+          "total": 1
+        },
+        "cross_tool_instruction": {
+          "hits": 0,
+          "total": 2
+        },
+        "description_poisoning": {
+          "hits": 0,
+          "total": 5
+        },
+        "dynamic_code_loading": {
+          "hits": 0,
+          "total": 28
+        },
+        "post_approval_mutation": {
+          "hits": 0,
+          "total": 2
+        },
+        "preference_manipulation": {
+          "hits": 0,
+          "total": 2
+        },
+        "progressive_disclosure_payload": {
+          "hits": 0,
+          "total": 1
+        },
+        "remote_fetch_at_load": {
+          "hits": 0,
+          "total": 1
+        },
+        "return_value_injection": {
+          "hits": 0,
+          "total": 2
+        },
+        "schema_poisoning": {
+          "hits": 0,
+          "total": 2
+        },
+        "script_exceeds_allowed_tools": {
+          "hits": 0,
+          "total": 4
+        },
+        "shadowing": {
+          "hits": 0,
+          "total": 2
+        },
+        "trigger_scope_hijack": {
+          "hits": 0,
+          "total": 1
+        },
+        "typosquat": {
+          "hits": 0,
+          "total": 2
+        },
+        "undeclared_exec": {
+          "hits": 0,
+          "total": 9
+        },
+        "undeclared_filesystem": {
+          "hits": 0,
+          "total": 5
+        },
+        "undeclared_network": {
+          "hits": 0,
+          "total": 16
+        },
+        "undeclared_secrets": {
+          "hits": 0,
+          "total": 9
+        }
+      },
+      "fpr_by_trap_family": {
+        "broad_but_honest_trigger": {
+          "hits": 0,
+          "total": 9
+        },
+        "imperative_language": {
+          "hits": 0,
+          "total": 12
+        },
+        "privileged_by_design": {
+          "hits": 0,
+          "total": 13
+        },
+        "security_domain_vocabulary": {
+          "hits": 0,
+          "total": 10
+        },
+        "wildcard_permissions": {
+          "hits": 0,
+          "total": 7
+        }
+      }
+    },
+    {
+      "name": "semgrep",
+      "version": "1.173.0; rules=f8b8461199c4",
+      "available": true,
+      "unavailable_reason": "",
+      "fpr_on_traps": 0.14285714285714285,
+      "fpr_on_benign": 0.0,
+      "fpr_on_all_negatives": 0.11666666666666667,
+      "precision": 0.8108108108108109,
+      "recall": 0.6,
+      "f1": 0.6896551724137931,
+      "attribution_rate": 0.0,
+      "true_positives": 30,
+      "false_positives": 7,
+      "false_negatives": 20,
+      "true_negatives": 53,
+      "errors": 0,
+      "duration_s": 23.6723710000515,
+      "provenance": {
+        "adapter_kind": "external",
+        "python": "3.12.13",
+        "platform": "macOS-26.2-arm64-arm-64bit",
+        "scanner_command": [
+          "uvx",
+          "semgrep@1.173.0",
+          "scan",
+          "--sarif",
+          "--quiet",
+          "--no-git-ignore",
+          "--config",
+          "semgrep-rules-snapshot",
+          "<corpus>"
+        ],
+        "ruleset": "semgrep-rules-snapshot",
+        "ruleset_sha256": "f8b8461199c4d0ac23c0faf60f8b00a50139854d742e5b7374ccde09f81c9afd",
+        "ruleset_mutable": false,
+        "ruleset_policy": "explicit local snapshot required",
+        "package_spec": "semgrep@1.173.0"
+      },
+      "scored": 110,
+      "skipped_not_applicable": 0,
+      "coverage": 1.0,
+      "risk_findings": 54,
+      "posture_findings": 0,
+      "estimates": {
+        "fpr_on_traps": {
+          "numerator": 5,
+          "denominator": 35,
+          "rate": 0.14285714285714285,
+          "wilson95": {
+            "low": 0.06260231079433715,
+            "high": 0.29375554086595146
+          }
+        },
+        "recall": {
+          "numerator": 30,
+          "denominator": 50,
+          "rate": 0.6,
+          "wilson95": {
+            "low": 0.4618143774758936,
+            "high": 0.7239161026974346
+          }
+        }
+      },
+      "by_stratum": {
+        "benign_plain": {
+          "total": 20,
+          "flagged": 0
+        },
+        "fp_trap": {
+          "total": 35,
+          "flagged": 5
+        },
+        "malicious": {
+          "total": 25,
+          "flagged": 14
+        },
+        "obfuscated": {
+          "total": 30,
+          "flagged": 18
+        }
+      },
+      "recall_by_attack_class": {
+        "annotation_lie": {
+          "hits": 0,
+          "total": 1
+        },
+        "bundled_binary_no_source": {
+          "hits": 0,
+          "total": 1
+        },
+        "cross_tool_instruction": {
+          "hits": 1,
+          "total": 2
+        },
+        "description_poisoning": {
+          "hits": 2,
+          "total": 5
+        },
+        "dynamic_code_loading": {
+          "hits": 18,
+          "total": 28
+        },
+        "post_approval_mutation": {
+          "hits": 2,
+          "total": 2
+        },
+        "preference_manipulation": {
+          "hits": 1,
+          "total": 2
+        },
+        "progressive_disclosure_payload": {
+          "hits": 0,
+          "total": 1
+        },
+        "remote_fetch_at_load": {
+          "hits": 0,
+          "total": 1
+        },
+        "return_value_injection": {
+          "hits": 0,
+          "total": 2
+        },
+        "schema_poisoning": {
+          "hits": 1,
+          "total": 2
+        },
+        "script_exceeds_allowed_tools": {
+          "hits": 4,
+          "total": 4
+        },
+        "shadowing": {
+          "hits": 1,
+          "total": 2
+        },
+        "trigger_scope_hijack": {
+          "hits": 1,
+          "total": 1
+        },
+        "typosquat": {
+          "hits": 2,
+          "total": 2
+        },
+        "undeclared_exec": {
+          "hits": 8,
+          "total": 9
+        },
+        "undeclared_filesystem": {
+          "hits": 2,
+          "total": 5
+        },
+        "undeclared_network": {
+          "hits": 14,
+          "total": 16
+        },
+        "undeclared_secrets": {
+          "hits": 4,
+          "total": 9
+        }
+      },
+      "fpr_by_trap_family": {
+        "broad_but_honest_trigger": {
+          "hits": 1,
+          "total": 9
+        },
+        "imperative_language": {
+          "hits": 0,
+          "total": 12
+        },
+        "privileged_by_design": {
+          "hits": 4,
+          "total": 13
+        },
+        "security_domain_vocabulary": {
+          "hits": 2,
+          "total": 10
+        },
+        "wildcard_permissions": {
+          "hits": 1,
+          "total": 7
+        }
+      }
+    },
+    {
+      "name": "mcp-shield",
+      "version": "1.0.4",
+      "available": true,
+      "unavailable_reason": "",
+      "fpr_on_traps": 0.19047619047619047,
+      "fpr_on_benign": 0.0,
+      "fpr_on_all_negatives": 0.1,
+      "precision": 0.2,
+      "recall": 0.030303030303030304,
+      "f1": 0.052631578947368425,
+      "attribution_rate": 1.0,
+      "true_positives": 1,
+      "false_positives": 4,
+      "false_negatives": 32,
+      "true_negatives": 36,
+      "errors": 0,
+      "duration_s": 33.91174537502229,
+      "provenance": {
+        "adapter_kind": "external",
+        "python": "3.12.13",
+        "platform": "macOS-26.2-arm64-arm-64bit",
+        "package_spec": "mcp-shield@1.0.4",
+        "scanner_command": [
+          "npx",
+          "--yes",
+          "mcp-shield@1.0.4",
+          "--path",
+          "<manifest-shim>"
+        ],
+        "input_adapter": "divergence.bench.manifest_shim"
+      },
+      "scored": 73,
+      "skipped_not_applicable": 37,
+      "coverage": 0.6636363636363637,
+      "risk_findings": 13,
+      "posture_findings": 0,
+      "estimates": {
+        "fpr_on_traps": {
+          "numerator": 4,
+          "denominator": 21,
+          "rate": 0.19047619047619047,
+          "wilson95": {
+            "low": 0.07667565052761793,
+            "high": 0.40000564690204926
+          }
+        },
+        "recall": {
+          "numerator": 1,
+          "denominator": 33,
+          "rate": 0.030303030303030304,
+          "wilson95": {
+            "low": 0.00536941053687183,
+            "high": 0.1531872538211892
+          }
+        }
+      },
+      "by_stratum": {
+        "benign_plain": {
+          "total": 15,
+          "flagged": 0
+        },
+        "fp_trap": {
+          "total": 21,
+          "flagged": 4
+        },
+        "malicious": {
+          "total": 12,
+          "flagged": 1
+        },
+        "obfuscated": {
+          "total": 25,
+          "flagged": 0
+        }
+      },
+      "recall_by_attack_class": {
+        "annotation_lie": {
+          "hits": 0,
+          "total": 1
+        },
+        "cross_tool_instruction": {
+          "hits": 0,
+          "total": 2
+        },
+        "description_poisoning": {
+          "hits": 1,
+          "total": 3
+        },
+        "dynamic_code_loading": {
+          "hits": 0,
+          "total": 22
+        },
+        "preference_manipulation": {
+          "hits": 0,
+          "total": 1
+        },
+        "return_value_injection": {
+          "hits": 0,
+          "total": 1
+        },
+        "schema_poisoning": {
+          "hits": 0,
+          "total": 1
+        },
+        "shadowing": {
+          "hits": 0,
+          "total": 1
+        },
+        "typosquat": {
+          "hits": 0,
+          "total": 2
+        },
+        "undeclared_exec": {
+          "hits": 0,
+          "total": 6
+        },
+        "undeclared_filesystem": {
+          "hits": 0,
+          "total": 4
+        },
+        "undeclared_network": {
+          "hits": 0,
+          "total": 11
+        },
+        "undeclared_secrets": {
+          "hits": 1,
+          "total": 8
+        }
+      },
+      "fpr_by_trap_family": {
+        "broad_but_honest_trigger": {
+          "hits": 1,
+          "total": 3
+        },
+        "imperative_language": {
+          "hits": 2,
+          "total": 9
+        },
+        "privileged_by_design": {
+          "hits": 2,
+          "total": 11
+        },
+        "security_domain_vocabulary": {
+          "hits": 2,
+          "total": 6
+        }
+      }
+    },
+    {
+      "name": "keyword",
+      "version": "1.0",
+      "available": true,
+      "unavailable_reason": "",
+      "fpr_on_traps": 0.5714285714285714,
+      "fpr_on_benign": 0.1,
+      "fpr_on_all_negatives": 0.4,
+      "precision": 0.5294117647058824,
+      "recall": 0.54,
+      "f1": 0.5346534653465347,
+      "attribution_rate": 0.7777777777777778,
+      "true_positives": 27,
+      "false_positives": 24,
+      "false_negatives": 23,
+      "true_negatives": 36,
+      "errors": 0,
+      "duration_s": 0.033652457990683615,
+      "provenance": {
+        "adapter_kind": "reference",
+        "python": "3.12.13",
+        "platform": "macOS-26.2-arm64-arm-64bit"
+      },
+      "scored": 110,
+      "skipped_not_applicable": 0,
+      "coverage": 1.0,
+      "risk_findings": 63,
+      "posture_findings": 0,
+      "estimates": {
+        "fpr_on_traps": {
+          "numerator": 20,
+          "denominator": 35,
+          "rate": 0.5714285714285714,
+          "wilson95": {
+            "low": 0.4085741114397492,
+            "high": 0.7201543182281931
+          }
+        },
+        "recall": {
+          "numerator": 27,
+          "denominator": 50,
+          "rate": 0.54,
+          "wilson95": {
+            "low": 0.40398871399157477,
+            "high": 0.6703034780777566
+          }
+        }
+      },
+      "by_stratum": {
+        "benign_plain": {
+          "total": 20,
+          "flagged": 2
+        },
+        "fp_trap": {
+          "total": 35,
+          "flagged": 20
+        },
+        "malicious": {
+          "total": 25,
+          "flagged": 18
+        },
+        "obfuscated": {
+          "total": 30,
+          "flagged": 11
+        }
+      },
+      "recall_by_attack_class": {
+        "annotation_lie": {
+          "hits": 0,
+          "total": 1
+        },
+        "bundled_binary_no_source": {
+          "hits": 0,
+          "total": 1
+        },
+        "cross_tool_instruction": {
+          "hits": 1,
+          "total": 2
+        },
+        "description_poisoning": {
+          "hits": 3,
+          "total": 5
+        },
+        "dynamic_code_loading": {
+          "hits": 12,
+          "total": 28
+        },
+        "post_approval_mutation": {
+          "hits": 2,
+          "total": 2
+        },
+        "preference_manipulation": {
+          "hits": 2,
+          "total": 2
+        },
+        "progressive_disclosure_payload": {
+          "hits": 1,
+          "total": 1
+        },
+        "remote_fetch_at_load": {
+          "hits": 1,
+          "total": 1
+        },
+        "return_value_injection": {
+          "hits": 0,
+          "total": 2
+        },
+        "schema_poisoning": {
+          "hits": 1,
+          "total": 2
+        },
+        "script_exceeds_allowed_tools": {
+          "hits": 3,
+          "total": 4
+        },
+        "shadowing": {
+          "hits": 2,
+          "total": 2
+        },
+        "trigger_scope_hijack": {
+          "hits": 1,
+          "total": 1
+        },
+        "typosquat": {
+          "hits": 2,
+          "total": 2
+        },
+        "undeclared_exec": {
+          "hits": 6,
+          "total": 9
+        },
+        "undeclared_filesystem": {
+          "hits": 0,
+          "total": 5
+        },
+        "undeclared_network": {
+          "hits": 11,
+          "total": 16
+        },
+        "undeclared_secrets": {
+          "hits": 5,
+          "total": 9
+        }
+      },
+      "fpr_by_trap_family": {
+        "broad_but_honest_trigger": {
+          "hits": 5,
+          "total": 9
+        },
+        "imperative_language": {
+          "hits": 7,
+          "total": 12
+        },
+        "privileged_by_design": {
+          "hits": 7,
+          "total": 13
+        },
+        "security_domain_vocabulary": {
+          "hits": 5,
+          "total": 10
+        },
+        "wildcard_permissions": {
+          "hits": 6,
+          "total": 7
+        }
+      }
+    },
+    {
+      "name": "snyk-agent-scan",
+      "version": "unknown",
+      "available": false,
+      "unavailable_reason": "requires a SNYK_TOKEN from a Snyk account, and transmits tool descriptions to a hosted API \u2014 cannot be part of an offline reproducible benchmark",
+      "fpr_on_traps": null,
+      "fpr_on_benign": null,
+      "fpr_on_all_negatives": null,
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "attribution_rate": null,
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "true_negatives": 0,
+      "errors": 0,
+      "duration_s": 0.0001521660014986992,
+      "provenance": {
+        "adapter_kind": "external",
+        "python": "3.12.13",
+        "platform": "macOS-26.2-arm64-arm-64bit",
+        "probe_command": [
+          "uvx",
+          "snyk-agent-scan@0.6.0",
+          "--help"
+        ],
+        "package_spec": "snyk-agent-scan@0.6.0",
+        "scanner_command": [
+          "uvx",
+          "snyk-agent-scan@0.6.0",
+          "scan",
+          "--json"
+        ],
+        "hosted_analysis": true
+      },
+      "scored": 0,
+      "skipped_not_applicable": 0,
+      "coverage": null,
+      "risk_findings": 0,
+      "posture_findings": 0,
+      "estimates": {
+        "fpr_on_traps": {
+          "numerator": 0,
+          "denominator": 0,
+          "rate": null,
+          "wilson95": null
+        },
+        "recall": {
+          "numerator": 0,
+          "denominator": 0,
+          "rate": null,
+          "wilson95": null
+        }
+      },
+      "by_stratum": {},
+      "recall_by_attack_class": {},
+      "fpr_by_trap_family": {}
+    }
+  ]
+}

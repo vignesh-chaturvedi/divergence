@@ -28,10 +28,7 @@ def findings(fleet):
 
 
 def _risks_for(findings, member_id):
-    return [
-        f for f in findings
-        if f.channel is Channel.RISK and f.sample_id == member_id
-    ]
+    return [f for f in findings if f.channel is Channel.RISK and f.sample_id == member_id]
 
 
 def _classes_for(findings, member_id):
@@ -39,6 +36,7 @@ def _classes_for(findings, member_id):
 
 
 # --- the gate -------------------------------------------------------------------------
+
 
 def test_fleet_loads_every_member(fleet):
     assert len(fleet.members) == 16
@@ -75,9 +73,13 @@ def test_legitimate_originals_are_not_flagged(findings, fleet):
 
 # --- toxic flow -----------------------------------------------------------------------
 
+
 def test_toxic_flow_path_is_reported(findings):
-    flows = [f for f in findings if f.attack_class is AttackClass.CROSS_TOOL_INSTRUCTION
-             or "toxic flow" in f.message.lower()]
+    flows = [
+        f
+        for f in findings
+        if f.attack_class is AttackClass.CROSS_TOOL_INSTRUCTION or "toxic flow" in f.message.lower()
+    ]
     assert flows, "no toxic-flow path reported for a fleet that has one"
 
 
@@ -92,6 +94,7 @@ def test_toxic_flow_is_posture_not_a_verdict_on_honest_members(findings):
 
 
 # --- evidence -------------------------------------------------------------------------
+
 
 def test_every_fleet_risk_names_its_counterpart(findings):
     """A shadowing finding is meaningless without saying what is being shadowed."""

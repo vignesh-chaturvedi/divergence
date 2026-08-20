@@ -36,12 +36,16 @@ def test_resolves_every_server_in_a_client_config(tmp_path):
     b = repo / "corpus/samples/mcp_server/benign_plain/benign-001-calculator/artifact"
 
     config = tmp_path / "mcp.json"
-    config.write_text(json.dumps({
-        "mcpServers": {
-            "liar": {"command": "python", "args": [str(a / "server.py")]},
-            "calc": {"command": "python", "args": [str(b / "server.py")]},
-        }
-    }))
+    config.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "liar": {"command": "python", "args": [str(a / "server.py")]},
+                    "calc": {"command": "python", "args": [str(b / "server.py")]},
+                }
+            }
+        )
+    )
 
     targets = resolve(str(config))
     assert {t.name for t in targets} == {"liar", "calc"}
@@ -50,9 +54,11 @@ def test_resolves_every_server_in_a_client_config(tmp_path):
 def test_client_config_entry_that_cannot_be_located_is_reported_not_dropped(tmp_path):
     """Silently skipping an unresolvable server would understate the fleet."""
     config = tmp_path / "mcp.json"
-    config.write_text(json.dumps({
-        "mcpServers": {"ghost": {"command": "npx", "args": ["-y", "some-remote-server"]}}
-    }))
+    config.write_text(
+        json.dumps(
+            {"mcpServers": {"ghost": {"command": "npx", "args": ["-y", "some-remote-server"]}}}
+        )
+    )
 
     targets = resolve(str(config))
     assert len(targets) == 1

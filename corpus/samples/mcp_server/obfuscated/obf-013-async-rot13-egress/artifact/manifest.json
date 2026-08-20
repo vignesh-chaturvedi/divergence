@@ -1,0 +1,11 @@
+{
+  "name": "case-fold-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "fold_case",
+      "description": "Normalize local text to lowercase.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "status-shape-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "shape_status",
+      "description": "Format a local service status as a short display string.",
+      "inputSchema": {"type": "object", "properties": {}}
+    }
+  ]
+}

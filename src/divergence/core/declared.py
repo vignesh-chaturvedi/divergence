@@ -31,6 +31,7 @@ from divergence.core.vocabulary import (
     Finding,
     capabilities_for_allowed_tools,
     declaration_is_wildcard,
+    unknown_allowed_tools,
 )
 
 # Capabilities that an `allowed-tools` declaration actually governs. Reading the
@@ -57,7 +58,9 @@ def _coarsen(caps: set[Capability]) -> set[Capability]:
     return {_COARSEN.get(c, c) for c in caps} & TOOL_GATED
 
 
-def _capabilities_for_tool(behaviour: Behaviour, tool_name: str) -> tuple[set[Capability], dict]:
+def _capabilities_for_tool(
+    behaviour: Behaviour, tool_name: str, source_ref: str = ""
+) -> tuple[set[Capability] | None, dict]:
     """Capabilities reachable from one tool's handler, with evidence.
 
     P1 could not do this. It scanned for sinks flatly and attributed everything to the
@@ -71,7 +74,7 @@ def _capabilities_for_tool(behaviour: Behaviour, tool_name: str) -> tuple[set[Ca
     does not match the declared tool, say — `None` is returned and the caller falls back
     to the conservative artifact-wide reading rather than inventing an attribution.
     """
-    match = behaviour.find(tool_name)
+    match = behaviour.find(tool_name, source_ref)
     if match is not None and match.kind in ("tool_handler", "function"):
         return set(match.capabilities), {s.capability: s.location for s in match.sinks}
     return None, {}
@@ -91,9 +94,7 @@ def _sibling_could_explain(artifact: Artifact) -> bool:
     )
 
 
-def _annotation_findings(
-    artifact: Artifact, behaviour: Behaviour, sample_id: str
-) -> list[Finding]:
+def _annotation_findings(artifact: Artifact, behaviour: Behaviour, sample_id: str) -> list[Finding]:
     """MCP annotation contradictions.
 
     The cheapest high-severity finding in the design. An annotation is a machine-readable
@@ -110,7 +111,7 @@ def _annotation_findings(
         if not annotations:
             continue
 
-        scoped, scoped_evidence = _capabilities_for_tool(behaviour, tool.name)
+        scoped, scoped_evidence = _capabilities_for_tool(behaviour, tool.name, tool.source_ref)
         if scoped is not None:
             caps, evidence, attributed = scoped, scoped_evidence, True
         else:
@@ -135,7 +136,11 @@ def _annotation_findings(
                     )
                 )
 
-        if annotations.get("openWorldHint") is False and Capability.NET_OUTBOUND in caps:
+        if (
+            annotations.get("openWorldHint") is False
+            and Capability.NET_OUTBOUND in caps
+            and (attributed or not fallback_blocked)
+        ):
             findings.append(
                 Finding(
                     sample_id=sample_id,
@@ -205,6 +210,19 @@ def _allowed_tools_findings(
             )
         ]
 
+    unknown = unknown_allowed_tools(declaration)
+    if unknown:
+        return [
+            Finding(
+                sample_id=sample_id,
+                channel=Channel.POSTURE,
+                severity="info",
+                message=("cannot map allowed-tools grant(s): " + ", ".join(unknown)),
+                evidence=f"{skill.source_ref}: allowed-tools = {declaration}",
+                claim="posture: unknown tool grants are treated as unrestricted",
+            )
+        ]
+
     granted = _coarsen(capabilities_for_allowed_tools(declaration))
     used = _coarsen(behaviour.capabilities)
     excess = used - granted
@@ -259,9 +277,7 @@ def _provenance_findings(artifact: Artifact, sample_id: str) -> list[Finding]:
     ]
 
 
-def _posture_findings(
-    artifact: Artifact, behaviour: Behaviour, sample_id: str
-) -> list[Finding]:
+def _posture_findings(artifact: Artifact, behaviour: Behaviour, sample_id: str) -> list[Finding]:
     """What the artifact can do. Recorded, displayed, and never counted toward a verdict."""
     findings: list[Finding] = []
 

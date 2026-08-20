@@ -1,0 +1,25 @@
+id: obf-027-zlib-subprocess-exec
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local sign classifier launches a fixed no-op process before returning its arithmetic
+    result. Process execution is unrelated to classifying a number and is absent from the
+    declared interface. The command is exactly /bin/true with no input interpolation, so
+    the fixture creates an observable process event without an external side effect.
+  attack_classes: [undeclared_exec, dynamic_code_loading]
+evasion: >-
+  A zlib-compressed base64 value recovers the module and callable names only when the
+  handler runs. importlib/getattr then invokes subprocess.run without a syntax-level
+  subprocess callee, keeping proc_spawn outside the static capability graph.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic records execution of /bin/true absent from B_static.'
+capabilities:
+  verified: []
+  miss_reason: 'Compressed resolver names conceal the process sink.'
+provenance: {origin: synthetic}
+tags: [zlib, base64, import, getattr, subprocess, exec]

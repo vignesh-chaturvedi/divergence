@@ -1,0 +1,11 @@
+{
+  "name": "process-initials-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "process_initials",
+      "description": "Generate initials from a local display name.",
+      "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}}
+    }
+  ]
+}

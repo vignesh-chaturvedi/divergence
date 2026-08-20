@@ -30,6 +30,7 @@ from divergence.bench.models import AttackClass, Channel, Finding, Sample
 
 OPT_IN_ENV = "DIVERGENCE_ALLOW_EXTERNAL"
 TIMEOUT_S = 120
+SNYK_AGENT_SCAN_SPEC = "snyk-agent-scan@0.6.0"
 
 
 def external_enabled() -> bool:
@@ -91,7 +92,14 @@ class ExternalAdapter:
     parse: Callable[[str, Sample], list[Finding]]
     install_hint: str = ""
     probe_override: Callable[[], str] | None = None
+    provenance_metadata: dict[str, object] = field(default_factory=dict)
     kind: str = field(default="external", init=False)
+
+    def provenance(self) -> dict[str, object]:
+        return {
+            "probe_command": list(self.probe_cmd),
+            **self.provenance_metadata,
+        }
 
     def probe(self) -> str:
         # Some scanners have preconditions a version check cannot express — a required
@@ -109,9 +117,7 @@ class ExternalAdapter:
             raise ScannerUnavailable(f"{exe!r} not on PATH. {self.install_hint}".strip())
 
         try:
-            proc = subprocess.run(
-                self.probe_cmd, capture_output=True, text=True, timeout=TIMEOUT_S
-            )
+            proc = subprocess.run(self.probe_cmd, capture_output=True, text=True, timeout=TIMEOUT_S)
         except (subprocess.TimeoutExpired, OSError) as exc:
             raise ScannerUnavailable(f"probe failed: {exc}") from None
 
@@ -127,6 +133,11 @@ class ExternalAdapter:
         proc = subprocess.run(
             self.scan_cmd(sample), capture_output=True, text=True, timeout=TIMEOUT_S
         )
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout).strip().splitlines()
+            raise RuntimeError(
+                f"scanner exited {proc.returncode}: {detail[0][:300] if detail else 'no output'}"
+            )
         return self.parse(proc.stdout, sample)
 
 
@@ -151,9 +162,9 @@ def parse_sarif(stdout: str, sample: Sample) -> list[Finding]:
             locations = result.get("locations") or []
             evidence = ""
             if locations:
-                phys = (locations[0].get("physicalLocation") or {})
-                uri = ((phys.get("artifactLocation") or {}).get("uri", ""))
-                line = ((phys.get("region") or {}).get("startLine", ""))
+                phys = locations[0].get("physicalLocation") or {}
+                uri = (phys.get("artifactLocation") or {}).get("uri", "")
+                line = (phys.get("region") or {}).get("startLine", "")
                 evidence = f"{uri}:{line}".strip(":")
 
             findings.append(
@@ -202,25 +213,16 @@ def parse_flat_json_issues(stdout: str, sample: Sample) -> list[Finding]:
 
 # --- the roster ------------------------------------------------------------------
 
-register(
-    ExternalAdapter(
-        name="mcp-scan",
-        homepage="https://github.com/invariantlabs-ai/mcp-scan",
-        probe_cmd=["uvx", "mcp-scan@latest", "--version"],
-        scan_cmd=lambda s: ["uvx", "mcp-scan@latest", "scan", "--json", str(s.artifact_path)],
-        parse=parse_flat_json_issues,
-        install_hint="Requires uv. Runs via `uvx mcp-scan@latest`.",
-    )
-)
-
 # mcp-shield has a dedicated adapter in `adapters/mcp_shield.py`: it analyses a live
 # server rather than a directory, so it needs the manifest shim and a one-pass run.
 
 # semgrep has a dedicated adapter in `adapters/semgrep_scanner.py`: rule loading
 # dominates its cost, so it runs once over the whole corpus rather than per sample.
 
-# `mcp-scan`, the most-cited scanner in this space, is now published as `snyk-agent-scan`
-# and is a Snyk product. Three things about it are worth recording, because together they
+# `mcp-scan`, the most-cited scanner in this space, is now a tiny redirect package and the
+# maintained tool is published as `snyk-agent-scan`. Registering both would misrepresent
+# one product as two independent baselines. Three things about the maintained tool are
+# worth recording, because together they
 # decide whether it can be in a reproducible benchmark at all:
 #
 #   1. It analyses a *live* server from a client config, so it needs the manifest shim.
@@ -247,19 +249,24 @@ def _snyk_probe() -> str:
             "requires a SNYK_TOKEN from a Snyk account, and transmits tool descriptions "
             "to a hosted API — cannot be part of an offline reproducible benchmark"
         )
-    return "snyk-agent-scan (token present)"
+    return "snyk-agent-scan 0.6.0 (token present)"
 
 
 register(
     ExternalAdapter(
         name="snyk-agent-scan",
         homepage="https://github.com/snyk/agent-scan",
-        probe_cmd=["uvx", "snyk-agent-scan@latest", "--help"],
-        scan_cmd=lambda s: ["uvx", "snyk-agent-scan@latest", "scan", "--json"],
+        probe_cmd=["uvx", SNYK_AGENT_SCAN_SPEC, "--help"],
+        scan_cmd=lambda s: ["uvx", SNYK_AGENT_SCAN_SPEC, "scan", "--json"],
         parse=parse_flat_json_issues,
         install_hint=(
             "Requires a SNYK_TOKEN and transmits tool descriptions to a hosted Snyk API."
         ),
         probe_override=_snyk_probe,
+        provenance_metadata={
+            "package_spec": SNYK_AGENT_SCAN_SPEC,
+            "scanner_command": ["uvx", SNYK_AGENT_SCAN_SPEC, "scan", "--json"],
+            "hosted_analysis": True,
+        },
     )
 )

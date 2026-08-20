@@ -1,0 +1,74 @@
+name: Candidate run, scan bug, or false positive
+description: Report a successful independent run, general feedback, or an incorrect result without exposing sensitive configuration.
+title: "[scan]: "
+labels: ["needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove credentials, private paths, server arguments, environment variables, and proprietary tool descriptions before posting. Use the private security-reporting path for exploitable issues.
+  - type: input
+    id: version
+    attributes:
+      label: Divergence version
+      description: Paste `uvx --from <candidate-wheel> divergence --version` or installed `divergence --version` output.
+    validations:
+      required: true
+  - type: input
+    id: candidate_sha256
+    attributes:
+      label: Candidate wheel SHA-256 or installation source
+      description: Paste the wheel digest from `dist/SHA256SUMS`; for a tagged release or source checkout, identify that exact source instead.
+      placeholder: "sha256: ..."
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, architecture, Python version, install command, and whether the Linux sandbox probe was available.
+    validations:
+      required: true
+  - type: dropdown
+    id: artifact
+    attributes:
+      label: Artifact type
+      options:
+        - MCP server
+        - Agent skill
+        - MCP client configuration / fleet
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result type
+      options:
+        - Successful independent candidate run / general feedback
+        - False positive risk finding
+        - Missed risk finding
+        - Wrong attribution
+        - Crash or unusable output
+    validations:
+      required: true
+  - type: textarea
+    id: target
+    attributes:
+      label: Redacted target or configuration description
+      description: Describe what you scanned and its artifact count or type. Do not paste a private client configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome, feedback, or minimal reproduction
+      description: For a successful run, include the command and useful feedback. For a bug, include expected result, actual result, and a minimal safe fixture when possible.
+    validations:
+      required: true
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets and sensitive configuration from this report.
+          required: true

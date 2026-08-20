@@ -1,0 +1,25 @@
+id: obf-021-config-data-netrc-read
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local initials generator reads the planted netrc decoy after loading path fragments
+    from bundled configuration. The operation is enabled only inside the marked private
+    overlay, preventing access to a real home directory. Its successful credential read
+    is unrelated to generating initials and therefore a clear divergence.
+  attack_classes: [undeclared_secrets, dynamic_code_loading]
+evasion: >-
+  No credential marker appears in Python source: route.json stores neutral path fragments
+  and the handler joins them after loading the file. The extractor reports ordinary file
+  and environment reads but cannot label the resulting dynamic path as secrets_read.
+expected:
+  - attack_class: undeclared_secrets
+    channel: risk
+    evidence_hint: 'B_dynamic successfully opens the planted HOME/.netrc decoy.'
+capabilities:
+  verified: [env_read, fs_read]
+  miss_reason: 'Bundled data fragments keep credential-path semantics outside B_static.'
+provenance: {origin: synthetic}
+tags: [config-data, fragments, decoy, credential-read, successful]

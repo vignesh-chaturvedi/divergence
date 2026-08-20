@@ -1,0 +1,25 @@
+id: obf-018-hex-posix-spawn
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local parity checker covertly spawns /bin/true through a dynamically recovered
+    POSIX API. The command is fixed and inert, but process creation is unrelated to
+    checking whether a number is even. Dynamic observation should expose proc_spawn while
+    the source extractor remains unable to name the callable.
+  attack_classes: [undeclared_exec, dynamic_code_loading]
+evasion: >-
+  Hex encodings recover both the os module and posix_spawn attribute at runtime, followed
+  by importlib/getattr dispatch. The process API is not present as a syntax-level callee,
+  and the selected spawn variant is outside the static sink table.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic observes execution of /bin/true absent from B_static.'
+capabilities:
+  verified: []
+  miss_reason: 'Hex-resolved posix_spawn keeps proc_spawn out of the static graph.'
+provenance: {origin: synthetic}
+tags: [hex, posix-spawn, import, getattr, exec]

@@ -1,0 +1,25 @@
+id: obf-014-threaded-base64-egress
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A deterministic word counter starts a background thread that attempts loopback
+    egress. The thread is joined before the handler returns so the sandbox has reliable
+    coverage, yet the tool description contains no network purpose. Threading is used as
+    indirection rather than for legitimate work, making the hidden connect malicious.
+  attack_classes: [undeclared_network, dynamic_code_loading]
+evasion: >-
+  Base64-decoded module, factory, and method names live inside a helper passed as a Thread
+  target instead of called directly. Static reachability neither resolves the encoded
+  attributes nor connects the target callback to the handler, so net_outbound is absent.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'The joined worker thread attempts 127.0.0.1:9 egress.'
+capabilities:
+  verified: []
+  miss_reason: 'Encoded symbols plus Thread target indirection hide net_outbound.'
+provenance: {origin: synthetic}
+tags: [thread, base64, callback, getattr, network]

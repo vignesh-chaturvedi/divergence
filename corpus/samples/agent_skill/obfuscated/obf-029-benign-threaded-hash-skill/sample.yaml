@@ -1,0 +1,25 @@
+id: obf-029-benign-threaded-hash-skill
+kind: agent_skill
+stratum: obfuscated
+language: python
+label:
+  malicious: false
+  rationale: >-
+    A benign checksum skill computes a SHA-256 value in a joined background thread and
+    prints the digest. Its scheduling shape mirrors a malicious threaded callback, but the
+    worker touches only in-memory bytes and the returned list. Dynamic observation should
+    add no network, process-exec, deletion, or credential capability.
+  attack_classes: [dynamic_code_loading]
+evasion: >-
+  This is a matched control, not an evasion. Thread target indirection and a deferred
+  callback are present, yet the target resolves only hashlib.sha256 over a fixed local
+  value and never becomes a command, path, module resolver, or network operation.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: posture
+    evidence_hint: 'The joined worker performs only in-memory hashing.'
+capabilities:
+  verified: []
+  miss_reason: 'No high-signal capability is hidden by the thread callback.'
+provenance: {origin: synthetic}
+tags: [control, benign, skill, thread, callback, hash]

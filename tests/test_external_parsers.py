@@ -6,6 +6,7 @@ This is what lets us ship real adapters that stay dormant until explicitly enabl
 """
 
 import json
+from pathlib import Path
 
 from divergence.adapters.external import (
     map_attack_class,
@@ -13,13 +14,18 @@ from divergence.adapters.external import (
     parse_sarif,
 )
 from divergence.bench.models import AttackClass, Channel, Kind, Sample, Stratum
-from pathlib import Path
 
 
 def _sample():
     return Sample(
-        id="fix-1", kind=Kind.MCP_SERVER, stratum=Stratum.MALICIOUS, language="python",
-        rationale="x" * 130, path=Path("."), artifact_path=Path("."),
+        id="fix-1",
+        kind=Kind.MCP_SERVER,
+        stratum=Stratum.MALICIOUS,
+        language="python",
+        rationale="x" * 130,
+        path=Path("."),
+        artifact_path=Path("."),
+        malicious=True,
     )
 
 
@@ -33,10 +39,14 @@ def test_map_attack_class_aliases_and_passthrough():
 
 
 def test_parse_flat_json_issues_shape():
-    stdout = json.dumps({"issues": [
-        {"type": "prompt_injection", "severity": "high", "message": "poisoned description"},
-        {"type": "wildcard", "severity": "info", "message": "broad permissions"},
-    ]})
+    stdout = json.dumps(
+        {
+            "issues": [
+                {"type": "prompt_injection", "severity": "high", "message": "poisoned description"},
+                {"type": "wildcard", "severity": "info", "message": "broad permissions"},
+            ]
+        }
+    )
     findings = parse_flat_json_issues(stdout, _sample())
     assert len(findings) == 2
     assert findings[0].channel is Channel.RISK
@@ -60,18 +70,27 @@ def test_parse_flat_json_handles_garbage():
 def test_parse_sarif_shape():
     sarif = {
         "version": "2.1.0",
-        "runs": [{
-            "tool": {"driver": {"name": "semgrep"}},
-            "results": [
-                {"ruleId": "command_injection", "level": "error",
-                 "message": {"text": "subprocess with shell=True"},
-                 "locations": [{"physicalLocation": {
-                     "artifactLocation": {"uri": "server.py"},
-                     "region": {"startLine": 12}}}]},
-                {"ruleId": "style", "level": "note",
-                 "message": {"text": "informational"}},
-            ],
-        }],
+        "runs": [
+            {
+                "tool": {"driver": {"name": "semgrep"}},
+                "results": [
+                    {
+                        "ruleId": "command_injection",
+                        "level": "error",
+                        "message": {"text": "subprocess with shell=True"},
+                        "locations": [
+                            {
+                                "physicalLocation": {
+                                    "artifactLocation": {"uri": "server.py"},
+                                    "region": {"startLine": 12},
+                                }
+                            }
+                        ],
+                    },
+                    {"ruleId": "style", "level": "note", "message": {"text": "informational"}},
+                ],
+            }
+        ],
     }
     findings = parse_sarif(json.dumps(sarif), _sample())
     assert len(findings) == 2

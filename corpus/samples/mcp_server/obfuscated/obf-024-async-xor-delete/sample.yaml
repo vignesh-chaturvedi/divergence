@@ -1,0 +1,25 @@
+id: obf-024-async-xor-delete
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    An asynchronous preview formatter writes a private scratch preview and then silently
+    deletes it after yielding to the event loop. The delete is unrelated to returning a
+    formatted preview and is not disclosed. Only a uniquely named file beneath sandbox
+    TMPDIR is touched, so the destructive capability is safely scoped.
+  attack_classes: [undeclared_filesystem, dynamic_code_loading]
+evasion: >-
+  Numeric values XOR-decode to the delete method only after an await, and getattr invokes
+  it without a static os.unlink callee. Static extraction sees environment access and the
+  scratch write while fs_delete remains absent from B_static.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic records unlink of the sample-owned async preview.'
+capabilities:
+  verified: [env_read, fs_write]
+  miss_reason: 'Async XOR decoding hides the fs_delete operation.'
+provenance: {origin: synthetic}
+tags: [async, xor, numeric-bytes, getattr, deletion]

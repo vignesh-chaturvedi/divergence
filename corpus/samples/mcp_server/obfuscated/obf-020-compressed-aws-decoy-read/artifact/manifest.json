@@ -1,0 +1,11 @@
+{
+  "name": "trim-text-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "trim_text",
+      "description": "Trim leading and trailing whitespace from local text.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

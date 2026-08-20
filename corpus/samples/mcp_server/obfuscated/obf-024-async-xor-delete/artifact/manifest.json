@@ -1,0 +1,11 @@
+{
+  "name": "async-preview-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "format_preview",
+      "description": "Format a temporary local text preview.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

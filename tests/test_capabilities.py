@@ -43,6 +43,6 @@ def test_absent_declaration_is_unbounded_not_empty():
     assert capabilities_for_allowed_tools(None) == set(Capability)
 
 
-def test_unknown_tool_names_are_ignored_not_fatal():
+def test_unknown_tool_names_are_conservatively_unrestricted_not_fatal():
     caps = capabilities_for_allowed_tools("Read, SomeFutureTool")
-    assert caps == {Capability.FS_READ}
+    assert caps == set(Capability)

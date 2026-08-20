@@ -1,0 +1,11 @@
+{
+  "name": "label-style-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "style_label",
+      "description": "Format a label in a consistent local display style.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

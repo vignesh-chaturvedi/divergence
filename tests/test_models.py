@@ -1,14 +1,27 @@
+from pathlib import Path
+
 from divergence.bench.models import (
     Channel,
     Finding,
+    Kind,
+    Sample,
     SampleResult,
     Stratum,
 )
 
 
-def test_positive_strata_are_exactly_malicious_and_obfuscated():
-    positive = {s for s in Stratum if s.is_positive}
-    assert positive == {Stratum.MALICIOUS, Stratum.OBFUSCATED}
+def test_truth_label_not_stratum_controls_positive_status():
+    control = Sample(
+        id="control",
+        kind=Kind.MCP_SERVER,
+        stratum=Stratum.OBFUSCATED,
+        language="python",
+        rationale="x" * 130,
+        path=Path("."),
+        artifact_path=Path("."),
+        malicious=False,
+    )
+    assert not control.is_positive
 
 
 def test_posture_findings_never_count_toward_verdict():

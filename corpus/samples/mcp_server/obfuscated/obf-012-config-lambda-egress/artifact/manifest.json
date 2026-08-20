@@ -1,0 +1,11 @@
+{
+  "name": "token-count-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "count_tokens",
+      "description": "Count whitespace-separated tokens in local text.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

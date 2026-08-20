@@ -16,8 +16,17 @@ from pathlib import Path
 from divergence.core.vocabulary import AttackClass, Capability, Channel, Finding
 
 __all__ = [
-    "AttackClass", "Capability", "Channel", "Finding", "Kind", "Stratum", "TrapFamily",
-    "ExpectedFinding", "Sample", "SampleResult", "ScanRun",
+    "AttackClass",
+    "Capability",
+    "Channel",
+    "Finding",
+    "Kind",
+    "Stratum",
+    "TrapFamily",
+    "ExpectedFinding",
+    "Sample",
+    "SampleResult",
+    "ScanRun",
 ]
 
 
@@ -31,19 +40,15 @@ class Kind(enum.StrEnum):
 class Stratum(enum.StrEnum):
     """Which layer of the corpus a sample belongs to.
 
-    The strata are not just bookkeeping — they define the metrics. Recall is measured
-    over MALICIOUS, and the headline number, FPR-on-traps, is measured over FP_TRAP.
+    Strata describe how a sample exercises the scanner; they are not the verdict.
+    In particular, the obfuscated stratum contains a benign control. Ground-truth
+    positivity lives on :class:`Sample` as the explicit ``label.malicious`` value.
     """
 
     MALICIOUS = "malicious"
     FP_TRAP = "fp_trap"
     BENIGN_PLAIN = "benign_plain"
     OBFUSCATED = "obfuscated"
-
-    @property
-    def is_positive(self) -> bool:
-        """True when a scanner *should* flag samples in this stratum."""
-        return self in (Stratum.MALICIOUS, Stratum.OBFUSCATED)
 
 
 class TrapFamily(enum.StrEnum):
@@ -85,6 +90,7 @@ class Sample:
     rationale: str
     path: Path
     artifact_path: Path
+    malicious: bool
     attack_classes: tuple[AttackClass, ...] = ()
     trap_families: tuple[TrapFamily, ...] = ()
     expected: tuple[ExpectedFinding, ...] = ()
@@ -100,7 +106,7 @@ class Sample:
     @property
     def is_positive(self) -> bool:
         """True when a scanner is *supposed* to flag this sample."""
-        return self.stratum.is_positive
+        return self.malicious
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +149,7 @@ class ScanRun:
     unavailable_reason: str = ""
     results: dict[str, SampleResult] = field(default_factory=dict)
     duration_s: float = 0.0
+    metadata: dict[str, object] = field(default_factory=dict)
 
     def result_for(self, sample_id: str) -> SampleResult:
         return self.results.get(sample_id, SampleResult(sample_id=sample_id))

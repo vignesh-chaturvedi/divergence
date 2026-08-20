@@ -17,6 +17,7 @@ import json
 import re
 from pathlib import Path
 
+from divergence import __version__
 from divergence.core.vocabulary import Channel, Finding
 
 SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
@@ -161,7 +162,7 @@ def to_sarif(
     *,
     roots: dict[str, Path] | None = None,
     anchor: str = "",
-    version: str = "0.1.0",
+    version: str = __version__,
 ) -> dict:
     """Render findings as a SARIF 2.1.0 log.
 
@@ -194,13 +195,15 @@ def dumps(findings: list[Finding], **kwargs) -> str:
 
 # --- validation -----------------------------------------------------------------------
 
-def check(path: Path) -> list[str]:
-    """Report why a consumer would reject this SARIF file.
 
-    Schema validity is not the bar. GitHub code scanning refused an upload that parsed
-    perfectly well, because one `artifactLocation.uri` began with `code-review-pro:` and
-    it read that as a URI scheme. Rejection is all-or-nothing, so a single bad location
-    silently discards every finding in the file.
+def check(path: Path) -> list[str]:
+    """Validate required SARIF 2.1.0 structure and GitHub's stricter URI contract.
+
+    GitHub code scanning once refused an upload that parsed perfectly well because one
+    `artifactLocation.uri` looked like a URI scheme.  The previous checker consequently
+    focused only on paths and would itself crash on valid JSON of the wrong shape.  Keep
+    the consumer-specific checks, but first verify the required document/run/tool/result
+    types so a green check is meaningful and malformed input always yields diagnostics.
     """
     problems: list[str] = []
 
@@ -209,24 +212,80 @@ def check(path: Path) -> list[str]:
     except (OSError, json.JSONDecodeError) as exc:
         return [f"unreadable: {exc}"]
 
+    if not isinstance(doc, dict):
+        return ["document root must be an object"]
+
+    if doc.get("$schema") not in (None, SCHEMA):
+        problems.append(f"$schema is {doc.get('$schema')!r}, expected {SCHEMA!r}")
     if doc.get("version") != VERSION:
         problems.append(f"version is {doc.get('version')!r}, expected {VERSION!r}")
 
-    for run_index, run in enumerate(doc.get("runs", [])):
-        for result_index, result in enumerate(run.get("results", [])):
+    runs = doc.get("runs")
+    if not isinstance(runs, list) or not runs:
+        problems.append("runs must be a non-empty array")
+        return problems
+
+    for run_index, run in enumerate(runs):
+        run_where = f"runs[{run_index}]"
+        if not isinstance(run, dict):
+            problems.append(f"{run_where}: run must be an object")
+            continue
+
+        driver = (
+            (run.get("tool") or {}).get("driver") if isinstance(run.get("tool"), dict) else None
+        )
+        if not isinstance(driver, dict) or not isinstance(driver.get("name"), str):
+            problems.append(f"{run_where}: tool.driver.name must be a string")
+
+        results = run.get("results", [])
+        if not isinstance(results, list):
+            problems.append(f"{run_where}: results must be an array")
+            continue
+
+        for result_index, result in enumerate(results):
             where = f"runs[{run_index}].results[{result_index}]"
 
-            if not result.get("ruleId"):
+            if not isinstance(result, dict):
+                problems.append(f"{where}: result must be an object")
+                continue
+
+            if not isinstance(result.get("ruleId"), str) or not result["ruleId"]:
                 problems.append(f"{where}: no ruleId")
 
-            for loc in result.get("locations", []):
-                uri = (
-                    loc.get("physicalLocation", {})
-                    .get("artifactLocation", {})
-                    .get("uri", "")
-                )
+            level = result.get("level")
+            if level not in {None, "none", "note", "warning", "error"}:
+                problems.append(f"{where}: invalid level {level!r}")
+
+            message = result.get("message")
+            if not isinstance(message, dict) or not isinstance(message.get("text"), str):
+                problems.append(f"{where}: message.text must be a string")
+
+            locations = result.get("locations", [])
+            if not isinstance(locations, list):
+                problems.append(f"{where}: locations must be an array")
+                continue
+
+            for location_index, loc in enumerate(locations):
+                if not isinstance(loc, dict):
+                    problems.append(f"{where}.locations[{location_index}]: must be an object")
+                    continue
+                physical = loc.get("physicalLocation")
+                if not isinstance(physical, dict):
+                    problems.append(
+                        f"{where}.locations[{location_index}]: physicalLocation must be an object"
+                    )
+                    continue
+                artifact_location = physical.get("artifactLocation")
+                if not isinstance(artifact_location, dict):
+                    problems.append(
+                        f"{where}.locations[{location_index}]: artifactLocation must be an object"
+                    )
+                    continue
+                uri = artifact_location.get("uri", "")
                 if not uri:
                     problems.append(f"{where}: location with no uri")
+                elif not isinstance(uri, str):
+                    problems.append(f"{where}: location uri must be a string")
                 elif re.match(r"^[A-Za-z][A-Za-z0-9+.\-]*:", uri):
                     problems.append(
                         f"{where}: uri {uri!r} starts with what looks like a scheme — "

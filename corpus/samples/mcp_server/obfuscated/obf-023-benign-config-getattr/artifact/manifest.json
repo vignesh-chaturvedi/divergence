@@ -1,0 +1,11 @@
+{
+  "name": "title-style-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "title_style",
+      "description": "Convert local text to title case using a bundled style preset.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

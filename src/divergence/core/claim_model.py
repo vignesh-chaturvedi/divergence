@@ -53,8 +53,14 @@ CLAIM_SCHEMA = {
         "trigger_scope": {"type": "string", "enum": ["narrow", "broad", "universal"]},
     },
     "required": [
-        "reads", "writes", "network", "exec", "secrets",
-        "side_effects", "instructs_other_tools", "trigger_scope",
+        "reads",
+        "writes",
+        "network",
+        "exec",
+        "secrets",
+        "side_effects",
+        "instructs_other_tools",
+        "trigger_scope",
     ],
 }
 

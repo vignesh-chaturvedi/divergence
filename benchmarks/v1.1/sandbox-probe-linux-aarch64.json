@@ -1,0 +1,1 @@
+{"arch":"aarch64","available":true,"identity_reason":null,"landlock_abi":4,"network_policy":"Landlock ABI v4 TCP deny plus seccomp socket/message deny","platform":"linux","required_landlock_abi":4,"runner_version":"1.1.0","schema":"divergence.sandbox.probe/1","seccomp_available":true,"unprivileged_identity":true}

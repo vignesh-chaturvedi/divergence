@@ -1,0 +1,71 @@
+P5 sandbox gate — what execution revealed that parsing could not
+────────────────────────────────────────────────────────────────────────────────────────────────
+sample                                B_static              revealed by execution     risk
+────────────────────────────────────────────────────────────────────────────────────────────────
+obf-001-b64-attr-egress               —                     net_outbound              1
+obf-002-fragment-assembled-exec       —                     proc_spawn                1
+obf-003-hex-exec-credential-read      dynamic_eval          secrets_read              1
+obf-004-skill-shell-indirection       proc_spawn            —                         0
+obf-005-reversed-import-egress        dynamic_eval          net_outbound              1
+obf-006-benign-base64-decoder         —                     —                         0  <- control
+obf-007-rot13-async-socket            —                     net_outbound              1
+obf-008-hex-config-delete             env_read,fs_read,fs_writefs_delete                 1
+obf-009-compressed-skill-exec         —                     proc_spawn                1
+obf-010-fragmented-decoy-read         env_read,fs_read      secrets_read              1
+obf-011-benign-compressed-preset      —                     —                         0  <- control
+obf-012-config-lambda-egress          fs_read               net_outbound              1
+obf-013-async-rot13-egress            —                     net_outbound              1
+obf-014-threaded-base64-egress        —                     net_outbound              1
+obf-015-gzip-process-egress           —                     net_outbound              1
+obf-016-reversed-skill-delete         env_read,fs_write     fs_delete                 1
+obf-017-benign-rot13-reflection       —                     —                         0  <- control
+obf-018-hex-posix-spawn               —                     proc_spawn                1
+obf-019-fragment-lambda-exec          —                     proc_spawn                1
+obf-020-compressed-aws-decoy-read     env_read,fs_read      secrets_read              1
+obf-021-config-data-netrc-read        env_read,fs_read      secrets_read              1
+obf-022-base85-skill-egress           —                     net_outbound              1
+obf-023-benign-config-getattr         fs_read               —                         0  <- control
+obf-024-async-xor-delete              env_read,fs_write     fs_delete                 1
+obf-025-thread-fragment-delete        env_read,fs_write     fs_delete                 1
+obf-026-process-numeric-decoy-read    —                     path-bound decoy read     1
+obf-027-zlib-subprocess-exec          —                     proc_spawn                1
+obf-028-rot13-ssh-decoy-read          env_read,fs_read      secrets_read              1
+obf-029-benign-threaded-hash-skill    —                     —                         0  <- control
+obf-030-fragment-http-connect         —                     net_outbound              1
+────────────────────────────────────────────────────────────────────────────────────────────────
+  payloads caught      24/25  (96%)
+  gate (>= 50%)        PASS
+  control stayed clean yes
+────────────────────────────────────────────────────────────────────────────────────────────────
+
+Coverage, per sample — an empty capability set means nothing ran, not nothing happened:
+  obf-001-b64-attr-egress               2206 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/1 recorded operations succeeded; exited cleanly
+  obf-002-fragment-assembled-exec       1273 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/2 recorded operations succeeded; exited cleanly
+  obf-003-hex-exec-credential-read      1144 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/1 recorded operations succeeded; exited cleanly
+  obf-004-skill-shell-indirection       1243 syscalls observed across 1 entrypoint(s) (1 completed, 0 failed); 2/2 recorded operations succeeded; exited cleanly
+  obf-005-reversed-import-egress        1232 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/1 recorded operations succeeded; exited cleanly
+  obf-006-benign-base64-decoder         1225 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/0 recorded operations succeeded; exited cleanly
+  obf-007-rot13-async-socket            2112 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/1 recorded operations succeeded; exited cleanly
+  obf-008-hex-config-delete             1165 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 3/3 recorded operations succeeded; exited cleanly
+  obf-009-compressed-skill-exec         1286 syscalls observed across 1 entrypoint(s) (1 completed, 0 failed); 4/5 recorded operations succeeded; exited cleanly
+  obf-010-fragmented-decoy-read         1152 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/1 recorded operations succeeded; exited cleanly
+  obf-011-benign-compressed-preset      1242 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/0 recorded operations succeeded; exited cleanly
+  obf-012-config-lambda-egress          1244 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/2 recorded operations succeeded; exited cleanly
+  obf-013-async-rot13-egress            2121 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/1 recorded operations succeeded; exited cleanly
+  obf-014-threaded-base64-egress        1482 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/1 recorded operations succeeded; exited cleanly
+  obf-015-gzip-process-egress           1878 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/1 recorded operations succeeded; exited cleanly
+  obf-016-reversed-skill-delete         1032 syscalls observed across 1 entrypoint(s) (1 completed, 0 failed); 4/4 recorded operations succeeded; exited cleanly
+  obf-017-benign-rot13-reflection       1156 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/0 recorded operations succeeded; exited cleanly
+  obf-018-hex-posix-spawn               1246 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/2 recorded operations succeeded; exited cleanly
+  obf-019-fragment-lambda-exec          1310 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 2/3 recorded operations succeeded; exited cleanly
+  obf-020-compressed-aws-decoy-read     1252 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/1 recorded operations succeeded; exited cleanly
+  obf-021-config-data-netrc-read        1163 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 2/2 recorded operations succeeded; exited cleanly
+  obf-022-base85-skill-egress           1212 syscalls observed across 1 entrypoint(s) (1 completed, 0 failed); 2/3 recorded operations succeeded; exited cleanly
+  obf-023-benign-config-getattr         1155 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/1 recorded operations succeeded; exited cleanly
+  obf-024-async-xor-delete              2107 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 2/2 recorded operations succeeded; exited cleanly
+  obf-025-thread-fragment-delete        1208 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 2/2 recorded operations succeeded; exited cleanly
+  obf-026-process-numeric-decoy-read    1834 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/1 recorded operations succeeded; exited cleanly
+  obf-027-zlib-subprocess-exec          1486 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/1 recorded operations succeeded; exited cleanly
+  obf-028-rot13-ssh-decoy-read          1170 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 1/1 recorded operations succeeded; exited cleanly
+  obf-029-benign-threaded-hash-skill    1178 syscalls observed across 1 entrypoint(s) (1 completed, 0 failed); 2/2 recorded operations succeeded; exited cleanly
+  obf-030-fragment-http-connect         1850 syscalls observed across 2 entrypoint(s) (2 completed, 0 failed); 0/1 recorded operations succeeded; exited cleanly

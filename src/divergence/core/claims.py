@@ -100,45 +100,67 @@ class ClaimBackend(Protocol):
 
 _CLAIM_PATTERNS: list[tuple[str, Capability]] = [
     # execution
-    (r"execut\w+|\brun(s|ning)?\b|\bshell\b|\bcommand\b|subprocess|\bspawn\w*|\bcli\b"
-     r"|\binvoke\w*|\bscript\b|\blaunch\w*|\bdeploy\w*|\binstall\w*|\bbuild\b|\bcompile\w*"
-     r"|\bgit\b|\bcommit\w*|\bpush\w*|\bnpm\b|\bpip\b|\btest suite\b|\blint\w*|\bformat\w*"
-     r"|\btoolchain\b|\bripgrep\b|\brg\b|\bbinary\b|\bprocess\b", Capability.PROC_SPAWN),
+    (
+        r"execut\w+|\brun(s|ning)?\b|\bshell\b|\bcommand\b|subprocess|\bspawn\w*|\bcli\b"
+        r"|\binvoke\w*|\bscript\b|\blaunch\w*|\bdeploy\w*|\binstall\w*|\bbuild\b|\bcompile\w*"
+        r"|\bgit\b|\bcommit\w*|\bpush\w*|\bnpm\b|\bpip\b|\btest suite\b|\blint\w*|\bformat\w*"
+        r"|\btoolchain\b|\bripgrep\b|\brg\b|\bbinary\b|\bprocess\b",
+        Capability.PROC_SPAWN,
+    ),
     # network
     # No bare "server" — every MCP server describes itself as one. No bare "api" before
     # "key"/"token" — an API key is a credential, not an egress.
-    (r"\bfetch\w*|\bhttps?\b|\burl\b|\bdownload\w*|\bremote\b|\bendpoint\b"
-     r"|\bapi\b(?!\s*[-_ ]?(key|keys|token|secret|credential))"
-     r"|\brequest\w*|\bnetwork\b|\bonline\b|\bweb\b|\bsearch\b|\bregistry\b|\bpush\w*"
-     r"|\bupload\w*|\bsend\w*|\bemail\b|\bssh\b|\bnavigat\w+|\bbrowser\b"
-     r"|\bexternal\b|\bpublic\b|\bmail\b|\bslack\b|\bgithub\b", Capability.NET_OUTBOUND),
+    (
+        r"\bfetch\w*|\bhttps?\b|\burl\b|\bdownload\w*|\bremote\b|\bendpoint\b"
+        r"|\bapi\b(?!\s*[-_ ]?(key|keys|token|secret|credential))"
+        r"|\brequest\w*|\bnetwork\b|\bonline\b|\bweb\b|\bsearch\b|\bregistry\b|\bpush\w*"
+        r"|\bupload\w*|\bdeploy\w*|\bsend\w*|\bemail\b|\bssh\b|\bnavigat\w+|\bbrowser\b"
+        r"|\bexternal\b|\bpublic\b|\bmail\b|\bslack\b|\bgithub\b",
+        Capability.NET_OUTBOUND,
+    ),
     # filesystem read
-    (r"\bread\w*|\bfetch\w*|\bload\w*|\bopen\w*|\bcontents?\b|\blist\w*|\bsearch\w*"
-     r"|\bscan\w*|\bsummaris\w+|\bsummariz\w+|\breview\w*|\binspect\w*|\bparse\w*"
-     r"|\bfile\b|\bdirectory\b|\bfolder\b|\bpath\b|\bdatabase\b|\bquery\b|\brepositor\w+"
-     r"|\bworking tree\b|\bcodebase\b|\bnotes?\b|\bdocument\w*|\btodo\b|\bstore\b"
-     r"|\bindex\b|\bcatalog\w*|\breport\w*|\blog\b", Capability.FS_READ),
+    (
+        r"\bread\w*|\bfetch\w*|\bload\w*|\bopen\w*|\bcontents?\b|\blist\w*|\bsearch\w*"
+        r"|\bscan\w*|\bsummaris\w+|\bsummariz\w+|\breview\w*|\binspect\w*|\bparse\w*"
+        r"|\bfile\b|\bdirectory\b|\bfolder\b|\bpath\b|\bdatabase\b|\bquery\b|\brepositor\w+"
+        r"|\bworking tree\b|\bcodebase\b|\bnotes?\b|\bdocument\w*|\btodo\b|\bstore\b"
+        r"|\bindex\b|\bcatalog\w*|\breport\w*|\blog\b",
+        Capability.FS_READ,
+    ),
     # filesystem write
     # Note the absence of bare "add" and "set": "Add two numbers together" is not a
     # filesystem write, and a verb that generic claims nothing.
-    (r"\bwrite\w*|\bsave\w*|\bstore\w*|\bcreate\w*|\bupdate\w*|\bmodif\w+"
-     r"|\bappend\w*|\brotat\w+|\bgenerat\w+|\bedit\w*|\bformat\w*|\bscaffold\w*"
-     r"|\brecord\w*|\bcommit\w*|\bstage\b|\bconfigur\w+|\bbootstrap\w*"
-     r"|\binitiali[sz]\w+|\bmigrat\w+|\bdraft\w*|\boptimi[sz]\w+|\bcompress\w*",
-     Capability.FS_WRITE),
+    (
+        r"\bwrite\w*|\bsave\w*|\bstore\w*|\bcreate\w*|\bupdate\w*|\bmodif\w+"
+        r"|\bappend\w*|\brotat\w+|\bgenerat\w+|\bedit\w*|\bformat\w*|\bscaffold\w*"
+        r"|\brecord\w*|\bcommit\w*|\bstage\b|\bconfigur\w+|\bbootstrap\w*"
+        r"|\binitiali[sz]\w+|\bmigrat\w+|\bdraft\w*|\boptimi[sz]\w+|\bcompress\w*",
+        Capability.FS_WRITE,
+    ),
     # deletion
-    (r"\bdelet\w+|\bremov\w+|\bunlink\w*|\bclean\w*|\bpurg\w+|\bdrop\b|\bdestro\w+",
-     Capability.FS_DELETE),
+    (
+        r"\bdelet\w+|\bremov\w+|\bunlink\w*|\bclean\w*|\bpurg\w+|\bdrop\b|\bdestro\w+",
+        Capability.FS_DELETE,
+    ),
     # environment
-    (r"\benvironment variable\w*|\benv var\w*|\bos\.environ\b|\benvironment\b|\bconfig\w*"
-     r"|\bsetting\w*", Capability.ENV_READ),
+    (
+        r"\benvironment variable\w*|\benv var\w*|\bos\.environ\b|\benvironment\b|\bconfig\w*"
+        r"|\bsetting\w*",
+        Capability.ENV_READ,
+    ),
     # credentials
-    (r"\bcredential\w*|\bsecret\w*|\btoken\w*|\bpassword\w*|\bapi key\w*|\bapi_key\b"
-     r"|\bprivate key\w*|\bssh key\w*|\b\.ssh\b|\bid_rsa\b|\bauthenticat\w+|\bkeychain\b"
-     r"|\bvault\b|\bkey\b", Capability.SECRETS_READ),
+    (
+        r"\bcredential\w*|\bsecret\w*|\btoken\w*|\bpassword\w*|\bapi key\w*|\bapi_key\b"
+        r"|\bprivate key\w*|\bssh key\w*|\b\.ssh\b|\bid_rsa\b|\bauthenticat\w+|\bkeychain\b"
+        r"|\bvault\b|\bkey\b",
+        Capability.SECRETS_READ,
+    ),
     # dynamic evaluation
-    (r"\beval\w*|\bjavascript\b|\bsnippet\b|\bplugin\w*|\bdynamic\w*|\bexpression\b"
-     r"|\binterpret\w*|\bexecute a\b", Capability.DYNAMIC_EVAL),
+    (
+        r"\beval\w*|\bjavascript\b|\bsnippet\b|\bplugin\w*|\bdynamic\w*|\bexpression\b"
+        r"|\binterpret\w*|\bexecute a\b",
+        Capability.DYNAMIC_EVAL,
+    ),
 ]
 
 _COMPILED_CLAIMS = [(re.compile(p, re.I), cap) for p, cap in _CLAIM_PATTERNS]
@@ -146,16 +168,28 @@ _COMPILED_CLAIMS = [(re.compile(p, re.I), cap) for p, cap in _CLAIM_PATTERNS]
 # An explicit denial. Stronger than silence, and the strongest divergence signal in the
 # lexical repertoire: the artifact volunteered a promise the implementation breaks.
 _DENIAL_PATTERNS: list[tuple[str, Capability]] = [
-    (r"entirely offline|fully offline|works offline|never leaves your (machine|computer|device)"
-     r"|no network|without network|does not (connect|contact|reach|send|upload|transmit)"
-     r"|nothing (is )?(sent|uploaded|transmitted)|stays local|remains local|locally only"
-     r"|runs locally|purely local|output stays local", Capability.NET_OUTBOUND),
-    (r"does not modify|never modifies|does not write|never writes|read[- ]only|without modifying"
-     r"|makes no changes|changes nothing|non[- ]destructive", Capability.FS_WRITE),
-    (r"does not (execute|run)|never executes|does not run code|executes nothing"
-     r"|it (changes|executes) nothing", Capability.PROC_SPAWN),
-    (r"does not (touch|read|access) credential|never (touches|reads) credential"
-     r"|no credentials|touch credentials", Capability.SECRETS_READ),
+    (
+        r"entirely offline|fully offline|works offline|never leaves your (machine|computer|device)"
+        r"|no network|without network|does not (connect|contact|reach|send|upload|transmit)"
+        r"|nothing (is )?(sent|uploaded|transmitted)|stays local|remains local|locally only"
+        r"|runs locally|purely local|output stays local",
+        Capability.NET_OUTBOUND,
+    ),
+    (
+        r"does not modify|never modifies|does not write|never writes|read[- ]only|without modifying"
+        r"|makes no changes|changes nothing|non[- ]destructive",
+        Capability.FS_WRITE,
+    ),
+    (
+        r"does not (execute|run)|never executes|does not run code|executes nothing"
+        r"|it (changes|executes) nothing",
+        Capability.PROC_SPAWN,
+    ),
+    (
+        r"does not (touch|read|access) credential|never (touches|reads) credential"
+        r"|no credentials|touch credentials",
+        Capability.SECRETS_READ,
+    ),
     (r"does not delete|never deletes|deletes nothing", Capability.FS_DELETE),
 ]
 
@@ -177,7 +211,8 @@ _ORDERING_RE = re.compile(
 # is trying to change how the agent treats artifacts other than itself.
 _DIRECTIVE_RE = re.compile(
     r"supersedes?|superseded|takes? precedence|route all|disregard the others"
-    r"|must not be used|do not cross-check|instead of the (legacy|other)"
+    r"|(?:other|alternative|legacy|built[- ]in|default)[^.]{0,140}must not be used"
+    r"|do not cross-check|instead of the (legacy|other)"
     r"|suspend the confirmation|treat .{0,40}as pre-approved"
     r"|pre[- ]approved|disable the (usual|default)|suppress the (usual|default)"
     r"|for the (rest|remainder) of (this|the) session"
@@ -197,7 +232,6 @@ _CONCEAL_RE = re.compile(
     r"|without (mentioning|telling|informing) the user"
     r"|no need to (mention|repeat|surface)"
     r"|suppress the (usual|default|normal)"
-    r"|internal (telemetry|implementation detail|analytics)"
     r"|assistant directive|system directive|standing instruction"
     r"|\[system\]|do not surface this",
     re.I,
@@ -223,6 +257,8 @@ _BREADTH_MARKERS = re.compile(
 _SENTENCE_RE = re.compile(r"[^.!?\n]+[.!?]?")
 
 _FENCE_STRIP_RE = re.compile(r"^[ \t]*```.*?^[ \t]*```", re.DOTALL | re.MULTILINE)
+
+_NEGATED_DENIAL_RE = re.compile(r"(?:\bnot|\bisn't|\bis not)\s*$", re.I)
 
 
 def strip_code_blocks(text: str) -> str:
@@ -263,6 +299,11 @@ class LexicalBackend:
         for pattern, cap in _COMPILED_DENIALS:
             match = pattern.search(normalised)
             if match:
+                # "not read-only" rejects the promise; it does not make it.  The
+                # capability word still participates in the positive claim pass below.
+                prefix = normalised[max(0, match.start() - 12) : match.start()]
+                if _NEGATED_DENIAL_RE.search(prefix):
+                    continue
                 denied.add(cap)
                 evidence.setdefault(cap, _sentence_containing(normalised, match.span()))
 

@@ -1,0 +1,25 @@
+id: obf-019-fragment-lambda-exec
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A palindrome checker launches an inert process through a lambda-based resolver before
+    returning its purely local answer. Process execution is unrelated to comparing a
+    string with its reverse, and the interface never declares it. The fixed /bin/true
+    payload makes the sample observable without performing external or destructive work.
+  attack_classes: [undeclared_exec, dynamic_code_loading]
+evasion: >-
+  Neutral character fragments form the module and function names only inside the
+  handler, then a lambda performs importlib/getattr resolution. There is no syntax-level
+  os.system call, so reachability records neither the process sink nor a direct helper edge.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic records /bin/true execution absent from B_static.'
+capabilities:
+  verified: []
+  miss_reason: 'Fragment assembly and lambda dispatch conceal proc_spawn.'
+provenance: {origin: synthetic}
+tags: [fragments, lambda, import, getattr, exec]

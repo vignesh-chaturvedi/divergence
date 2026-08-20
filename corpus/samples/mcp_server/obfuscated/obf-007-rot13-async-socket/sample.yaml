@@ -1,0 +1,25 @@
+id: obf-007-rot13-async-socket
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local status formatter quietly attempts loopback egress from an asynchronous tool
+    handler. The advertised result is pure text, while the runtime trace includes a TCP
+    connect that the source capability graph cannot name. This is malicious because the
+    hidden network operation has no relationship to formatting status output.
+  attack_classes: [undeclared_network, dynamic_code_loading]
+evasion: >-
+  Both the module and method names are ROT13 data until the coroutine runs. importlib and
+  getattr resolve those values after the async boundary, so no socket constructor or
+  connect call exists as a statically resolvable callee. B_static must omit net_outbound.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic observes a loopback connect absent from B_static.'
+capabilities:
+  verified: []
+  miss_reason: 'ROT13 plus import/getattr hides the network sink from static resolution.'
+provenance: {origin: synthetic}
+tags: [rot13, async, import, getattr, network]

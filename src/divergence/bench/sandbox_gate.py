@@ -15,11 +15,10 @@ over-flagging the project exists to eliminate — at a higher cost.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from divergence.bench.models import Sample, Stratum
-from divergence.core.behaviour import extract
 from divergence.core.engine import _DYNAMIC_HIGH_SIGNAL, dynamic_divergence
+from divergence.core.pipeline import load
 from divergence.core.sandbox import Dynamic, observe
 from divergence.core.vocabulary import Capability, Channel
 
@@ -27,6 +26,7 @@ from divergence.core.vocabulary import Capability, Channel
 @dataclass
 class SampleDelta:
     sample_id: str
+    malicious: bool = True
     static: set[Capability] = field(default_factory=set)
     dynamic: set[Capability] = field(default_factory=set)
     revealed: set[Capability] = field(default_factory=set)
@@ -47,12 +47,20 @@ class GateReport:
 
     @property
     def payloads(self) -> list[SampleDelta]:
-        """Samples whose static analysis was genuinely incomplete."""
-        return [d for d in self.deltas if d.sample_id != "obf-006-benign-base64-decoder"]
+        """Risk-positive samples in the obfuscated stratum."""
+        return [delta for delta in self.deltas if delta.malicious]
+
+    @property
+    def controls(self) -> list[SampleDelta]:
+        return [delta for delta in self.deltas if not delta.malicious]
 
     @property
     def caught(self) -> int:
-        return sum(1 for d in self.payloads if d.high_signal_revealed)
+        # The engine's risk verdict is the source of truth. Most recoveries are a
+        # high-signal B_dynamic - B_static capability, but an exact successful decoy
+        # read is intentionally represented as a stronger, path-bound risk finding.
+        # Counting only the set difference would under-count that evidence.
+        return sum(1 for delta in self.payloads if delta.risk_findings > 0)
 
     @property
     def catch_rate(self) -> float | None:
@@ -61,9 +69,8 @@ class GateReport:
 
     @property
     def control_clean(self) -> bool:
-        """The control must produce no risk finding."""
-        control = [d for d in self.deltas if d.sample_id == "obf-006-benign-base64-decoder"]
-        return all(d.risk_findings == 0 for d in control)
+        """At least one explicit benign control exists and every control stays clean."""
+        return bool(self.controls) and all(delta.risk_findings == 0 for delta in self.controls)
 
 
 def run_gate(samples: list[Sample], *, timeout: int = 25) -> GateReport:
@@ -82,7 +89,10 @@ def run_gate(samples: list[Sample], *, timeout: int = 25) -> GateReport:
         return report
 
     for sample in sorted(obfuscated, key=lambda s: s.id):
-        static = extract(sample.artifact_path).capabilities
+        # The declared surface names undecorated handlers. Bypassing pipeline.load() can
+        # make B_static artificially weak and flatter the dynamic delta.
+        _, behaviour = load(sample.artifact_path)
+        static = behaviour.capabilities
         dynamic: Dynamic = observe(sample.artifact_path, timeout=timeout)
 
         revealed = dynamic.capabilities - static
@@ -91,6 +101,7 @@ def run_gate(samples: list[Sample], *, timeout: int = 25) -> GateReport:
         report.deltas.append(
             SampleDelta(
                 sample_id=sample.id,
+                malicious=sample.is_positive,
                 static=set(static),
                 dynamic=set(dynamic.capabilities),
                 revealed=revealed,
@@ -107,9 +118,7 @@ def run_gate(samples: list[Sample], *, timeout: int = 25) -> GateReport:
 def render(report: GateReport) -> str:
     if not report.available:
         return (
-            "Sandbox gate — not run\n"
-            + "─" * 70
-            + f"\n  {report.unavailable_reason}\n"
+            "Sandbox gate — not run\n" + "─" * 70 + f"\n  {report.unavailable_reason}\n"
             "  Static-only analysis is unaffected; B_dynamic is an optional input.\n"
         )
 
@@ -122,8 +131,11 @@ def render(report: GateReport) -> str:
 
     for d in report.deltas:
         static = ",".join(sorted(c.value for c in d.static)) or "—"
-        revealed = ",".join(sorted(c.value for c in d.high_signal_revealed)) or "—"
-        marker = "  <- control" if d.sample_id == "obf-006-benign-base64-decoder" else ""
+        revealed = ",".join(sorted(c.value for c in d.high_signal_revealed))
+        if not revealed and d.risk_findings:
+            revealed = "path-bound decoy read"
+        revealed = revealed or "—"
+        marker = "  <- control" if not d.malicious else ""
         lines.append(f"{d.sample_id:<38}{static:<22}{revealed:<26}{d.risk_findings}{marker}")
 
     rate = report.catch_rate

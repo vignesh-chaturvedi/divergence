@@ -36,6 +36,7 @@ import tree_sitter_python
 import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
+from divergence.core.acquire import walk_bundle
 from divergence.core.vocabulary import Capability
 
 SNAPSHOT_DIR = "snapshots"
@@ -64,7 +65,9 @@ MODULE_SCOPE = "<module>"
 # the agent is told to run — a skill's payload is frequently a `curl … | sh` that never
 # appears in any script file. Only fenced blocks count; prose that merely mentions a
 # command is documentation, and treating it as code was a P1 false-positive source.
-_FENCE_RE = re.compile(r"^[ \t]*```([A-Za-z0-9_+-]*)[ \t]*\n(.*?)^[ \t]*```", re.DOTALL | re.MULTILINE)
+_FENCE_RE = re.compile(
+    r"^[ \t]*```([A-Za-z0-9_+-]*)[ \t]*\n(.*?)^[ \t]*```", re.DOTALL | re.MULTILINE
+)
 
 _FENCE_LANGUAGES = {
     "": (BASH, "bash"),
@@ -141,16 +144,24 @@ class Behaviour:
                 return e
         raise KeyError(f"no entrypoint named {name!r}")
 
-    def find(self, name: str) -> Entrypoint | None:
+    def find(self, name: str, source_ref: str = "") -> Entrypoint | None:
         """Reachable set for any named function, entrypoint or not.
 
         A tool declared in a manifest may be implemented by a plain function that no
         decorator marks. Callers that know a name from the declared surface can resolve
         it here rather than falling back to an artifact-wide reading.
         """
-        for e in (*self.entrypoints, *self.functions):
-            if e.name == name:
-                return e
+        matches = [e for e in (*self.entrypoints, *self.functions) if e.name == name]
+        if len(matches) == 1:
+            return matches[0]
+        if source_ref:
+            source_file = source_ref.split(":", 1)[0]
+            qualified = [
+                e for e in matches if Path(e.location.split(":", 1)[0]).name == source_file
+            ]
+            if len(qualified) == 1:
+                return qualified[0]
+        # Ambiguity is not permission to select an arbitrary sibling.
         return None
 
     @property
@@ -245,8 +256,11 @@ _TS_QUALIFIED: dict[str, Capability] = {
 # runs `echo` has no capability worth reporting, and saying otherwise makes every shell
 # script look identical.
 _SHEBANG_FAMILIES = {
-    "sh": (BASH, "bash"), "bash": (BASH, "bash"), "zsh": (BASH, "bash"),
-    "python": (PYTHON, "python"), "python3": (PYTHON, "python"),
+    "sh": (BASH, "bash"),
+    "bash": (BASH, "bash"),
+    "zsh": (BASH, "bash"),
+    "python": (PYTHON, "python"),
+    "python3": (PYTHON, "python"),
     "node": (TYPESCRIPT, "typescript"),
 }
 
@@ -300,27 +314,154 @@ _SH_COMMANDS: dict[str, Capability] = {
 }
 
 _SECRET_MARKERS = (
-    ".ssh", "id_rsa", "id_ed25519", "authorized_keys",
-    ".aws/credentials", ".aws", "credentials",
-    ".netrc", ".npmrc", ".pypirc", ".kube/config",
-    ".env", "secrets", "apikey", "api_key",
+    ".ssh",
+    "id_rsa",
+    "id_ed25519",
+    "authorized_keys",
+    ".aws/credentials",
+    ".aws",
+    "credentials",
+    ".netrc",
+    ".npmrc",
+    ".pypirc",
+    ".kube/config",
+    ".env",
+    "secrets",
+    "apikey",
+    "api_key",
 )
 
 # Names that are never worth reporting as unresolved.
 _IGNORE_UNRESOLVED = {
-    "print", "len", "str", "int", "float", "dict", "list", "set", "tuple", "bool",
-    "sorted", "sum", "min", "max", "range", "enumerate", "zip", "map", "filter",
-    "isinstance", "getattr", "setattr", "hasattr", "repr", "format", "abs", "round",
-    "any", "all", "next", "iter", "type", "super", "hash", "id", "bytes", "join",
-    "split", "strip", "lower", "upper", "startswith", "endswith", "replace", "append",
-    "extend", "items", "keys", "values", "encode", "decode", "loads", "dumps", "Path",
-    "FastMCP", "get", "add", "pop", "setdefault", "discard", "console", "log", "JSON",
-    "stringify", "parse", "Promise", "Error", "String", "Number", "Array", "Object",
-    "require", "echo", "exit", "return", "test", "read", "local", "export", "printf",
+    "print",
+    "len",
+    "str",
+    "int",
+    "float",
+    "dict",
+    "list",
+    "set",
+    "tuple",
+    "bool",
+    "sorted",
+    "sum",
+    "min",
+    "max",
+    "range",
+    "enumerate",
+    "zip",
+    "map",
+    "filter",
+    "isinstance",
+    "getattr",
+    "setattr",
+    "hasattr",
+    "repr",
+    "format",
+    "abs",
+    "round",
+    "any",
+    "all",
+    "next",
+    "iter",
+    "type",
+    "super",
+    "hash",
+    "id",
+    "bytes",
+    "join",
+    "split",
+    "strip",
+    "lower",
+    "upper",
+    "startswith",
+    "endswith",
+    "replace",
+    "append",
+    "extend",
+    "items",
+    "keys",
+    "values",
+    "encode",
+    "decode",
+    "loads",
+    "dumps",
+    "Path",
+    "FastMCP",
+    "get",
+    "add",
+    "pop",
+    "setdefault",
+    "discard",
+    "console",
+    "log",
+    "JSON",
+    "stringify",
+    "parse",
+    # Pure standard-library transformations and metadata helpers. These calls neither
+    # add a capability nor represent an unresolved application call graph edge. Treating
+    # each as incomplete made ordinary date/hash/path helpers exit 2 despite the scanner
+    # having fully modelled every capability-bearing operation around them.
+    "b64decode",
+    "b85decode",
+    "decompress",
+    "hexdigest",
+    "sha256",
+    "now",
+    "isoformat",
+    "fromisoformat",
+    "today",
+    "uuid4",
+    "DictReader",
+    "choice",
+    "sub",
+    "quote",
+    "urlencode",
+    "time",
+    "sleep",
+    "token_urlsafe",
+    "which",
+    "glob",
+    "rglob",
+    "iterdir",
+    "is_file",
+    "is_dir",
+    "stat",
+    "fetchall",
+    "splitlines",
+    "isalnum",
+    "title",
+    "chr",
+    "slice",
+    "parseInt",
+    "catch",
+    "close",
+    "settimeout",
+    "newPage",
+    "content",
+    "Promise",
+    "Error",
+    "String",
+    "Number",
+    "Array",
+    "Object",
+    "require",
+    "echo",
+    "exit",
+    "return",
+    "test",
+    "read",
+    "local",
+    "export",
+    "printf",
+    "exists",
+    "python",
+    "python3",
 }
 
 
 # --- generic tree helpers -------------------------------------------------------------
+
 
 def _text(node: Node, src: bytes) -> str:
     return src[node.start_byte : node.end_byte].decode("utf-8", "replace")
@@ -353,14 +494,11 @@ def _dotted_name(node: Node, src: bytes) -> str:
 
 
 def _identifiers_in(node: Node, src: bytes) -> set[str]:
-    return {
-        _text(n, src)
-        for n in _walk(node)
-        if n.type in ("identifier", "word", "variable_name")
-    }
+    return {_text(n, src) for n in _walk(node) if n.type in ("identifier", "word", "variable_name")}
 
 
 # --- per-file analysis ----------------------------------------------------------------
+
 
 @dataclass
 class _Scope:
@@ -369,6 +507,7 @@ class _Scope:
     name: str
     kind: str
     location: str
+    file: str = ""
     params: tuple[str, ...] = ()
     sinks: list[Sink] = field(default_factory=list)
     calls: set[str] = field(default_factory=set)
@@ -478,12 +617,52 @@ def _solve_taint(scope: _Scope) -> None:
     ] + scope.sinks
 
 
-def _python_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
+def _secret_assigned_names(tree, src: bytes, assignment_types: set[str]) -> set[str]:
+    """Names assigned a credential-bearing path literal."""
+    names: set[str] = set()
+    for node in _walk(tree.root_node):
+        if node.type not in assignment_types:
+            continue
+        left = node.child_by_field_name("left") or node.child_by_field_name("name")
+        right = node.child_by_field_name("right") or node.child_by_field_name("value")
+        if left is None or right is None:
+            continue
+        if any(
+            child.type in ("string", "template_string") and _string_literal_secret(child, src)
+            for child in _walk(right)
+        ):
+            names |= _identifiers_in(left, src)
+    return names
+
+
+def _read_sink_touches_secret(node: Node, src: bytes, secret_names: set[str]) -> bool:
+    """Credential vocabulary is a signal only when it reaches a file-read sink."""
+    return bool(_identifiers_in(node, src) & secret_names) or any(
+        child.type in ("string", "template_string") and _string_literal_secret(child, src)
+        for child in _walk(node)
+    )
+
+
+def _literal_tokens(tree, src: bytes) -> set[str]:
+    """Exact string tokens used to qualify well-known subprocess effects."""
+    tokens: set[str] = set()
+    for node in _walk(tree.root_node):
+        if node.type not in ("string", "template_string"):
+            continue
+        raw = _text(node, src).strip("\"'`").strip().lower()
+        if raw and not any(char.isspace() for char in raw):
+            tokens.add(raw)
+    return tokens
+
+
+def _python_scopes(
+    tree, src: bytes, rel: str, declared: frozenset[str] = frozenset()
+) -> tuple[list[_Scope], set[str]]:
     scopes: list[_Scope] = []
     unresolved: set[str] = set()
 
     # Map every function body node to its owning scope so a single pass can attribute.
-    module = _Scope(name=MODULE_SCOPE, kind="script", location=f"{rel}:1")
+    module = _Scope(name=MODULE_SCOPE, kind="script", location=f"{rel}:1", file=rel)
     scopes.append(module)
 
     func_nodes: list[tuple[Node, _Scope]] = []
@@ -500,17 +679,25 @@ def _python_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
         params_node = node.child_by_field_name("parameters")
         if params_node is not None:
             for p in _walk(params_node):
-                if p.type == "identifier" and p.parent is not None and p.parent.type in (
-                    "parameters", "typed_parameter", "default_parameter",
-                    "typed_default_parameter",
+                if (
+                    p.type == "identifier"
+                    and p.parent is not None
+                    and p.parent.type
+                    in (
+                        "parameters",
+                        "typed_parameter",
+                        "default_parameter",
+                        "typed_default_parameter",
+                    )
                 ):
                     params.append(_text(p, src))
 
         # `@mcp.tool()` — a decorated registration is the handler entrypoint.
-        decorated = node.parent is not None and node.parent.type == "decorated_definition"
+        parent = node.parent
+        decorated = parent is not None and parent.type == "decorated_definition"
         is_tool = False
-        if decorated:
-            for dec in node.parent.children:
+        if decorated and parent is not None:
+            for dec in parent.children:
                 if dec.type == "decorator" and ".tool" in _text(dec, src):
                     is_tool = True
 
@@ -518,6 +705,7 @@ def _python_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
             name=name,
             kind="tool_handler" if is_tool else "function",
             location=f"{rel}:{_line(node)}",
+            file=rel,
             params=tuple(dict.fromkeys(params)),
             is_entrypoint=is_tool,
         )
@@ -525,6 +713,9 @@ def _python_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
         func_nodes.append((node, scope))
 
     owner_of = _make_owner_lookup(func_nodes, module)
+
+    secret_names = _secret_assigned_names(tree, src, {"assignment"})
+    literal_tokens = _literal_tokens(tree, src)
 
     for node in _walk(tree.root_node):
         if node.type == "call":
@@ -536,8 +727,8 @@ def _python_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
             loc = f"{rel}:{_line(node)}"
 
             cap = _PY_QUALIFIED.get(name)
-            if cap is None and "." in name:
-                cap = _PY_METHOD.get(name.rsplit(".", 1)[1])
+            if cap is None and ("." in name or fn.type == "attribute"):
+                cap = _PY_METHOD.get(name.rsplit(".", 1)[-1])
             if cap is None and "." not in name:
                 cap = _PY_BARE.get(name)
 
@@ -552,13 +743,43 @@ def _python_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
 
             if cap is not None:
                 args_node = node.child_by_field_name("arguments") or node
-                scope.raw_sinks.append(
-                    (cap, loc, name, frozenset(_identifiers_in(args_node, src)))
-                )
-            else:
+                scope.raw_sinks.append((cap, loc, name, frozenset(_identifiers_in(args_node, src))))
+                if cap is Capability.FS_READ and _read_sink_touches_secret(node, src, secret_names):
+                    scope.raw_sinks.append(
+                        (Capability.SECRETS_READ, loc, name, frozenset(_identifiers_in(node, src)))
+                    )
+                if cap is Capability.PROC_SPAWN:
+                    if _read_sink_touches_secret(node, src, secret_names):
+                        scope.raw_sinks.append(
+                            (
+                                Capability.SECRETS_READ,
+                                loc,
+                                name,
+                                frozenset(_identifiers_in(node, src)),
+                            )
+                        )
+                    network_command = (
+                        {"pip", "install"} <= literal_tokens
+                        or {"npm", "install"} <= literal_tokens
+                        or "ssh" in literal_tokens
+                        or {"git", "push"} <= literal_tokens
+                        or "deploy-cli" in literal_tokens
+                    )
+                    if network_command:
+                        scope.raw_sinks.append((Capability.NET_OUTBOUND, loc, name, frozenset()))
+                    mutating_command = {"ruff", "format"} <= literal_tokens or {
+                        "-m",
+                        "build",
+                    } <= literal_tokens
+                    if mutating_command:
+                        scope.raw_sinks.append((Capability.FS_WRITE, loc, name, frozenset()))
+            elif not (name.endswith(".tool") or name == "mcp.run"):
                 scope.calls.add(name.rsplit(".", 1)[-1])
                 base = name.split(".", 1)[0]
-                if base not in _IGNORE_UNRESOLVED and name.rsplit(".", 1)[-1] not in _IGNORE_UNRESOLVED:
+                if (
+                    base not in _IGNORE_UNRESOLVED
+                    and name.rsplit(".", 1)[-1] not in _IGNORE_UNRESOLVED
+                ):
                     unresolved.add(name)
 
         elif node.type == "attribute":
@@ -567,11 +788,6 @@ def _python_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
                 owner_of(node).sinks.append(
                     Sink(Capability.ENV_READ, f"{rel}:{_line(node)}", callee="os.environ")
                 )
-
-        elif node.type == "string" and _string_literal_secret(node, src):
-            owner_of(node).sinks.append(
-                Sink(Capability.SECRETS_READ, f"{rel}:{_line(node)}", callee="<path literal>")
-            )
 
         elif node.type == "assignment":
             left = node.child_by_field_name("left")
@@ -587,16 +803,21 @@ def _python_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
     return scopes, unresolved
 
 
-def _typescript_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
+def _typescript_scopes(
+    tree, src: bytes, rel: str, declared: frozenset[str] = frozenset()
+) -> tuple[list[_Scope], set[str]]:
     scopes: list[_Scope] = []
     unresolved: set[str] = set()
-    module = _Scope(name=MODULE_SCOPE, kind="script", location=f"{rel}:1", is_entrypoint=True)
+    module = _Scope(name=MODULE_SCOPE, kind="script", location=f"{rel}:1", file=rel)
     scopes.append(module)
 
     func_nodes: list[tuple[Node, _Scope]] = []
     fn_types = {
-        "function_declaration", "function_expression", "arrow_function",
-        "method_definition", "generator_function_declaration",
+        "function_declaration",
+        "function_expression",
+        "arrow_function",
+        "method_definition",
+        "generator_function_declaration",
     }
 
     for node in _walk(tree.root_node):
@@ -609,19 +830,81 @@ def _typescript_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[st
         params_node = node.child_by_field_name("parameters")
         if params_node is not None:
             for p in _walk(params_node):
-                if p.type == "identifier" and p.parent is not None and p.parent.type in (
-                    "formal_parameters", "required_parameter", "optional_parameter",
+                if (
+                    p.type == "identifier"
+                    and p.parent is not None
+                    and p.parent.type
+                    in (
+                        "formal_parameters",
+                        "required_parameter",
+                        "optional_parameter",
+                    )
                 ):
                     params.append(_text(p, src))
 
+        exported = node.parent is not None and node.parent.type == "export_statement"
+        registered = False
+        registered_name = ""
+        ancestor = node.parent
+        while ancestor is not None and ancestor.type not in ("program", "statement_block"):
+            if ancestor.type == "call_expression":
+                fn = ancestor.child_by_field_name("function")
+                callee = _dotted_name(fn, src) if fn is not None else ""
+                if callee.endswith((".setRequestHandler", ".tool")):
+                    registered = True
+                    if callee.endswith(".tool"):
+                        call_text = _text(ancestor, src)
+                        match = re.search(r"\.tool\s*\(\s*['\"`]([^'\"`]+)", call_text)
+                        if match and match.group(1) in declared:
+                            registered_name = match.group(1)
+                    break
+            ancestor = ancestor.parent
         scope = _Scope(
-            name=name, kind="function", location=f"{rel}:{_line(node)}",
-            params=tuple(dict.fromkeys(params)), is_entrypoint=True,
+            name=registered_name or name,
+            kind="tool_handler" if registered_name else "function",
+            location=f"{rel}:{_line(node)}",
+            file=rel,
+            params=tuple(dict.fromkeys(params)),
+            is_entrypoint=exported or registered,
         )
         scopes.append(scope)
         func_nodes.append((node, scope))
 
+    # The SDK's common shape is one ``tools/call`` callback with a branch per manifest
+    # tool.  Give each branch its own scope so one sibling's claim cannot mask another's
+    # hidden sink.
+    initial_owner = _make_owner_lookup(func_nodes, module)
+    for node in _walk(tree.root_node):
+        if node.type != "if_statement":
+            continue
+        owner = initial_owner(node)
+        if not owner.is_entrypoint:
+            continue
+        condition = node.child_by_field_name("condition")
+        consequence = node.child_by_field_name("consequence")
+        if condition is None or consequence is None:
+            continue
+        match = re.search(
+            r"(?:\bname\b|\btoolName\b|\.name)\s*={2,3}\s*['\"`]([^'\"`]+)",
+            _text(condition, src),
+        )
+        if not match or match.group(1) not in declared:
+            continue
+        branch = _Scope(
+            name=match.group(1),
+            kind="tool_handler",
+            location=f"{rel}:{_line(node)}",
+            file=rel,
+            is_entrypoint=True,
+        )
+        scopes.append(branch)
+        func_nodes.append((consequence, branch))
+
     owner_of = _make_owner_lookup(func_nodes, module)
+
+    secret_names = _secret_assigned_names(
+        tree, src, {"variable_declarator", "assignment_expression"}
+    )
 
     for node in _walk(tree.root_node):
         if node.type == "call_expression":
@@ -635,10 +918,16 @@ def _typescript_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[st
             cap = _TS_QUALIFIED.get(name) or _TS_NAMES.get(name.rsplit(".", 1)[-1])
             if cap is not None:
                 args = node.child_by_field_name("arguments") or node
-                scope.raw_sinks.append(
-                    (cap, loc, name, frozenset(_identifiers_in(args, src)))
-                )
-            else:
+                scope.raw_sinks.append((cap, loc, name, frozenset(_identifiers_in(args, src))))
+                if cap is Capability.FS_READ and _read_sink_touches_secret(node, src, secret_names):
+                    scope.raw_sinks.append(
+                        (Capability.SECRETS_READ, loc, name, frozenset(_identifiers_in(node, src)))
+                    )
+            elif not (
+                name.endswith(".tool")
+                or name.endswith(".setRequestHandler")
+                or name.endswith(".connect")
+            ):
                 scope.calls.add(name.rsplit(".", 1)[-1])
                 if name.rsplit(".", 1)[-1] not in _IGNORE_UNRESOLVED:
                     unresolved.add(name)
@@ -648,11 +937,6 @@ def _typescript_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[st
                 owner_of(node).sinks.append(
                     Sink(Capability.ENV_READ, f"{rel}:{_line(node)}", callee="process.env")
                 )
-
-        elif node.type in ("string", "template_string") and _string_literal_secret(node, src):
-            owner_of(node).sinks.append(
-                Sink(Capability.SECRETS_READ, f"{rel}:{_line(node)}", callee="<path literal>")
-            )
 
         elif node.type in ("variable_declarator", "assignment_expression"):
             left = node.child_by_field_name("name") or node.child_by_field_name("left")
@@ -668,7 +952,9 @@ def _typescript_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[st
     return scopes, unresolved
 
 
-def _bash_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
+def _bash_scopes(
+    tree, src: bytes, rel: str, declared: frozenset[str] = frozenset()
+) -> tuple[list[_Scope], set[str]]:
     """Shell. §04 is candid that this is where static analysis is weakest.
 
     A grammar gets us past the obvious failure — a command inside a comment or a quoted
@@ -677,7 +963,9 @@ def _bash_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
     """
     scopes: list[_Scope] = []
     unresolved: set[str] = set()
-    module = _Scope(name=MODULE_SCOPE, kind="script", location=f"{rel}:1", is_entrypoint=True)
+    module = _Scope(
+        name=MODULE_SCOPE, kind="script", location=f"{rel}:1", file=rel, is_entrypoint=True
+    )
     scopes.append(module)
 
     for node in _walk(tree.root_node):
@@ -685,19 +973,30 @@ def _bash_scopes(tree, src: bytes, rel: str) -> tuple[list[_Scope], set[str]]:
             name_node = node.child_by_field_name("name")
             if name_node is None:
                 continue
+            source_line = src.splitlines()[node.start_point[0]].decode("utf-8", "replace")
+            # Documentation commonly writes CLI choices as `<lint|test|build>`. Bash's
+            # grammar interprets pieces of that placeholder as commands/redirections;
+            # it is not executable source and must not make the skill look incomplete.
+            if re.search(r"<[^>\n]*\|[^>\n]*>", source_line):
+                continue
             name = _text(name_node, src).strip()
             cap = _SH_COMMANDS.get(name)
             if cap is not None:
-                module.sinks.append(
-                    Sink(cap, f"{rel}:{_line(node)}", callee=name)
-                )
+                module.sinks.append(Sink(cap, f"{rel}:{_line(node)}", callee=name))
             elif name not in _IGNORE_UNRESOLVED:
                 unresolved.add(name)
 
         elif node.type == "file_redirect":
-            module.sinks.append(
-                Sink(Capability.FS_WRITE, f"{rel}:{_line(node)}", callee="<redirect>")
-            )
+            redirect = _text(node, src).lstrip()
+            source_line = src.splitlines()[node.start_point[0]].decode("utf-8", "replace")
+            if (
+                re.match(r"\d*[<>]&\d", redirect)
+                or redirect.startswith("<<")
+                or re.search(r"<[^>\n]*\|[^>\n]*>", source_line)
+            ):
+                continue
+            capability = Capability.FS_READ if redirect.startswith("<") else Capability.FS_WRITE
+            module.sinks.append(Sink(capability, f"{rel}:{_line(node)}", callee="<redirect>"))
 
     return scopes, unresolved
 
@@ -710,6 +1009,7 @@ _DISPATCH = {
 
 
 # --- assembly -------------------------------------------------------------------------
+
 
 def extract(
     root: Path,
@@ -733,24 +1033,29 @@ def extract(
     unresolved: set[str] = set()
     parse_errors: list[str] = []
 
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        rel_parts = path.relative_to(root).parts
-        if not include_snapshots and SNAPSHOT_DIR in rel_parts:
-            continue
+    files, traversal_diagnostics = walk_bundle(root, include_snapshots=include_snapshots)
+    parse_errors.extend(traversal_diagnostics)
 
+    for path in files:
         rel = str(path.relative_to(root))
 
-        if path.suffix == ".md":
+        if path.name == "SKILL.md":
             try:
-                body = path.read_text()[:_MAX_BYTES]
+                with path.open("rb") as handle:
+                    raw = handle.read(_MAX_BYTES + 1)
+                if len(raw) > _MAX_BYTES:
+                    parse_errors.append(f"{rel}: truncated at {_MAX_BYTES} bytes")
+                    raw = raw[:_MAX_BYTES]
+                body = raw.decode("utf-8")
             except (OSError, UnicodeDecodeError):
+                parse_errors.append(f"{rel}: unreadable text")
                 continue
             for language, family, block_src, line in _fenced_blocks(body):
                 tree = Parser(language).parse(block_src.encode())
                 label = f"{rel}#L{line}"
-                scopes, block_unresolved = _DISPATCH[family](tree, block_src.encode(), label)
+                scopes, block_unresolved = _DISPATCH[family](
+                    tree, block_src.encode(), label, frozenset()
+                )
                 unresolved |= block_unresolved
                 for scope in scopes:
                     if not scope.sinks and not scope.calls:
@@ -766,14 +1071,19 @@ def extract(
         language, family = entry
 
         try:
-            src = path.read_bytes()[:_MAX_BYTES]
+            with path.open("rb") as handle:
+                src = handle.read(_MAX_BYTES + 1)
+            if len(src) > _MAX_BYTES:
+                parse_errors.append(f"{rel}: truncated at {_MAX_BYTES} bytes")
+                src = src[:_MAX_BYTES]
         except OSError:
+            parse_errors.append(f"{rel}: unreadable source")
             continue
         tree = Parser(language).parse(src)
         if tree.root_node.has_error:
             parse_errors.append(rel)
 
-        scopes, file_unresolved = _DISPATCH[family](tree, src, rel)
+        scopes, file_unresolved = _DISPATCH[family](tree, src, rel, declared)
         unresolved |= file_unresolved
 
         for scope in scopes:
@@ -795,8 +1105,19 @@ def extract(
             module.is_entrypoint = True
             entrypoints_raw.append((rel, module))
 
-    def resolve(name: str) -> list[_Scope]:
-        return [s for s in all_scopes.get(name, []) if s.kind != "script"]
+    # Local calls are resolved after every file has been parsed.  Do not report a call as
+    # unresolved merely because its definition appeared later in the traversal.
+    known_names = set(all_scopes)
+    unresolved = {name for name in unresolved if name.rsplit(".", 1)[-1] not in known_names}
+
+    def resolve(name: str, caller: _Scope) -> list[_Scope]:
+        candidates = [s for s in all_scopes.get(name, []) if s.kind != "script"]
+        local = [scope for scope in candidates if scope.file == caller.file]
+        if local:
+            return local
+        # A global fallback is safe only when the bare name has one definition.  Otherwise
+        # an unrelated helper in another module can donate capabilities to this handler.
+        return candidates if len(candidates) == 1 else []
 
     reachable_scopes: set[int] = set()
 
@@ -811,19 +1132,20 @@ def extract(
         if mark:
             reachable_scopes.add(id(scope))
 
-        queue = deque(scope.calls)
+        queue = deque((callee, scope) for callee in scope.calls)
         while queue:
-            callee = queue.popleft()
-            if callee in seen:
+            callee, caller = queue.popleft()
+            marker = f"{caller.file}:{callee}"
+            if marker in seen:
                 continue
-            seen.add(callee)
-            for target in resolve(callee):
+            seen.add(marker)
+            for target in resolve(callee, caller):
                 if mark:
                     reachable_scopes.add(id(target))
                 sinks.extend(target.sinks)
-                queue.extend(target.calls)
+                queue.extend((nested, target) for nested in target.calls)
 
-        return tuple(sinks), tuple(sorted(seen))
+        return tuple(sinks), tuple(sorted(marker.rsplit(":", 1)[-1] for marker in seen))
 
     built: list[Entrypoint] = []
     for rel, scope in entrypoints_raw:
@@ -847,9 +1169,12 @@ def extract(
             sinks, reached = walk(scope, mark=False)
             functions.append(
                 Entrypoint(
-                    name=scope.name, kind="function", location=scope.location,
+                    name=scope.name,
+                    kind="function",
+                    location=scope.location,
                     capabilities=frozenset(s.capability for s in sinks),
-                    sinks=sinks, reached=reached,
+                    sinks=sinks,
+                    reached=reached,
                 )
             )
 

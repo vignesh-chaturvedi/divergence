@@ -1,0 +1,11 @@
+{
+  "name": "palindrome-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "is_palindrome",
+      "description": "Check whether local text is a palindrome.",
+      "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}}
+    }
+  ]
+}

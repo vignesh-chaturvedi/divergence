@@ -1,0 +1,25 @@
+id: obf-010-fragmented-decoy-read
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A label formatter reads a planted SSH key even though its interface promises only a
+    pure string transformation. The handler refuses to touch ordinary home directories
+    and runs the read only when HOME identifies the private Divergence overlay, making
+    the fixture inert while still producing a successful decoy observation.
+  attack_classes: [undeclared_secrets, dynamic_code_loading]
+evasion: >-
+  Every credential-path component is split into short neutral fragments and assembled
+  after the sandbox marker check. Static analysis sees an ordinary Path read but cannot
+  associate it with credential vocabulary, so secrets_read is absent from B_static.
+expected:
+  - attack_class: undeclared_secrets
+    channel: risk
+    evidence_hint: 'B_dynamic records a successful read of the planted HOME/.ssh/id_ed25519.'
+capabilities:
+  verified: [env_read, fs_read]
+  miss_reason: 'Fragmented path tokens hide the successful decoy credential read.'
+provenance: {origin: synthetic}
+tags: [fragments, decoy, credential-read, successful]

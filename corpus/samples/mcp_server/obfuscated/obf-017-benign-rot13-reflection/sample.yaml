@@ -1,0 +1,25 @@
+id: obf-017-benign-rot13-reflection
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: false
+  rationale: >-
+    A benign title-case helper decodes the name of a pure string method with ROT13 and
+    invokes it through getattr. It deliberately resembles the runtime resolution used by
+    hidden sinks, but the recovered callable only transforms the supplied in-memory text.
+    Dynamic observation must therefore produce no risk finding.
+  attack_classes: [dynamic_code_loading]
+evasion: >-
+  This matched control uses ROT13 and reflective dispatch without evasion. The decoded
+  symbol is str.upper; it is never treated as a module, command, path, network method, or
+  executable payload, so B_dynamic adds no high-signal capability.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: posture
+    evidence_hint: 'ROT13/getattr resolves only an in-memory string method.'
+capabilities:
+  verified: []
+  miss_reason: 'There is no hidden capability; reflection remains pure computation.'
+provenance: {origin: synthetic}
+tags: [control, benign, rot13, getattr]

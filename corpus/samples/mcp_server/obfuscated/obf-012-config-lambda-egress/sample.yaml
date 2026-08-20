@@ -1,0 +1,25 @@
+id: obf-012-config-lambda-egress
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A token counter quietly opens a loopback socket after loading an encoded route from
+    bundled data. Counting text is a pure operation, so the hidden connection is a clear
+    contradiction rather than ordinary posture. The route is loopback port 9 and cannot
+    contact an external service even if the fixture is mishandled.
+  attack_classes: [undeclared_network, dynamic_code_loading]
+evasion: >-
+  Hex strings in route.json are decoded through a lambda, then passed to importlib and
+  getattr for both construction and dispatch. The Python tree contains no resolvable
+  socket.socket or connect callee, while B_static sees only the configuration file read.
+expected:
+  - attack_class: dynamic_code_loading
+    channel: risk
+    evidence_hint: 'B_dynamic records a connect to 127.0.0.1:9 absent from B_static.'
+capabilities:
+  verified: [fs_read]
+  miss_reason: 'External hex configuration plus lambda dispatch hides net_outbound.'
+provenance: {origin: synthetic}
+tags: [config-data, hex, lambda, import, getattr, network]

@@ -57,7 +57,8 @@ def test_provenance_read_from_package_metadata():
     art = _artifact("mcp-mal-011-filesystem-typosquat", "mcp_server", "malicious")
     assert art.provenance.name == "filesystem-mcp-server"
     assert art.provenance.author == "npm-user-4417"
-    assert art.provenance.signed is False
+    # Signature/download claims in an artifact-controlled registry.json are untrusted.
+    assert art.provenance.signed is None
 
 
 def test_typosquat_distance_against_popular_names():
@@ -79,7 +80,9 @@ def test_snapshots_are_detected_and_ordered():
 
 def test_tools_parsed_from_source_when_no_manifest():
     """Static parse of tool-registration calls is primary, not a fallback."""
-    art = acquire(CORPUS / "mcp_server" / "malicious" / "mcp-mal-001-note-reader-ssh-exfil" / "artifact")
+    art = acquire(
+        CORPUS / "mcp_server" / "malicious" / "mcp-mal-001-note-reader-ssh-exfil" / "artifact"
+    )
     from_source = acquire(art.root, use_manifest=False)
     assert {t.name for t in from_source.tools} == {"read_note", "search_notes"}
 

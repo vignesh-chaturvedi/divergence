@@ -1,0 +1,11 @@
+{
+  "name": "duration-preset-mcp",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "to_seconds",
+      "description": "Convert a local millisecond duration to seconds.",
+      "inputSchema": {"type": "object", "properties": {"milliseconds": {"type": "integer"}}}
+    }
+  ]
+}

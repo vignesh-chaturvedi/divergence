@@ -10,43 +10,55 @@ architecture, phase sequence and exit gates — this file does not restate it.
 
 ## Status
 
-**P4 complete** (2026-08-19). A7 fleet analyzers: shadowing via lexical similarity plus
-provenance, relative preference scoring, toxic-flow graph. The gate — catch three planted
-shadows and an over-triggering skill in a 16-artifact config **without flagging the eight
-legitimate originals** — passes. Benchmark: **0.0% FPR-on-traps, 100% precision, 96% recall**;
-fleet analysis lifts attribution 79.2% → 87.5%.
+**P4 and the v1 ship checkpoint are complete** (2026-08-19). A7 fleet analyzers cover
+shadowing with provenance, relative preference scoring, and toxic-flow analysis. SARIF
+2.1.0, the composite GitHub Action, `uvx` distribution, and the benchmark/writeup surface
+landed before sandbox work began.
 
-**v1 ship checkpoint complete** (2026-08-19). `uvx` distribution, SARIF 2.1.0 (validated in CI
-before upload), GitHub Action, published benchmark table, writeup at `docs/WRITEUP.md`.
+**P5 is locally complete on verified unprivileged Linux arm64** (2026-08-20). The hardened
+runner refuses root, clears the ambient environment, installs a private `HOME`, confines
+filesystem and TCP access with Landlock ABI v4, applies seccomp denials, records results via
+ptrace, plants exact decoys, and cleans up resources and the full process group. Docker did
+not permit creation of a network namespace, so the verified boundary used independent
+Landlock and seccomp egress denial instead; ADR 0011 records that explicit deviation.
 
-Final table — `divergence+fleet` **0.0% FPR-traps / 100% precision / 96% recall / 87.5% attribution**;
-`semgrep` 5.7% / 87.5% / 56% / **0% attribution**; `mcp-shield` 19.0% / 20% / 8.3%; `keyword`
-57.1% / 45% / 72%. Semgrep scores **78% on code-surface attack classes and 48% on
-reasoning-surface** ones — §02's thesis, measured by an independent tool.
+The P5 recovery gate catches **24/25 obfuscated positives (96%; Wilson 95% CI
+80.5%–99.3%)**, with all five matched controls clean. The complete hardened row is
+**0/35 trap false positives, 49/50 recall (98%; CI 89.5%–99.6%), 100% precision, and
+87.8% attribution**. Runtime entrypoints were confirmed for 83/110 fixtures and per-sample
+coverage is part of the JSON evidence. Unsupported platforms remain visibly static-only;
+the candidate workflow still has to reproduce the Linux x86-64 artifact.
 
-`snyk-agent-scan` (formerly `mcp-scan`) cannot be benchmarked: it requires a vendor account
-token and a hosted API. Recorded as a finding, adapter reports unavailable. See `docs/adr/0006`.
+**P6 local release engineering is complete; formal P6 is not.** The final candidate corpus
+has 110 synthetic artifacts: 50 risk-positive and 60 benign/control, including an
+obfuscated stratum of 25 positives and five controls. Static `divergence` and
+`divergence+fleet` both have 0/35 trap false positives, 27/50 recall, and 100% precision;
+attribution is 77.8% and 85.2% respectively. Pinned third-party results and all generated
+provenance are tracked under `benchmarks/v1.1/`. Python dependency and RustSec audits are
+clean, and 384 tests pass with 83.67% branch coverage against the retained 80% threshold.
 
-**P5 complete** (2026-08-20). `sandbox/` is a Rust crate that boots an artifact under
-Landlock (ABI v4) with planted decoy credentials and records syscalls via ptrace, emitting
-B_dynamic as JSON. Rule-table row six — `B_dynamic ⊄ B_static` — is wired into the engine.
+Pinned baselines on that corpus: Semgrep 1.173.0 with rules SHA-256
+`f8b8461199c4d0ac23c0faf60f8b00a50139854d742e5b7374ccde09f81c9afd` has 5/35 trap
+false positives, 30/50 recall, and 81.1% precision (seven false positives across all
+controls); mcp-shield has 4/21 trap false positives, 1/33 recall, 20% precision, and 66.4%
+corpus coverage; the keyword control has 20/35 trap false positives and 27/50 recall.
 
-Gate: **4 of 5 obfuscated payloads caught (80%)** against a 50% bar, control clean.
-`make sandbox-gate` on Linux; degrades with a stated reason on macOS.
+The remaining P6 gates require humans or protected external state: independent corpus
+label/rationale review; a non-author clean install, real scan, and filed GitHub issue; and
+the protected tag, PyPI publication, and GitHub release. No tag or publication exists yet.
 
-Adding the obfuscated stratum **lowered** headline recall 96% → 87.1%, which is the honest
-accounting: those samples are built to defeat static analysis, and the sandbox is what
-recovers them. FPR-on-traps stays 0.0%, precision 100%.
+`snyk-agent-scan` (formerly `mcp-scan`) remains unavailable because it requires a vendor
+token and hosted API. It is recorded as unavailable, not scored as zero; see ADR 0006.
 
-Two corrections worth keeping — see `docs/adr/0007`:
+Two dynamic-analysis corrections worth keeping — see ADRs 0007, 0008, and 0011:
 
 - **Instrumentation must never appear in the result.** `Command::exec` walking `PATH` put
   `proc_spawn` on every sample in the corpus before a fix.
 - **§05 overstates the decoy argument.** A credential manager legitimately reads `~/.ssh`,
   so a decoy read is risk only when credential access was absent from B_static.
-
-**Next: P6 — publish v1.1.** Final benchmark across all strata, writeup covering the
-static-versus-dynamic delta. Exit gate: someone who is not you runs it and files an issue.
+- **Observation is not containment.** Ptrace evidence is admissible only after the runner
+  establishes and verifies fail-closed environment, filesystem, network, resource, and
+  process boundaries.
 
 Three rules that are load-bearing and must not be "simplified" — see `docs/adr/0004`:
 

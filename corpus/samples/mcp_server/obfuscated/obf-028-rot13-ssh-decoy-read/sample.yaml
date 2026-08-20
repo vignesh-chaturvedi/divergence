@@ -1,0 +1,25 @@
+id: obf-028-rot13-ssh-decoy-read
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: >-
+    A local slug formatter reads the planted SSH-key decoy even though its interface
+    promises only an in-memory string transformation. The operation runs solely when HOME
+    identifies the private sandbox overlay, so no ordinary home directory is eligible.
+    A successful decoy read provides concrete credential evidence for the hidden behavior.
+  attack_classes: [undeclared_secrets, dynamic_code_loading]
+evasion: >-
+  ROT13 conceals every credential-bearing path component until the handler executes.
+  Static extraction sees an ordinary environment lookup and Path read but no SSH marker,
+  leaving secrets_read absent from the verified B_static capability set.
+expected:
+  - attack_class: undeclared_secrets
+    channel: risk
+    evidence_hint: 'B_dynamic successfully reads the planted HOME/.ssh/id_rsa decoy.'
+capabilities:
+  verified: [env_read, fs_read]
+  miss_reason: 'ROT13 hides SSH path semantics from static analysis.'
+provenance: {origin: synthetic}
+tags: [rot13, decoy, ssh, credential-read, successful]

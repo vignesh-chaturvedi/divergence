@@ -1,7 +1,7 @@
 name: "Divergence"
 description: >
   Measure the gap between what your MCP servers and agent skills claim to do and what
-  they actually do. Uploads SARIF to GitHub code scanning.
+  they actually do. Writes SARIF 2.1.0 for a later code-scanning upload step.
 author: "Divergence"
 
 branding:
@@ -18,9 +18,16 @@ inputs:
   fail-on-risk:
     description: >
       Fail the job when risk findings are present. Posture findings never fail a build —
-      they describe capability, not divergence.
+      they describe capability, not divergence. Incomplete analysis still fails unless
+      allow-partial is explicitly true.
     required: false
     default: "true"
+  allow-partial:
+    description: >
+      Permit exit zero when acquisition or analysis is incomplete. Defaults to false so
+      unknown coverage cannot appear clean. Risk findings still follow fail-on-risk.
+    required: false
+    default: "false"
   sarif-file:
     description: "Where to write the SARIF report."
     required: false
@@ -31,6 +38,12 @@ inputs:
       to be a client config or fleet manifest.
     required: false
     default: "false"
+  distribution:
+    description: >
+      Package source passed to `uvx --from`. Keep the default for released use; this
+      repository sets it to `.` when dogfooding an unpublished checkout.
+    required: false
+    default: "divergence-mcp==1.1.0"
 
 outputs:
   sarif-file:
@@ -44,35 +57,66 @@ runs:
   using: "composite"
   steps:
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       with:
-        version: "latest"
+        version: "0.12.0"
 
     - name: Scan
       id: scan
       shell: bash
+      env:
+        INPUT_ALLOW_PARTIAL: ${{ inputs.allow-partial }}
+        INPUT_DISTRIBUTION: ${{ inputs.distribution }}
+        INPUT_FAIL_ON_RISK: ${{ inputs.fail-on-risk }}
+        INPUT_FLEET: ${{ inputs.fleet }}
+        INPUT_SARIF_FILE: ${{ inputs.sarif-file }}
+        INPUT_TARGET: ${{ inputs.target }}
       run: |
-        set -uo pipefail
+        set -euo pipefail
+
+        for value in "$INPUT_DISTRIBUTION" "$INPUT_SARIF_FILE" "$INPUT_TARGET"; do
+          if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+            echo "Divergence Action inputs must not contain newlines" >&2
+            exit 2
+          fi
+        done
+
+        case "$INPUT_FAIL_ON_RISK" in
+          true|false) ;;
+          *) echo "fail-on-risk must be 'true' or 'false'" >&2; exit 2 ;;
+        esac
+        case "$INPUT_ALLOW_PARTIAL" in
+          true|false) ;;
+          *) echo "allow-partial must be 'true' or 'false'" >&2; exit 2 ;;
+        esac
+        case "$INPUT_FLEET" in
+          true|false) ;;
+          *) echo "fleet must be 'true' or 'false'" >&2; exit 2 ;;
+        esac
 
         VERB="scan"
-        if [ "${{ inputs.fleet }}" = "true" ]; then
+        if [ "$INPUT_FLEET" = "true" ]; then
           VERB="fleet"
         fi
 
         # Posture findings must never fail a build. Only --fail-on-risk does that, and
         # only risk findings feed it.
-        ARGS=("$VERB" "${{ inputs.target }}" "--sarif" "${{ inputs.sarif-file }}")
-        if [ "${{ inputs.fail-on-risk }}" = "true" ]; then
+        ARGS=()
+        if [ "$INPUT_ALLOW_PARTIAL" = "true" ]; then
+          ARGS+=("--allow-partial")
+        fi
+        if [ "$INPUT_FAIL_ON_RISK" = "true" ]; then
           ARGS+=("--fail-on-risk")
         fi
+        ARGS+=("$VERB" "--sarif=$INPUT_SARIF_FILE" "--" "$INPUT_TARGET")
 
         set +e
-        uvx --from divergence divergence "${ARGS[@]}" | tee divergence-output.txt
+        uvx --from="$INPUT_DISTRIBUTION" divergence "${ARGS[@]}" | tee divergence-output.txt
         STATUS=${PIPESTATUS[0]}
         set -e
 
         COUNT=$(grep -oE '^[0-9]+ (cross-artifact )?risk finding' divergence-output.txt | grep -oE '^[0-9]+' | tail -1 || echo 0)
-        echo "sarif-file=${{ inputs.sarif-file }}" >> "$GITHUB_OUTPUT"
-        echo "risk-count=${COUNT:-0}" >> "$GITHUB_OUTPUT"
+        printf 'sarif-file=%s\n' "$INPUT_SARIF_FILE" >> "$GITHUB_OUTPUT"
+        printf 'risk-count=%s\n' "${COUNT:-0}" >> "$GITHUB_OUTPUT"
 
         exit "$STATUS"
