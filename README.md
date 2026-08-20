@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vignesh-chaturvedi/divergence/main/website/public/brand/divergence-lockup-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vignesh-chaturvedi/divergence/main/website/public/brand/divergence-lockup-light.png">
+    <img alt="Divergence" src="https://raw.githubusercontent.com/vignesh-chaturvedi/divergence/main/website/public/brand/divergence-lockup-light.png" width="720">
+  </picture>
+</p>
+
 # Divergence
 
 Divergence is a precision-first analyzer for MCP servers and agent skills. It measures
@@ -172,20 +180,21 @@ MCP configs, and credentials are never part of the built-in contract. See
 [ADR 0009](https://github.com/vignesh-chaturvedi/divergence/blob/main/docs/adr/0009-evidence-only-adjudication.md) for the exact selector and JSON
 fields.
 
-## GitHub Action
+## GitHub Action (after publication)
 
-The composite Action writes SARIF but intentionally does not upload it. Pin a released tag
-or audited commit, then use GitHub's upload action in a separate step:
+After the package is published, the composite Action will write SARIF but intentionally
+will not upload it. Pin a released tag or audited Divergence commit, then use GitHub's
+upload action in a separate step:
 
 ```yaml
-- uses: vignesh-chaturvedi/divergence/action@<audited-commit-sha>
+- uses: vignesh-chaturvedi/divergence/action@<divergence-commit-sha>
   with:
     target: .
     fail-on-risk: "true"
     allow-partial: "false"
     sarif-file: divergence.sarif
 
-- uses: github/codeql-action/upload-sarif@<audited-commit-sha>
+- uses: github/codeql-action/upload-sarif@<codeql-action-commit-sha>
   if: always()
   with:
     sarif_file: divergence.sarif

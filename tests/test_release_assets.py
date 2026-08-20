@@ -47,7 +47,13 @@ def test_distribution_identity_and_commands_are_stable():
     assert force_include["LICENSE"] == "divergence/data/corpus/LICENSE"
 
     sdist = pyproject["tool"]["hatch"]["build"]["targets"]["sdist"]
-    for excluded in ("/.coverage", "/.scratch", "/.superstack", "/build-plan/reports"):
+    for excluded in (
+        "/.coverage",
+        "/.scratch",
+        "/.superstack",
+        "/build-plan/reports",
+        "/website",
+    ):
         assert excluded in sdist["exclude"]
     assert sdist["force-include"]["benchmarks/v1.1"] == "benchmarks/v1.1"
 

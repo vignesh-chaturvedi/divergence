@@ -74,6 +74,7 @@ exclude = [
     "/dist",
     "/out",
     "/sandbox/target",
+    "/website",
     "**/__pycache__",
     "**/*.pyc",
 ]

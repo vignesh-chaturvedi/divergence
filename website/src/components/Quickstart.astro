@@ -1,0 +1,115 @@
+---
+const githubUrl = "https://github.com/vignesh-chaturvedi/divergence";
+---
+
+<section class="section quickstart" id="quickstart" aria-labelledby="quickstart-heading">
+  <div class="container">
+    <div class="section-intro section-intro--row section-intro--quickstart">
+      <div>
+        <p class="eyebrow">Run it yourself</p>
+        <h2 id="quickstart-heading">From clone to first scan.</h2>
+      </div>
+      <p>
+        Python 3.12 and <a href="https://docs.astral.sh/uv/">uv</a> are required. Static
+        analysis is local, offline, and non-executing by default.
+      </p>
+    </div>
+
+    <div class="quickstart__grid">
+      <div class="command-stack">
+        <article class="command-card">
+          <div class="command-card__header">
+            <div>
+              <span class="command-card__step">01</span>
+              <h3>Run from source today</h3>
+            </div>
+            <button
+              class="copy-button"
+              type="button"
+              data-copy-target="command-install"
+              aria-label="Copy run-from-source command"
+            >
+              <span aria-hidden="true">⧉</span>
+              <span class="copy-button__label">Copy</span>
+            </button>
+          </div>
+          <pre><code id="command-install">git clone https://github.com/vignesh-chaturvedi/divergence.git
+cd divergence
+uv sync --frozen --extra dev
+uv run divergence scan &lt;path&gt;</code></pre>
+        </article>
+
+        <article class="command-card">
+          <div class="command-card__header">
+            <div>
+              <span class="command-card__step">02</span>
+              <h3>Fail CI on risk and write SARIF</h3>
+            </div>
+            <button
+              class="copy-button"
+              type="button"
+              data-copy-target="command-sarif"
+              aria-label="Copy SARIF command"
+            >
+              <span aria-hidden="true">⧉</span>
+              <span class="copy-button__label">Copy</span>
+            </button>
+          </div>
+          <pre><code id="command-sarif">uv run divergence --fail-on-risk scan &lt;path&gt; \
+  --sarif divergence.sarif</code></pre>
+        </article>
+
+        <article class="command-card command-card--pending">
+          <div class="command-card__header">
+            <div>
+              <span class="command-card__step">After release</span>
+              <h3>One-shot installation</h3>
+            </div>
+            <button
+              class="copy-button"
+              type="button"
+              data-copy-target="command-uvx"
+              aria-label="Copy post-release uvx command"
+            >
+              <span aria-hidden="true">⧉</span>
+              <span class="copy-button__label">Copy</span>
+            </button>
+          </div>
+          <pre><code id="command-uvx">uvx --from divergence-mcp==1.1.0 divergence --help</code></pre>
+          <p class="command-card__note">This command becomes available only after the v1.1.0 PyPI publication.</p>
+        </article>
+      </div>
+
+      <aside class="terminal-demo" aria-label="Abridged example Divergence terminal output">
+        <div class="terminal-demo__bar">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+          <span>divergence · abridged local scan</span>
+        </div>
+        <div class="terminal-demo__body">
+          <p><span class="terminal-prompt">$</span> uv run divergence scan ./server</p>
+          <div class="terminal-rule"></div>
+          <p class="terminal-heading">RISK — divergence between what it says and what it does</p>
+          <p><span class="terminal-critical">[critical]</span> annotation_lie</p>
+          <p class="terminal-indent">tool 'get_config' declares</p>
+          <p class="terminal-indent terminal-accent">readOnlyHint: true</p>
+          <p class="terminal-indent">but its handler reaches <span class="terminal-accent">fs_write</span></p>
+          <div class="terminal-rule"></div>
+          <p><span class="terminal-number">2</span> risk finding(s); <span class="terminal-number">0</span> partial target(s).</p>
+        </div>
+        <div class="terminal-demo__footer">
+          <span>Evidence: claim + source location</span>
+          <span>exit 0</span>
+        </div>
+      </aside>
+    </div>
+
+    <div class="cli-links" aria-label="More commands">
+      <a href={`${githubUrl}#run-from-a-checkout`}>Inspect declarations <span aria-hidden="true">↗</span></a>
+      <a href={`${githubUrl}#benchmark`}>Reproduce the benchmark <span aria-hidden="true">↗</span></a>
+      <a href={`${githubUrl}#github-action`}>GitHub Action after release <span aria-hidden="true">↗</span></a>
+      <a href={`${githubUrl}/blob/main/docs/RELEASING.md`}>Review release gates <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+
+  <div class="copy-status sr-only" aria-live="polite" data-copy-status></div>
+</section>

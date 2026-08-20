@@ -1,0 +1,77 @@
+---
+const capabilities = [
+  {
+    number: "01",
+    eyebrow: "Default boundary",
+    title: "Offline and non-executing",
+    copy: "Local targets are parsed without running them. Remote acquisition, dynamic execution, external baselines, and A9 all require explicit opt-ins.",
+    tone: "navy",
+  },
+  {
+    number: "02",
+    eyebrow: "Static analysis",
+    title: "Python, TypeScript, and shell",
+    copy: "Tree-sitter reachability follows handlers and skill entrypoints into filesystem, network, subprocess, environment, secret, and dynamic-evaluation sinks.",
+    tone: "mint",
+  },
+  {
+    number: "03",
+    eyebrow: "Installed-set context",
+    title: "Fleet analysis",
+    copy: "Detect shadowing, preference manipulation, trigger hijacking, and toxic flows that cannot exist inside a single artifact.",
+    tone: "blue",
+  },
+  {
+    number: "04",
+    eyebrow: "Time",
+    title: "Approval ledger",
+    copy: "Approve a fingerprint, then classify later mutations as cosmetic, capability-expanding, or semantics-inverting.",
+    tone: "cream",
+  },
+  {
+    number: "05",
+    eyebrow: "Automation",
+    title: "JSON, SARIF, and GitHub Action",
+    copy: "Emit deterministic machine-readable results and SARIF 2.1.0, with controls to fail CI on risk or incomplete analysis.",
+    tone: "coral",
+  },
+  {
+    number: "06",
+    eyebrow: "Optional evidence",
+    title: "Sandbox and adjudication",
+    copy: "Observe runtime behaviour inside the Linux boundary. Separately, an evidence-only command backend can adjudicate a capped contested subset when explicitly requested.",
+    tone: "lilac",
+  },
+];
+---
+
+<section class="section capabilities" id="capabilities" aria-labelledby="capabilities-heading">
+  <div class="container">
+    <div class="section-intro section-intro--row">
+      <div>
+        <p class="eyebrow">Capabilities</p>
+        <h2 id="capabilities-heading">Static first. Dynamic when it earns its place.</h2>
+      </div>
+      <p>
+        The deterministic core ships independently. Optional tiers add evidence without
+        weakening the offline default or silently turning partial analysis into a clean result.
+      </p>
+    </div>
+
+    <div class="capability-grid">
+      {capabilities.map((capability) => (
+        <article class={`capability-card capability-card--${capability.tone}`}>
+          <div class="capability-card__topline">
+            <span>{capability.number}</span>
+            <span>{capability.eyebrow}</span>
+          </div>
+          <div class="capability-card__glyph" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <h3>{capability.title}</h3>
+          <p>{capability.copy}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>

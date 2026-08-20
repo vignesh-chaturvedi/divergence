@@ -120,6 +120,27 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # Keep the documentation surface independent so it cannot mask analyzer evidence or
+  # release-artifact failures in the required static scan job.
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Check production build
+        working-directory: website
+        run: |
+          npm ci
+          npm run check
+          npm run build
+
   # The sandbox is Linux-only and an optional dependency, so it gets its own job. A failure
   # here must not mask the static pipeline, which is what actually ships.
   sandbox:

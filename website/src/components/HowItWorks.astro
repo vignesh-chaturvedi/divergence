@@ -1,0 +1,69 @@
+---
+const stages = [
+  {
+    id: "C",
+    label: "Claims",
+    title: "What it says",
+    detail: "Names and natural-language descriptions become a fixed capability set—not a verdict.",
+    tone: "blue",
+  },
+  {
+    id: "S",
+    label: "Schema",
+    title: "What it permits",
+    detail: "Parameters, MCP annotations, and skill tool grants expose the declared interface.",
+    tone: "mint",
+  },
+  {
+    id: "Bₛ",
+    label: "Source",
+    title: "What it reaches",
+    detail: "Reachable filesystem, network, process, environment, secret, and eval capabilities.",
+    tone: "cream",
+  },
+  {
+    id: "Bᵈ",
+    label: "Runtime",
+    title: "What it actually touches",
+    detail: "Optional behaviour observed only inside the verified fail-closed Linux sandbox.",
+    tone: "ink",
+  },
+];
+---
+
+<section class="section how" id="how-it-works" aria-labelledby="how-heading">
+  <div class="container">
+    <div class="section-intro section-intro--row">
+      <div>
+        <p class="eyebrow">How it works</p>
+        <h2 id="how-heading">Four representations. One measurable gap.</h2>
+      </div>
+      <p>
+        Each surface is analyzed independently. Set algebra finds the mismatch, then emits
+        risk only when the contradiction has concrete evidence.
+      </p>
+    </div>
+
+    <div class="representation-grid">
+      {stages.map((stage, index) => (
+        <article class={`representation-card representation-card--${stage.tone}`}>
+          <div class="representation-card__visual" aria-hidden="true">
+            <span class="representation-card__id">{stage.id}</span>
+            <span class="representation-card__layers">
+              <i></i><i></i><i></i>
+            </span>
+          </div>
+          <p class="eyebrow">{String(index + 1).padStart(2, "0")} · {stage.label}</p>
+          <h3>{stage.title}</h3>
+          <p>{stage.detail}</p>
+        </article>
+      ))}
+    </div>
+
+    <div class="compare-bar">
+      <span class="compare-bar__label">Compare</span>
+      <span class="compare-bar__formula">C · S · B<sub>static</sub> · B<sub>dynamic</sub></span>
+      <span class="compare-bar__result"><i aria-hidden="true"></i> evidence-bound risk</span>
+    </div>
+  </div>
+</section>
