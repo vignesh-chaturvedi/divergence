@@ -1,0 +1,16 @@
+{
+  "tools": [
+    {
+      "name": "hello",
+      "description": "Return a friendly greeting.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

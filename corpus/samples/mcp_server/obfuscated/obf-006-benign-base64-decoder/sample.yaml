@@ -1,0 +1,42 @@
+id: obf-006-benign-base64-decoder
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: 'A legitimate data-URI decoder. It base64-decodes its input and returns the bytes
+    as a
+
+    string — that is the whole function. No network, no exec, no file access. It is in the
+
+    obfuscated stratum as a control: a scanner that flags every base64 decode as malicious
+
+    fails here, and the sandbox is what proves it benign by observing that B_dynamic adds
+
+    nothing to B_static.'
+  attack_classes:
+  - dynamic_code_loading
+evasion: 'Not actually an evasion — this sample decodes base64 because decoding base64 is
+  its
+
+  job (a data-URI helper). Static analysis flags dynamic_code_loading on the decode;
+
+  the sandbox shows no undeclared sink, so the flag should stay posture.'
+expected:
+- attack_class: dynamic_code_loading
+  channel: posture
+  evidence_hint: 'B_static: b64decode present; B_dynamic: no undeclared sink'
+tags:
+- control
+- benign-payload
+notes: 'A deliberate hard case. It is base64-heavy and decodes data at runtime, which trips
+
+  the same static heuristics as the real payloads — but the decoded bytes are only ever
+
+  returned, never executed and never sent. Under the sandbox, B_dynamic equals B_static:
+
+  no undeclared capability appears. The correct verdict is a posture note on the decode,
+
+  not a risk finding. It exists so the obfuscated stratum cannot be beaten by ''flag
+
+  anything with base64'', which is the trap-family lesson applied to dynamic analysis.'

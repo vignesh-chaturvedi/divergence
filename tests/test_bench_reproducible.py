@@ -31,4 +31,4 @@ def test_headline_metric_present_in_json(samples):
     by_name = {s["name"]: s for s in data["scanners"]}
     assert by_name["null"]["fpr_on_traps"] == 0.0
     assert by_name["keyword"]["fpr_on_traps"] > 0.3
-    assert data["corpus"]["total"] == 80
+    assert data["corpus"]["total"] >= 80

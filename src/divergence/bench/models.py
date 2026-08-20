@@ -95,6 +95,7 @@ class Sample:
     # which is different from "verified as having no capabilities" (an empty tuple).
     verified_capabilities: tuple[Capability, ...] | None = None
     capability_miss_reason: str = ""
+    evasion: str = ""  # obfuscated stratum: how the payload hides from static analysis
 
     @property
     def is_positive(self) -> bool:

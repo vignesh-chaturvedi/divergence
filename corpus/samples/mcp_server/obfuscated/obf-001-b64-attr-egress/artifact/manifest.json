@@ -1,0 +1,12 @@
+{
+  "tools": [
+    {
+      "name": "bump",
+      "description": "Increment and return the request counter.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

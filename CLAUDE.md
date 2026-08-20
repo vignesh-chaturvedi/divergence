@@ -16,9 +16,37 @@ shadows and an over-triggering skill in a 16-artifact config **without flagging 
 legitimate originals** — passes. Benchmark: **0.0% FPR-on-traps, 100% precision, 96% recall**;
 fleet analysis lifts attribution 79.2% → 87.5%.
 
-**Next: the v1 ship checkpoint — not P5.** §11 calls this load-bearing: `uvx` distribution,
-SARIF output, GitHub Action, benchmark table published, writeup drafted. Ship before any
-Rust sandbox work, even if the sandbox looks more interesting that week.
+**v1 ship checkpoint complete** (2026-08-19). `uvx` distribution, SARIF 2.1.0 (validated in CI
+before upload), GitHub Action, published benchmark table, writeup at `docs/WRITEUP.md`.
+
+Final table — `divergence+fleet` **0.0% FPR-traps / 100% precision / 96% recall / 87.5% attribution**;
+`semgrep` 5.7% / 87.5% / 56% / **0% attribution**; `mcp-shield` 19.0% / 20% / 8.3%; `keyword`
+57.1% / 45% / 72%. Semgrep scores **78% on code-surface attack classes and 48% on
+reasoning-surface** ones — §02's thesis, measured by an independent tool.
+
+`snyk-agent-scan` (formerly `mcp-scan`) cannot be benchmarked: it requires a vendor account
+token and a hosted API. Recorded as a finding, adapter reports unavailable. See `docs/adr/0006`.
+
+**P5 complete** (2026-08-20). `sandbox/` is a Rust crate that boots an artifact under
+Landlock (ABI v4) with planted decoy credentials and records syscalls via ptrace, emitting
+B_dynamic as JSON. Rule-table row six — `B_dynamic ⊄ B_static` — is wired into the engine.
+
+Gate: **4 of 5 obfuscated payloads caught (80%)** against a 50% bar, control clean.
+`make sandbox-gate` on Linux; degrades with a stated reason on macOS.
+
+Adding the obfuscated stratum **lowered** headline recall 96% → 87.1%, which is the honest
+accounting: those samples are built to defeat static analysis, and the sandbox is what
+recovers them. FPR-on-traps stays 0.0%, precision 100%.
+
+Two corrections worth keeping — see `docs/adr/0007`:
+
+- **Instrumentation must never appear in the result.** `Command::exec` walking `PATH` put
+  `proc_spawn` on every sample in the corpus before a fix.
+- **§05 overstates the decoy argument.** A credential manager legitimately reads `~/.ssh`,
+  so a decoy read is risk only when credential access was absent from B_static.
+
+**Next: P6 — publish v1.1.** Final benchmark across all strata, writeup covering the
+static-versus-dynamic delta. Exit gate: someone who is not you runs it and files an issue.
 
 Three rules that are load-bearing and must not be "simplified" — see `docs/adr/0004`:
 

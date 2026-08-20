@@ -433,3 +433,107 @@ def _trigger_scope(
             confidence=0.8,
         )
     ]
+
+
+# --- rule table row six: B_dynamic ⊄ B_static -----------------------------------------
+
+# Capabilities worth a risk finding when they appear only at runtime. Same high-signal
+# list the B ⊄ C rule uses, and for the same reason (ADR 0004): undeclared filesystem and
+# environment access cannot separate a todo list from an exfiltrator, so they stay posture
+# even here.
+_DYNAMIC_HIGH_SIGNAL = frozenset({
+    Capability.NET_OUTBOUND,
+    Capability.PROC_SPAWN,
+    Capability.SECRETS_READ,
+    Capability.DYNAMIC_EVAL,
+    Capability.FS_DELETE,
+})
+
+
+def dynamic_divergence(
+    static_capabilities: set[Capability],
+    dynamic: "Dynamic",
+    *,
+    sample_id: str = "",
+) -> list[Finding]:
+    """B_dynamic ⊄ B_static — the artifact did at runtime what its source never showed.
+
+    §05 calls this "the strongest anti-evasion signal in the system", and the reasoning is
+    worth restating: static analysis loses to obfuscation, and execution does not care how
+    a payload was encoded. Benign code does not accidentally hide its capabilities from a
+    parser — a base64-assembled socket call is not a coincidence.
+
+    Two guards keep this honest:
+
+    - **Nothing is inferred from silence.** If the sandbox did not run, or ran without
+      observing a single syscall, there are no findings. An empty B_dynamic means "unknown",
+      never "clean".
+    - **Coverage travels with every finding.** A reader must be able to see how much of the
+      artifact actually executed, because a malicious branch gated on specific arguments
+      looks identical to no malicious branch at all.
+    """
+    if not dynamic.ran:
+        return []
+
+    findings: list[Finding] = []
+    undeclared = dynamic.capabilities - set(static_capabilities)
+
+    for capability in sorted(undeclared, key=lambda c: c.value):
+        observed = next(
+            (o for o in dynamic.observations if o.capability is capability), None
+        )
+        target = f" -> {observed.target}" if observed and observed.target else ""
+
+        findings.append(
+            Finding(
+                sample_id=sample_id,
+                channel=(
+                    Channel.RISK if capability in _DYNAMIC_HIGH_SIGNAL else Channel.POSTURE
+                ),
+                attack_class=AttackClass.DYNAMIC_CODE_LOADING,
+                severity="critical" if capability in _DYNAMIC_HIGH_SIGNAL else "info",
+                message=(
+                    f"reached {capability.value} at runtime that static analysis could not "
+                    f"see in the source{target}"
+                ),
+                evidence=dynamic.evidence.get(capability, observed.syscall if observed else ""),
+                claim=f"B_static did not contain {capability.value}; {dynamic.coverage_note}",
+                confidence=0.9 if capability in _DYNAMIC_HIGH_SIGNAL else 0.5,
+            )
+        )
+
+    # Decoy reads.
+    #
+    # §05 says "anything that reads them is caught red-handed with no ambiguity to
+    # adjudicate." That is too strong, and the corpus proves it: a credential manager reads
+    # ~/.ssh because managing credentials is its declared job, and the decoy is planted at
+    # exactly the path it legitimately opens. Firing unconditionally would flag
+    # `trap-priv-002` — the precise over-flagging this project exists to eliminate.
+    #
+    # The core rule settles it. A finding is the gap, not the capability: a decoy read is
+    # risk when credential access was *not* already visible statically, and posture when it
+    # was. The decoy still earns its keep — it makes the read observable at all, and gives
+    # a concrete path as evidence.
+    declared_secrets = Capability.SECRETS_READ in static_capabilities
+
+    for observation in dynamic.decoy_reads:
+        findings.append(
+            Finding(
+                sample_id=sample_id,
+                channel=Channel.POSTURE if declared_secrets else Channel.RISK,
+                attack_class=None if declared_secrets else AttackClass.UNDECLARED_SECRETS,
+                severity="info" if declared_secrets else "critical",
+                message=(
+                    f"read the planted decoy credential at {observation.target}"
+                    + (" — consistent with its declared capability" if declared_secrets else "")
+                ),
+                evidence=f"{observation.syscall}({observation.target})",
+                claim=(
+                    f"credential access {'was' if declared_secrets else 'was not'} visible in "
+                    f"B_static; {dynamic.coverage_note}"
+                ),
+                confidence=0.5 if declared_secrets else 0.95,
+            )
+        )
+
+    return findings

@@ -152,6 +152,7 @@ def load_sample(sample_dir: Path) -> Sample:
         notes=str(data.get("notes", "")).strip(),
         verified_capabilities=verified_capabilities,
         capability_miss_reason=str(caps_block.get("miss_reason", "")).strip(),
+        evasion=str(data.get("evasion", "")).strip(),
     )
 
 
@@ -248,6 +249,11 @@ def validate(samples: list[Sample]) -> list[Violation]:
 
         if s.stratum.is_positive and not s.expected:
             fail(s, "expected-required", "positive sample declares no expected findings")
+
+        # An obfuscated sample must say how it hides from static analysis — that claim is
+        # the sample's contribution, and the sandbox result is scored against it.
+        if s.stratum is Stratum.OBFUSCATED and not s.evasion:
+            fail(s, "evasion-required", "obfuscated sample declares no evasion rationale")
 
         for e in s.expected:
             if e.attack_class not in s.attack_classes:

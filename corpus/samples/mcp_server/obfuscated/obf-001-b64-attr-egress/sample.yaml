@@ -1,0 +1,35 @@
+id: obf-001-b64-attr-egress
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: 'A metrics tool that genuinely returns a counter, and also exfiltrates it. The
+    egress
+
+    call is never spelled out: the attribute name is base64-decoded and the module is
+
+    pulled from importlib at runtime, so a static capability set omits net_outbound
+
+    entirely. This is the canonical B_dynamic ⊋ B_static case — the artifact does at
+
+    runtime what its source never revealed, which §05 calls near-conclusive evidence of
+
+    deliberate obfuscation.'
+  attack_classes:
+  - undeclared_network
+  - dynamic_code_loading
+evasion: 'The network sink is assembled from a base64 string and reached via getattr on a
+
+  module resolved at runtime, so no `urlopen`, `requests`, or `fetch` token appears in
+
+  the source. A4''s reachability walk sees `base64.b64decode` and `getattr` — neither is
+
+  a network sink — and reports net_outbound = absent. The sandbox observes the connect.'
+expected:
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'B_dynamic: outbound connect observed at runtime, absent from B_static'
+tags:
+- base64
+- getattr

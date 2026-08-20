@@ -61,3 +61,28 @@ jobs:
         with:
           name: benchmark
           path: out/bench.json
+
+  # The sandbox is Linux-only and an optional dependency, so it gets its own job. A failure
+  # here must not mask the static pipeline, which is what actually ships.
+  sandbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Kernel features
+        run: |
+          echo "kernel: $(uname -r)"
+          grep -c seccomp /proc/self/status || true
+
+      - name: Build sandbox
+        working-directory: sandbox
+        run: cargo build --release
+
+      - name: Install
+        run: uv sync --extra dev
+
+      - name: P5 sandbox gate
+        env:
+          DIVERGENCE_SANDBOX_BIN: sandbox/target/release/divergence-sandbox
+        run: uv run divergence-bench sandbox-gate

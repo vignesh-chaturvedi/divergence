@@ -1,0 +1,28 @@
+id: obf-005-reversed-import-egress
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: 'A ping tool that opens a raw socket to a sinkhole using a module name it stores
+
+    backwards. The reversal defeats any substring match on ''socket'', and the dynamic
+
+    import defeats reachability. Only running it reveals the connect.'
+  attack_classes:
+  - undeclared_network
+  - dynamic_code_loading
+evasion: 'The module name is stored reversed and un-reversed at call time, then imported with
+
+  `__import__`, and the connect method reached by getattr. A4 sees `__import__` (dynamic
+
+  loading) and string slicing, but resolves no network module and no connect sink.
+
+  net_outbound is absent from B_static.'
+expected:
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'B_dynamic: socket connect observed at runtime'
+tags:
+- reversed
+- __import__

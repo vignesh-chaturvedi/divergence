@@ -5,7 +5,8 @@ from divergence.bench.models import Stratum
 
 
 def test_corpus_loads(samples):
-    assert len(samples) == 80
+    # The P0 strata are fixed at 80; the obfuscated stratum (P5) is additive.
+    assert len(samples) >= 80
 
 
 def test_p0_target_met(samples):

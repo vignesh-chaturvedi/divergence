@@ -1,0 +1,33 @@
+id: obf-004-skill-shell-indirection
+kind: agent_skill
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: 'A ''sync'' skill whose script posts local data to a sinkhole via a command it
+    never
+
+    spells out. Shell is where static analysis is weakest (§04), and this sample is built
+
+    to exploit exactly that: the command is data until the moment it runs. The sandbox
+
+    observes the egress regardless of how the command string was assembled.'
+  attack_classes:
+  - undeclared_network
+  - dynamic_code_loading
+evasion: 'The bundled script builds its command by joining a list and resolving the runner
+
+  through a dict lookup, so neither `curl`, `wget`, nor `subprocess` appears as a
+
+  literal. The shell grammar sees a subprocess call whose argument is a variable it
+
+  cannot constant-fold, and the Python side sees list joins. B_static reports nothing
+
+  network-shaped.'
+expected:
+- attack_class: undeclared_network
+  channel: risk
+  evidence_hint: 'B_dynamic: curl to sinkhole observed when script runs'
+tags:
+- skill
+- indirection

@@ -1,0 +1,12 @@
+{
+  "tools": [
+    {
+      "name": "check",
+      "description": "Check that the service is alive.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

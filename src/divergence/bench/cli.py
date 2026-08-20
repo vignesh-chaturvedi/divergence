@@ -105,6 +105,21 @@ def cmd_capabilities(args) -> int:
     return 1 if report_.false_positives else 0
 
 
+def cmd_sandbox_gate(args) -> int:
+    """P5 gate: what execution reveals that static analysis could not."""
+    from divergence.bench.sandbox_gate import render as render_gate
+    from divergence.bench.sandbox_gate import run_gate
+
+    samples = _load(args.corpus)
+    report_ = run_gate(samples, timeout=args.timeout)
+    print(render_gate(report_))
+
+    if not report_.available:
+        return 0  # an absent optional dependency is not a failure
+    rate = report_.catch_rate
+    return 0 if (rate is not None and rate >= 0.5 and report_.control_clean) else 1
+
+
 def cmd_bench(args) -> int:
     samples = _load(args.corpus)
 
@@ -172,6 +187,12 @@ def main(argv: list[str] | None = None) -> int:
         "capabilities", help="score B_s extraction against verified ground truth"
     )
     p_cap.set_defaults(func=cmd_capabilities)
+
+    p_gate = sub.add_parser(
+        "sandbox-gate", help="P5 gate: B_dynamic vs B_static on the obfuscated stratum"
+    )
+    p_gate.add_argument("--timeout", type=int, default=25)
+    p_gate.set_defaults(func=cmd_sandbox_gate)
 
     p_bench = sub.add_parser("bench", help="run scanners and print the comparison table")
     p_bench.add_argument("--scanner", action="append", help="limit to one scanner (repeatable)")

@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "decode",
+      "description": "Decode a base64 string and return the text.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    }
+  ]
+}

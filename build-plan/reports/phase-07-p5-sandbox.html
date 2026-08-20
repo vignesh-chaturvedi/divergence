@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Divergence — Progress 07 · P5 Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E4E5DF; --panel:#DBDCD3; --panel-2:#D1D3C7;
+  --ink:#22241D; --slate:#6B6F62; --rule:#C2C4B6;
+  --moss:#55692F; --moss-dim:#7C8C5C;
+  --amber:#96731A; --amber-lite:#C9A93F; --rust:#8A4B2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+  font-size:17px;line-height:1.62;padding:0 0 6rem}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;margin:0}
+h3{font-weight:600;font-size:1.1rem;margin:2.2rem 0 .6rem}
+code,kbd{font-family:var(--mono);font-size:.86em;background:var(--panel-2);
+  padding:.12em .38em;border-radius:3px;border:1px solid var(--rule)}
+a{color:var(--moss)}
+header.mast{border-bottom:2px solid var(--ink);padding:3.2rem 0 1.4rem;margin-bottom:2.4rem}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--slate);display:flex;gap:.9rem;flex-wrap:wrap;
+  align-items:center;margin-bottom:1.4rem}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--moss-dim)}
+h1{font-size:clamp(2.4rem,6.2vw,3.8rem);font-weight:800;letter-spacing:-.028em}
+h1 .sub{display:block;font-weight:400;font-size:clamp(1rem,2.4vw,1.32rem);
+  color:var(--slate);letter-spacing:-.01em;margin-top:.5rem}
+.standfirst{margin:1.5rem 0 0;max-width:64ch;font-size:1.08rem;color:#3A3D33}
+.banner{display:flex;gap:1rem;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-left:4px solid var(--moss);
+  padding:1.1rem 1.3rem;border-radius:4px;margin:2.2rem 0}
+.banner.hold{border-left-color:var(--amber)}
+.banner.warn{border-left-color:var(--rust)}
+.banner .mark{font-family:var(--display);font-weight:800;color:var(--moss);
+  font-size:1.3rem;line-height:1.2;flex:none}
+.banner.hold .mark{color:var(--amber)}
+.banner.warn .mark{color:var(--rust)}
+.banner p{margin:0;font-size:.97rem}
+.banner p + p{margin-top:.6rem}
+.banner strong{font-family:var(--display);font-weight:600}
+section{margin:3.4rem 0 0}
+.sec-head{display:flex;align-items:baseline;gap:.9rem;border-bottom:1px solid var(--rule);
+  padding-bottom:.6rem;margin-bottom:1.6rem;flex-wrap:wrap}
+.sec-num{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--moss);
+  text-transform:uppercase;flex:none}
+.sec-head h2{font-size:clamp(1.4rem,3.2vw,1.9rem);font-weight:600;letter-spacing:-.02em}
+.headline{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:1.6rem 1.5rem;margin:1.6rem 0;display:grid;gap:1.4rem;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.metric .lbl{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--slate);margin-bottom:.3rem}
+.metric .num{font-family:var(--display);font-weight:800;font-size:2.4rem;
+  letter-spacing:-.035em;line-height:1}
+.metric .num.good{color:var(--moss)}
+.metric .num.bad{color:var(--rust)}
+.metric .cap{font-size:.85rem;color:var(--slate);margin-top:.35rem;line-height:1.45}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem}
+.card .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--slate);margin-bottom:.42rem}
+.card .v{font-family:var(--display);font-weight:600;font-size:1.02rem;letter-spacing:-.012em}
+.card .n{font-size:.85rem;color:var(--slate);margin-top:.3rem;line-height:1.45}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--slate);border-bottom:1.5px solid var(--ink);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:.84rem;white-space:nowrap}
+td.num{text-align:right;font-family:var(--mono);font-size:.85rem;white-space:nowrap}
+tr.emph td{background:rgba(85,105,47,.08)}
+tr.rival td{background:rgba(150,115,26,.08)}
+.pill{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2em .55em;border-radius:3px;border:1px solid;white-space:nowrap}
+.pill.done{color:var(--moss);border-color:var(--moss-dim);background:rgba(85,105,47,.09)}
+.pill.hold{color:var(--amber);border-color:var(--amber-lite);background:rgba(150,115,26,.1)}
+.pill.todo{color:var(--slate);border-color:var(--rule);background:rgba(107,111,98,.07)}
+.pill.gate{color:var(--rust);border-color:var(--rust);background:rgba(138,75,42,.09)}
+ul.check{list-style:none;padding:0;margin:1rem 0}
+ul.check li{position:relative;padding-left:1.9rem;margin-bottom:.62rem}
+ul.check li::before{content:"✓";position:absolute;left:0;top:-.05em;color:var(--moss);
+  font-family:var(--display);font-weight:800}
+pre.term{background:#1E201A;color:#D6D8CC;border:1px solid var(--rule);border-radius:4px;
+  padding:1.1rem 1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.74rem;
+  line-height:1.65;margin:1.2rem 0}
+pre.term .c{color:#7C8C5C}
+pre.term .h{color:#C9A93F}
+pre.term .g{color:#9FBF6A}
+pre.term .r{color:#C98A6A}
+.note{border-left:3px solid var(--moss-dim);padding:.15rem 0 .15rem 1.1rem;
+  margin:1.4rem 0;color:#3A3D33;font-size:.96rem}
+.note.warn{border-left-color:var(--rust)}
+.bars{margin:1.4rem 0}
+.barrow{display:grid;grid-template-columns:minmax(120px,180px) 1fr auto;gap:.8rem;
+  align-items:center;margin-bottom:.55rem;font-size:.9rem}
+.barrow .track{background:var(--panel-2);border-radius:3px;height:16px;overflow:hidden;
+  border:1px solid var(--rule)}
+.barrow .fill{height:100%;background:var(--moss)}
+.barrow .fill.warn{background:var(--rust)}
+.barrow .val{font-family:var(--mono);font-size:.8rem;min-width:3.4em;text-align:right}
+footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+@media(max-width:560px){ body{font-size:16px} .metric .num{font-size:2rem} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">
+    <span>Divergence</span><span class="dot"></span>
+    <span>Progress report 07</span><span class="dot"></span>
+    <span>Phase P5 — Rust sandbox</span><span class="dot"></span>
+    <span>20 Aug 2026</span>
+  </div>
+  <h1>P5 complete<span class="sub">Execution found four payloads that no parser could see — and stayed silent on the one that only looked like them</span></h1>
+  <p class="standfirst">A Rust crate boots an artifact under Landlock with planted decoy
+  credentials, records its syscalls via ptrace, and emits B<sub>dynamic</sub> in the same
+  capability vocabulary A4 uses. The sixth rule-table row is now wired.</p>
+</header>
+
+<div class="banner">
+  <span class="mark">✓</span>
+  <div>
+    <p><strong>Exit gate met.</strong> §07 asked for "at least half the obfuscated stratum
+    that static analysis missed, with observed-coverage reported per finding."
+    <strong>4 of 5 payloads caught (80%)</strong>, control clean, coverage attached to every
+    result.</p>
+    <p>230 Python tests pass. The crate compiled on the first attempt; every bug found after
+    that was semantic, and three of them were mine measuring myself.</p>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>What execution revealed</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Sample</th><th>B<sub>static</sub></th><th>Revealed by execution</th><th class="num">Risk</th></tr></thead>
+    <tbody>
+      <tr class="emph"><td><code>obf-001-b64-attr-egress</code></td><td><em>nothing</em></td><td><strong>net_outbound</strong></td><td class="num">1</td></tr>
+      <tr class="emph"><td><code>obf-002-fragment-assembled-exec</code></td><td><em>nothing</em></td><td><strong>proc_spawn</strong></td><td class="num">1</td></tr>
+      <tr class="emph"><td><code>obf-003-hex-exec-credential-read</code></td><td>dynamic_eval</td><td><strong>secrets_read</strong> (decoy)</td><td class="num">2</td></tr>
+      <tr><td><code>obf-004-skill-shell-indirection</code></td><td>proc_spawn</td><td>—</td><td class="num">0</td></tr>
+      <tr class="emph"><td><code>obf-005-reversed-import-egress</code></td><td>dynamic_eval</td><td><strong>net_outbound</strong></td><td class="num">1</td></tr>
+      <tr><td><code>obf-006-benign-base64-decoder</code> <span class="pill todo">control</span></td><td><em>nothing</em></td><td>—</td><td class="num">0</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Two of these show <strong>literally nothing</strong> to a parser. Two more show only
+  <code>dynamic_eval</code> — a flag that says code is being generated without saying what it
+  does. §05 called this "the strongest anti-evasion signal in the system", and the reasoning
+  holds up: benign code does not accidentally hide its capabilities from a parser.</p>
+
+  <p class="note"><strong><code>obf-006</code> is why the control exists.</strong> It is
+  base64-heavy, decodes at runtime, and is entirely benign — a data-URI helper. Static
+  analysis is suspicious of it and the sandbox clears it, because B<sub>dynamic</sub> adds
+  nothing to B<sub>static</sub>. A phase that caught four payloads and also condemned this
+  one would have reproduced the project's founding failure at greater expense.</p>
+
+  <p><strong><code>obf-004</code> is missed, and the reason matters more than the miss.</strong>
+  <code>curl</code> is not installed in the test image, so the egress never executes. Nothing
+  — static or dynamic — can observe a branch that does not run. That is exactly why coverage
+  travels with every finding rather than sitting in a footnote.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Three bugs where the tool measured itself</h2></div>
+
+  <p>The crate compiled first try. Every real bug was semantic, and the worst were false
+  positives manufactured by the instrumentation.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Bug</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Importing is not running.</strong> Running <code>server.py</code> directly just fails at <code>import mcp</code>.</td><td>The handler never executed, so the sandbox observed startup and reported a clean artifact — <em>indistinguishable from a real negative.</em> Fixed with a driver that stubs the SDK and calls every registered tool.</td></tr>
+      <tr><td><strong><code>Command::exec</code> walks <code>PATH</code></strong>, issuing a failed <code>execve</code> per candidate.</td><td>Four recorded execs before any artifact code ran — <code>proc_spawn</code> on <strong>every sample in the corpus</strong>. Fixed by resolving the interpreter absolutely, once.</td></tr>
+      <tr><td><strong>A relative artifact path.</strong> Landlock resolves rules inside the runner.</td><td>The ruleset confined the driver away from the artifact. The trace still ran and returned an identical empty result for all six samples — the giveaway was six identical syscall counts.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note warn">A scanner that manufactures findings through its own measurement is
+  the failure this project exists to eliminate, arrived at by a more expensive route. The
+  first two would have shipped a sandbox that flagged everything; the third, one that flagged
+  nothing. Both look plausible from the outside.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Where the spec is wrong</h2></div>
+
+  <p>§05 says of the decoy credentials: <em>"Anything that reads them is caught red-handed
+  with no ambiguity to adjudicate."</em></p>
+
+  <p><strong>That is too strong, and this project's own corpus disproves it.</strong> A
+  credential manager reads <code>~/.ssh</code> because managing credentials is its declared
+  job — and the decoy is planted at exactly the path it legitimately opens. Firing
+  unconditionally flags <code>trap-priv-002</code>, a benign artifact in the trap stratum.</p>
+
+  <p>The core rule settles it. A finding is the gap, not the capability: a decoy read is
+  <strong>risk</strong> when credential access was absent from B<sub>static</sub>, and
+  <strong>posture</strong> when it was already declared. The decoy still earns its place — it
+  makes the read observable at all, and supplies a concrete path as evidence.</p>
+
+  <p class="note">Found by a test I wrote asserting the opposite of what I had implemented.
+  The test was right.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>The honest accounting</h2></div>
+
+  <div class="headline">
+    <div class="metric"><div class="lbl">Recall before P5</div><div class="num">96.0%</div>
+      <div class="cap">25 malicious samples</div></div>
+    <div class="metric"><div class="lbl">Recall after</div><div class="num bad">87.1%</div>
+      <div class="cap">31 positives — 6 obfuscated added</div></div>
+    <div class="metric"><div class="lbl">FPR-on-traps</div><div class="num good">0.0%</div>
+      <div class="cap">unchanged</div></div>
+    <div class="metric"><div class="lbl">Precision</div><div class="num good">100%</div>
+      <div class="cap">unchanged</div></div>
+  </div>
+
+  <p><strong>Adding the obfuscated stratum lowered the headline recall, and that is the
+  correct outcome.</strong> Those six samples were built specifically to defeat static
+  analysis, so a static-only pipeline should score worse once they are in the corpus. The
+  alternative — leaving them out — would have kept a prettier number by declining to measure
+  the thing the phase exists to measure.</p>
+
+  <p>The sandbox recovers four of the five. It is reported as a separate gate rather than
+  folded into the headline, because B<sub>dynamic</sub> is an optional input that most users
+  on macOS will never have.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Limits, all reported</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Limit</th><th>Consequence</th></tr></thead>
+    <tbody>
+      <tr><td><strong><code>env_read</code> is invisible.</strong> Environment access is a memory read, not a syscall.</td><td>It can never appear in B<sub>dynamic</sub>, so its absence is never evidence. Stated in the runner's own <code>limitations</code> output.</td></tr>
+      <tr><td><strong>Coverage bounds every claim.</strong></td><td>An empty capability set means "nothing ran" or "nothing happened" — opposite conclusions. <code>Dynamic.ran</code> distinguishes them and refuses to emit findings when nothing executed.</td></tr>
+      <tr><td><strong>An artifact re-executing the same interpreter is not counted.</strong></td><td>A side effect of suppressing the driver's own exec. Narrow, and named rather than discovered later.</td></tr>
+      <tr><td><strong>The seccomp filter is not installed.</strong></td><td>§05 specifies seccomp-bpf trace mode; ptrace alone carries the observation today. The filter is an optimisation over the supervisor, not a capability it lacks.</td></tr>
+      <tr><td><strong>Only 6 obfuscated samples.</strong></td><td>§06 sketches ~30 for the published corpus. Six was enough to build and measure the loop; the stratum should grow before v1.1 ships.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note"><strong>Containment held.</strong> The crate is consumed over JSON and never
+  linked. On macOS <code>availability()</code> returns a reason and the pipeline continues
+  static-only — verified by tests that run on both platforms. §05 required that an overrun
+  here cost a version number rather than the project; it did not overrun, but the insulation
+  is real and tested either way.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Next — P6, publish v1.1</h2></div>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Phase</th><th>Exit gate</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>P0 — ground truth</td><td><code>make bench</code> reproduces the table</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P1 — deterministic core</td><td>Non-zero score using no model</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P2 — static behaviour</td><td>Capability sets verified on 50 artifacts</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P3 — divergence engine</td><td>FPR-on-traps beats every baseline</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P4 — fleet analysis</td><td>Shadow caught, originals clean</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>◇ v1 ship checkpoint</td><td>uvx · SARIF · Action · table · writeup</td><td><span class="pill done">complete</span></td></tr>
+      <tr><td>P5 — Rust sandbox</td><td>Half the obfuscated stratum</td><td><span class="pill done">complete · 80%</span></td></tr>
+      <tr><td>P6 — publish v1.1</td><td>Someone who is not you files an issue</td><td><span class="pill gate">next</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Two things I would do before v1.1 rather than after: <strong>grow the obfuscated
+  stratum</strong> toward the ~30 §06 sketches, since six samples is a thin basis for a
+  headline static-versus-dynamic delta; and <strong>install the seccomp filter</strong> so the
+  implementation matches what §05 specifies rather than approximating it.</p>
+
+  <p class="note">P6's gate is the one that cannot be self-assessed: <em>someone who is not
+  you runs it against their own config and files an issue.</em> Everything up to here I could
+  verify alone. That one needs a stranger.</p>
+</section>
+
+<footer>Divergence · progress report 07 · phase P5 complete · precision over coverage</footer>
+
+</div>
+</body>
+</html>

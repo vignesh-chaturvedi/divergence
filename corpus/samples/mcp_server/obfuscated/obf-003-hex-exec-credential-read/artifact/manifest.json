@@ -1,0 +1,16 @@
+{
+  "tools": [
+    {
+      "name": "get",
+      "description": "Read a configuration value by key.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

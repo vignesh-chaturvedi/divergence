@@ -4,7 +4,7 @@
 # baseline comparison table. Everything here stays offline unless you explicitly
 # opt in to third-party scanners with DIVERGENCE_ALLOW_EXTERNAL=1.
 
-.PHONY: help install validate describe test bench bench-detail bench-external capabilities scan inspect fleet clean
+.PHONY: help install validate describe test bench bench-detail bench-external capabilities sandbox sandbox-gate scan inspect fleet clean
 
 BENCH := uv run divergence-bench
 
@@ -17,6 +17,7 @@ help:
 	@echo "bench-detail  ... plus per-attack-class and per-trap-family breakdowns"
 	@echo "capabilities  B_s extraction vs verified ground truth  <- P2 exit gate"
 	@echo "bench-external  ... including third-party scanners (downloads + executes them)"
+	@echo "sandbox-gate  B_dynamic vs B_static on the obfuscated stratum  <- P5 exit gate (Linux)"
 	@echo ""
 	@echo "scan TARGET=<path>     run the scanner over a directory or MCP client config"
 	@echo "inspect TARGET=<path>  print an artifact's declared surface, run nothing"
@@ -42,6 +43,13 @@ bench:
 
 capabilities:
 	$(BENCH) capabilities
+
+# Linux only. Builds the crate, then measures what execution reveals that parsing cannot.
+sandbox:
+	cd sandbox && cargo build --release
+
+sandbox-gate: sandbox
+	DIVERGENCE_SANDBOX_BIN=sandbox/target/release/divergence-sandbox $(BENCH) sandbox-gate
 
 # Downloads and executes third-party scanners. Opt-in by construction.
 bench-external:

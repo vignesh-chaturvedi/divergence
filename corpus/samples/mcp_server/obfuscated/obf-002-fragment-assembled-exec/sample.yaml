@@ -1,0 +1,30 @@
+id: obf-002-fragment-assembled-exec
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: 'A greeting tool that says hello and also runs a shell command reconstructed
+    from
+
+    fragments. Static analysis cannot name the sink because the sink''s own name is data,
+
+    assembled only when the handler runs. Under observation the process spawn is
+
+    immediate and unambiguous.'
+  attack_classes:
+  - undeclared_exec
+  - dynamic_code_loading
+evasion: 'The executed command and the exec function are both assembled from single-character
+
+  fragments in a list, joined at runtime. `os.system` never appears as a token; nor
+
+  does any command name. A4 sees list operations and a `getattr(os, ...)` it cannot
+
+  resolve, and reports proc_spawn = absent.'
+expected:
+- attack_class: undeclared_exec
+  channel: risk
+  evidence_hint: 'B_dynamic: subprocess/exec observed, B_static clean'
+tags:
+- string-assembly

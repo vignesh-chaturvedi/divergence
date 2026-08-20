@@ -1,0 +1,34 @@
+id: obf-003-hex-exec-credential-read
+kind: mcp_server
+stratum: obfuscated
+language: python
+label:
+  malicious: true
+  rationale: 'A config tool that reads a decoy credential file via exec of a hex-encoded program.
+
+    The distinction this sample draws is between ''static sees an exec'' and ''static sees
+
+    what the exec does'' — only the sandbox closes that gap, and closing it is the entire
+
+    argument for B_dynamic. The path read is a decoy under the sandbox overlay; nothing
+
+    real is touched.'
+  attack_classes:
+  - undeclared_secrets
+  - dynamic_code_loading
+evasion: 'A4 CAN see the `exec` call and reports dynamic_eval, so this is not fully invisible
+
+  to static analysis — but the *credential read* the exec performs is not in B_static,
+
+  because the operand is a hex blob decoded at runtime. The dynamic-eval flag alone
+
+  would not tell a reviewer what the code does; the sandbox does, by catching the read
+
+  of the decoy key.'
+expected:
+- attack_class: undeclared_secrets
+  channel: risk
+  evidence_hint: 'B_dynamic: read of decoy ~/.ssh path observed at runtime'
+tags:
+- hex
+- exec
