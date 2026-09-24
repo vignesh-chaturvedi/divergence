@@ -34,7 +34,7 @@ divergence-bench = "divergence.bench.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "hatchling==1.32.0",
+    "hatchling==1.32.4",
     "pyright>=1.1.400",
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",
@@ -48,7 +48,7 @@ Issues = "https://github.com/vignesh-chaturvedi/divergence/issues"
 Source = "https://github.com/vignesh-chaturvedi/divergence"
 
 [build-system]
-requires = ["hatchling==1.32.0"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
